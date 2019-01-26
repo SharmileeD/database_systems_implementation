@@ -1,1 +1,4 @@
 .DS_Store
+*.o
+*.h
+P1/Makefile
