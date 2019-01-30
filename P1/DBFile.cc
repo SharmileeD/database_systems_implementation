@@ -8,15 +8,21 @@
 #include "Defs.h"
 #include "iostream.h"
 #include <fstream>
-
 using namespace std;
 
 // stub file .. replace it with your own DBFile.cc
 
 DBFile::DBFile () {
+	
 }
 
 int DBFile::Create (const char *f_path, fType f_type, void *startup) {
+	//File newFile;
+    this->file_instance->Open(0,(char*)f_path);
+    this->file_instance->Close();
+	//Try catch pending
+	return 1;
+
 }
 
 // Method to bulk load the DBFile from a text file
@@ -39,6 +45,10 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 }
 
 int DBFile::Open (const char *f_path) {
+//	File dbFile;
+//	(int)dbFile.GetLength();
+	this->file_instance->Open(this->file_instance->GetLength(), (char*)f_path);
+	return 1;	
 }
 
 void DBFile::MoveFirst () {
@@ -48,6 +58,8 @@ void DBFile::MoveFirst () {
 }
 
 int DBFile::Close () {
+	this->file_instance->Close();
+	return 1;		
 }
 
 // Method to Add a record to the DBFile instance. 
@@ -57,7 +69,7 @@ int DBFile::Close () {
 void DBFile::Add (Record &rec) {
     try
     {   int last_page_added = 0;
-    
+        // This if statement checks if the page_buffer is full
         if(this->buffer_page->Append(&rec)!=1){
             ofstream auxfile_out;
             ifstream auxfile_in;
@@ -84,6 +96,8 @@ void DBFile::Add (Record &rec) {
             this->buffer_page->Append(&rec);
         
         }
+        
+        
     }
     catch(exception e){
         cerr << e.what() << '\n';
