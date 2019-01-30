@@ -42,7 +42,9 @@ int DBFile::Open (const char *f_path) {
 }
 
 void DBFile::MoveFirst () {
-
+//In this case we just flush the page buffer -> load the first page and set the pointer to the first record
+    this->file_instance->GetPage(this->buffer_page, 0);
+    this->buffer_page->GetFirst(this->rec_pointer);
 }
 
 int DBFile::Close () {
