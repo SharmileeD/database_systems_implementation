@@ -84,34 +84,26 @@ int DBFile::Close () {
 // and after emptying the buffer it writes the record to the buffer
 void DBFile::Add (Record &rec) {
     try
-    {   int last_page_added = 0;
-	off_t last_pg;
+    {   long last_page_added = 0;
         // This if statement checks if the page_buffer is full
         if(this->buffer_page.Append(&rec)!=1){
-            ofstream auxfile_out;
-            ifstream auxfile_in;
-            std::string::size_type sz;
-            string last_page;
-            auxfile_in.open("aux_text_file.txt");
+            
             //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
             //TODO: Consider adding helpers for the same so they can be used from other functions
             if (this->file_instance.GetLength() != 0){
-                auxfile_in >> last_page;
-                last_page_added = std::stoi (last_page,&sz);
-                last_pg = last_page_added;
-		auxfile_in.close();
+                
+                GetValueFromTxt(0, "aux_text_file.txt", last_page_added);
+                
             }
 		
             // Here we write the page to file and empty it out and 
             // add record to the new empty page buffer
-            int page_num = this->file_instance.GetLength();
-            this->file_instance.AddPage(&this->buffer_page, last_pg);
-            last_pg = last_pg + 1;
-            auxfile_out.open("aux_text_file.txt", ios::trunc);
-            auxfile_out << last_pg << endl;
-            auxfile_out.close();
-            this->buffer_page.EmptyItOut();
-            this->buffer_page.Append(&rec);
+            int page_num = this->file_instance->GetLength();
+            this->file_instance.AddPage(this -> buffer_page, last_page_added);
+            last_page_added++;
+            SetValueFromTxt(0,"aux_text_file.txt", last_page_added);
+            this->buffer_page->EmptyItOut();
+            this->buffer_page->Append(&rec);
         
         }
         
@@ -135,4 +127,43 @@ int DBFile::GetNext (Record &fetchme) {
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+}
+
+void DBFile::GetValueFromTxt(int property, string text_store , long &return_value ){
+    string temp_string;
+    ifstream auxfile_in;
+    std::string::size_type sz;
+    auxfile_in.open(text_store);
+    for(size_t i = 0; i < 3; i++)
+    {
+        auxfile_in >> temp_string;
+        if (property == i){
+            break;   
+        }
+
+    }
+    
+    return_value = std::stoi (temp_string,&sz);
+    auxfile_in.close();
+    
+}
+
+void DBFile::SetValueFromTxt(int property, string text_store , long set_value ){
+    ofstream auxfile_out;
+    long old_values [3];
+    for(size_t i = 0; i < 3; i++){
+         GetValueFromTxt(i, "aux_text_file.txt", old_values[i]);
+    } 
+    
+    auxfile_out.open("aux_text_file.txt", ios::trunc);
+    for(size_t i = 0; i < 3; i++){
+        
+        if (property == i){
+            auxfile_out << set_value << endl;
+        }
+        else{
+            auxfile_out << old_values[i] << endl;
+        }
+    }
+    auxfile_out.close();
 }

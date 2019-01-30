@@ -31,6 +31,9 @@ public:
 	void Add (Record &addme);
 	int GetNext (Record &fetchme);
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
+	void GetValueFromTxt(int property, string text_store, long &return_value);
+	void SetValueFromTxt(int property, string text_store, long set_value);
+
 
 };
 #endif
