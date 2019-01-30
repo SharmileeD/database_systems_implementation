@@ -8,12 +8,14 @@
 #include "Defs.h"
 #include "iostream"
 #include <fstream>
+#include <typeinfo>
 using namespace std;
 
 // stub file .. replace it with your own DBFile.cc
 
 DBFile::DBFile () {
-	
+	rec_ptr_page = 0;
+	latest_page = 0;		
 }
 
 int DBFile::Create (const char *f_path, fType f_type, void *startup) {
@@ -83,54 +85,54 @@ int DBFile::Close () {
 // if the page buffer is full it writes the page out to disk 
 // and after emptying the buffer it writes the record to the buffer
 void DBFile::Add (Record &rec) {
-    try
-    {   long last_page_added = 0;
+   // try {
+//       long last_page_added = 0;
         // This if statement checks if the page_buffer is full
         if(this->buffer_page.Append(&rec)!=1){
             
             //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
             //TODO: Consider adding helpers for the same so they can be used from other functions
-            if (this->file_instance.GetLength() != 0){
+//            if (this->file_instance.GetLength() != 0){
                 
-                GetValueFromTxt(0, "aux_text_file.txt", last_page_added);
+//                GetValueFromTxt(0, "aux_text_file.txt", latest_page);
                 
-            }
+//            }
 		
             // Here we write the page to file and empty it out and 
             // add record to the new empty page buffer
-            int page_num = this->file_instance->GetLength();
-            this->file_instance.AddPage(this -> buffer_page, last_page_added);
-            last_page_added++;
-            SetValueFromTxt(0,"aux_text_file.txt", last_page_added);
-            this->buffer_page->EmptyItOut();
-            this->buffer_page->Append(&rec);
+            int page_num = this->file_instance.GetLength();
+            this->file_instance.AddPage(&this -> buffer_page, latest_page);
+            latest_page++;
+            SetValueFromTxt(0,"aux_text_file.txt", latest_page);
+            this->buffer_page.EmptyItOut();
+            this->buffer_page.Append(&rec);
         
         }
         
         
 	    
-     }
-    catch(exception e){
-        cerr << e.what() << '\n';
-    }
+    // }
+    //catch(exception e){
+    //    cerr << e.what() <<"Inside Add DBFile" <<'\n';
+    //}
     
 }
 
 int DBFile::GetNext (Record &fetchme) {
-	/*int page_num = 0;
+	int page_num = 0;
 	Record *fetch_record;
-	this->file_instance->GetPage(this->buffer_page, page_num);
-        //this->buffer_page->GetFirst(this->rec_pointer);	
+	this->file_instance.GetPage(this->buffer_page, page_num);
+        //this->buffer_page.GetFirst(this->rec_pointer);	
 	fetch_record->Copy(rec_pointer);
 	//cout << fetch_record;
-	return 1;*/
+	return 1;
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 }
 
 void DBFile::GetValueFromTxt(int property, string text_store , long &return_value ){
-    string temp_string;
+   /* string temp_string;
     ifstream auxfile_in;
     std::string::size_type sz;
     auxfile_in.open(text_store);
@@ -145,7 +147,7 @@ void DBFile::GetValueFromTxt(int property, string text_store , long &return_valu
     
     return_value = std::stoi (temp_string,&sz);
     auxfile_in.close();
-    
+    */
 }
 
 void DBFile::SetValueFromTxt(int property, string text_store , long set_value ){
