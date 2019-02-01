@@ -16,7 +16,7 @@ class DBFile {
 private:
 //	Page  buffer_page;
 	File  file_instance;
-	Record  rec_pointer;
+	Record*  rec_pointer;
 //	char  aux_text_file [];
 	int rec_ptr_page;
 	int dirty_page;
@@ -36,7 +36,8 @@ public:
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
 	void GetValueFromTxt(int property, string text_store, long &return_value);
 	void SetValueFromTxt(int property, string text_store, long set_value);
-
+	File* GetFileInstance();
+//        void Set_rec_pointer();
 
 };
 #endif

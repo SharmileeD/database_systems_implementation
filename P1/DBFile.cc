@@ -1,4 +1,5 @@
 #include "TwoWayList.h"
+#include "TwoWayList.cc"	
 #include "Record.h"
 #include "Schema.h"
 #include "File.h"
@@ -9,6 +10,8 @@
 #include "iostream"
 #include <fstream>
 #include <typeinfo>
+#include <cstring>
+
 using namespace std;
 
 // stub file .. replace it with your own DBFile.cc
@@ -65,8 +68,11 @@ int DBFile::Open (const char *f_path) {
 
 void DBFile::MoveFirst () {
 //In this case we just flush the page buffer -> load the first page and set the pointer to the first record
-  /*  this->file_instance.GetPage((off_t)0,this->buffer_page);
-    this->buffer_page.GetFirst(this->rec_pointer);*/
+	this->file_instance.GetPage(&this->buffer_page,0);
+	TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
+        Record * new_rec = recordList->Current(0);
+	rec_pointer = new_rec;
+	rec_ptr_page = 0;	
 }
 
 int DBFile::Close () {
@@ -103,7 +109,6 @@ void DBFile::Add (Record &rec) {
             int page_num = this->file_instance.GetLength();
             this->file_instance.AddPage(&this -> buffer_page, latest_page);
             latest_page++;
-            SetValueFromTxt(0,"aux_text_file.txt", latest_page);
             this->buffer_page.EmptyItOut();
             this->buffer_page.Append(&rec);
         
@@ -120,15 +125,53 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
-	Record *fetch_record;
-	this->file_instance.GetPage(this->buffer_page, page_num);
-        //this->buffer_page.GetFirst(this->rec_pointer);	
-	fetch_record->Copy(rec_pointer);
-	//cout << fetch_record;
+        this->file_instance.GetPage(&this->buffer_page, rec_ptr_page);
+        TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
+	Record * new_rec = recordList->Current(0);
+        char* bits;
+	new_rec->GetRecordBits(bits);
+	fetchme.SetRecordBits(bits);		
+	//strncpy(fetchme., new_rec -> GetRecordBits(), sizeof(new_rec));	
+	//fetchme = any_rec;
+	//cout << typeid(fetchme).name() << endl;
+	//cout << typeid(*any_rec).name() <<endl;
+	//fetchme = *any_rec;
+	recordList->Advance ();
 	return 1;
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+	ComparisonEngine comp;
+	int page_num = 0;
+	bool found = true;
+
+	while(rec_ptr_page < file_instance.GetLength()) {
+		this->file_instance.GetPage(&this->buffer_page, rec_ptr_page);
+	        TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
+		if(recordList->RightLength() > 0)
+                	rec_pointer = recordList->Current(0);
+	        else
+                	return 0;
+
+		while(!comp.Compare(rec_pointer, &literal, &cnf)){
+			if(recordList->RightLength() > 0) {
+				recordList->Advance ();
+				rec_pointer = recordList->Current(0);
+			} else {
+				cout <<"Record was not found on this page";
+				found = false;
+				if(file_instance.GetLength() > rec_ptr_page) {
+					rec_ptr_page++;
+					
+				}	
+				break;
+			}//if		
+		}
+		if(found){
+			cout << "Record foud!";
+			return 1;	
+		}
+	}
 }
 
 void DBFile::GetValueFromTxt(int property, string text_store , long &return_value ){
@@ -169,3 +212,9 @@ void DBFile::SetValueFromTxt(int property, string text_store , long set_value ){
     }
     auxfile_out.close();
 }
+
+File* DBFile::GetFileInstance(){
+     return &this->file_instance;
+}
+
+
