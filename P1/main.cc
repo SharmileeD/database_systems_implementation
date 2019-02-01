@@ -53,7 +53,6 @@ void test_add(){
         newFile.Create(myfname, heap, &ptr);
         newFile.Open(myfname);
        	
-	int ret_val = 0;
 	int counter = 0;
 	temp.SuckNextRecord (&mySchema, tableFile);
         while (temp.SuckNextRecord (&mySchema, tableFile) == 1) {
@@ -63,10 +62,7 @@ void test_add(){
 		}
 
 		if (comp.Compare (&temp, &literal, &myComparison)) {
-			ret_val = newFile.Add(temp);
-			if (ret_val == 1) {
-				counter ++;
-			}
+			newFile.Add(temp);
 			
                 	//temp.Print (&mySchema);
 		        // newPage.Append(&temp);	
