@@ -15,15 +15,13 @@ typedef enum {heap, sorted, tree} fType;
 class DBFile {
 private:
 //	Page  buffer_page;
-	File  file_instance;
-	Record  rec_pointer;
 //	char  aux_text_file [];
-	int rec_ptr_page;
-	int dirty_page;
- 	int latest_page;	
+	
 public:
 	DBFile (); 
 	Page  buffer_page;
+	File  file_instance;
+
 	int Create (const char *fpath, fType file_type, void *startup);
 	int Open (const char *fpath);
 	int Close ();
@@ -34,8 +32,8 @@ public:
 	void Add (Record &addme);
 	int GetNext (Record &fetchme);
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
-	void GetValueFromTxt(int property, string text_store, long &return_value);
-	void SetValueFromTxt(int property, string text_store, long set_value);
+	void GetValueFromTxt(char file_name[], off_t &return_value);
+	void SetValueFromTxt(char file_name[], off_t set_value);
 
 
 };

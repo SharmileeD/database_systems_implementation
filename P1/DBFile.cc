@@ -13,15 +13,13 @@ using namespace std;
 
 // stub file .. replace it with your own DBFile.cc
 
-DBFile::DBFile () {
-	rec_ptr_page = 0;
-	latest_page = 0;		
+DBFile::DBFile () 
+{
 }
 
 int DBFile::Create (const char *f_path, fType f_type, void *startup) {
     try
     {
-	
     	this->file_instance.Open(0,(char*)f_path);
     	this->file_instance.Close();
 	return 1;
@@ -54,7 +52,16 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 int DBFile::Open (const char *f_path) {
 	try
 	{
-		this->file_instance.Open(this->file_instance.GetLength(), (char*)f_path);
+        Page temp_page;
+        Record rec;
+        this->file_instance.Open(1,(char*)f_path);
+        if (this->file_instance.GetLength()!=0){
+            cout << "Num pages " << this->file_instance.GetLength() << endl;
+            this->file_instance.GetPage(&this->buffer_page,0);
+            
+        }
+        
+        
 		return 1;	
 	}
 	catch(const std::exception& e)
@@ -86,30 +93,26 @@ int DBFile::Close () {
 // and after emptying the buffer it writes the record to the buffer
 void DBFile::Add (Record &rec) {
    // try {
-//       long last_page_added = 0;
+        off_t last_page_added = 0;
         // This if statement checks if the page_buffer is full
         if(this->buffer_page.Append(&rec)!=1){
             
             //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
-            //TODO: Consider adding helpers for the same so they can be used from other functions
-//            if (this->file_instance.GetLength() != 0){
+           if (this->file_instance.GetLength() != 0){
                 
-//                GetValueFromTxt(0, "aux_text_file.txt", latest_page);
+               GetValueFromTxt("l_page.txt", last_page_added);
                 
-//            }
+           }
 		
             // Here we write the page to file and empty it out and 
             // add record to the new empty page buffer
             int page_num = this->file_instance.GetLength();
-            this->file_instance.AddPage(&this -> buffer_page, latest_page);
-            latest_page++;
-            SetValueFromTxt(0,"aux_text_file.txt", latest_page);
+            this->file_instance.AddPage(&this->buffer_page, last_page_added);
+            last_page_added++;
+            SetValueFromTxt("l_page.txt", last_page_added);
             this->buffer_page.EmptyItOut();
             this->buffer_page.Append(&rec);
-        
         }
-        
-        
 	    
     // }
     //catch(exception e){
@@ -119,53 +122,39 @@ void DBFile::Add (Record &rec) {
 }
 
 int DBFile::GetNext (Record &fetchme) {
-	int page_num = 0;
-	Record *fetch_record;
-	this->file_instance.GetPage(this->buffer_page, page_num);
-        //this->buffer_page.GetFirst(this->rec_pointer);	
-	fetch_record->Copy(rec_pointer);
-	//cout << fetch_record;
+	// int page_num = 0;
+	// Record *fetch_record;
+	// this->file_instance.GetPage(this->buffer_page, page_num);
+    //     //this->buffer_page.GetFirst(this->rec_pointer);	
+	// fetch_record->Copy(rec_pointer);
+	// //cout << fetch_record;
 	return 1;
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+    return 0;
 }
 
-void DBFile::GetValueFromTxt(int property, string text_store , long &return_value ){
-   /* string temp_string;
-    ifstream auxfile_in;
-    std::string::size_type sz;
-    auxfile_in.open(text_store);
-    for(size_t i = 0; i < 3; i++)
-    {
-        auxfile_in >> temp_string;
-        if (property == i){
-            break;   
-        }
-
-    }
+void DBFile::GetValueFromTxt(char file_name [], off_t &return_value ){
     
-    return_value = std::stoi (temp_string,&sz);
-    auxfile_in.close();
-    */
+    FILE * file;
+    off_t target = 0;
+    const char * filename_ptr;
+    
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "r");
+    fread(&target, sizeof(off_t),1, file);
+    return_value = target;
+    fclose(file);
+
 }
 
-void DBFile::SetValueFromTxt(int property, string text_store , long set_value ){
-    ofstream auxfile_out;
-    long old_values [3];
-    for(size_t i = 0; i < 3; i++){
-         GetValueFromTxt(i, "aux_text_file.txt", old_values[i]);
-    } 
+void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
     
-    auxfile_out.open("aux_text_file.txt", ios::trunc);
-    for(size_t i = 0; i < 3; i++){
-        
-        if (property == i){
-            auxfile_out << set_value << endl;
-        }
-        else{
-            auxfile_out << old_values[i] << endl;
-        }
-    }
-    auxfile_out.close();
+    FILE * file;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "w");
+    fwrite(&set_value, sizeof(off_t), 1, file);
+    fclose(file);
 }
