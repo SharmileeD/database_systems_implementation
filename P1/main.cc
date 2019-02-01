@@ -150,12 +150,9 @@ int test_move_first(){
 }
 int test_get_next(){
 	cout << "Inside test_move_first" << endl;
-	Page newPage;
 	char myfname[] = "lee.txt";
-	Record temp;
 	Schema mySchema ("catalog", "lineitem");
 	DBFile dbfile;
-	Record new_rec;
 	const char * fname;
 	fname = myfname;
 	dbfile.Open(fname);

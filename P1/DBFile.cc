@@ -55,8 +55,6 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 int DBFile::Open (const char *f_path) {
 	try
 	{
-        Page temp_page;
-        Record rec;
         this->file_instance.Open(1,(char*)f_path);
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
@@ -99,6 +97,7 @@ void DBFile::MoveFirst () {
 int DBFile::Close () {
 	try
 	{
+        //TODO copy buffer records to file before closing
 		this->file_instance.Close();
 		return 1;		
 	}
@@ -144,20 +143,7 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
-       /* this->file_instance.GetPage(&this->buffer_page, current_page);
-        TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
-	Record * new_rec = recordList->Current(0);
-        char* bits;
-	new_rec->GetRecordBits(bits);
-	fetchme.SetRecordBits(bits);		
-	//strncpy(fetchme., new_rec -> GetRecordBits(), sizeof(new_rec));	
-	//fetchme = any_rec;
-	//cout << typeid(fetchme).name() << endl;
-	//cout << typeid(*any_rec).name() <<endl;
-	//fetchme = *any_rec;
-	recordList->Advance ();*/
-
-    //
+    
     // 1. Move page contents to file
     off_t last_page = 0;
     this->GetValueFromTxt("l_page.txt", last_page);
@@ -165,15 +151,11 @@ int DBFile::GetNext (Record &fetchme) {
 
     // 2. Set meta data dirty value to 1
     this->SetValueFromTxt("d_page.txt", 1);
-    Schema mySchema ("catalog", "lineitem");
     // 3. Load current_page from file
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
-    Record nextRec;
-    Record * test = &nextRec;
 
     // 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
     this->buffer_page.MoveMyRecsPointer(this->record_offset+1, fetchme);
-    fetchme.Print(&mySchema);
 	return 1;
 }
 
