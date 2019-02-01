@@ -15,7 +15,6 @@ typedef enum {heap, sorted, tree} fType;
 class DBFile {
 private:
 //	Page  buffer_page;
-	File  file_instance;
 	Record*  rec_pointer;
 //	char  aux_text_file [];
 	

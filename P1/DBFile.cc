@@ -104,6 +104,7 @@ int DBFile::Close () {
 	}
 	catch(const std::exception& e) {
 		std::cerr << e.what() << '\n';
+		return 0;
 	}
 }
 
@@ -143,7 +144,7 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
-        this->file_instance.GetPage(&this->buffer_page, rec_ptr_page);
+       /* this->file_instance.GetPage(&this->buffer_page, current_page);
         TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
 	Record * new_rec = recordList->Current(0);
         char* bits;
@@ -154,7 +155,7 @@ int DBFile::GetNext (Record &fetchme) {
 	//cout << typeid(fetchme).name() << endl;
 	//cout << typeid(*any_rec).name() <<endl;
 	//fetchme = *any_rec;
-	recordList->Advance ();
+	recordList->Advance ();*/
 	return 1;
 }
 
@@ -163,8 +164,8 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	int page_num = 0;
 	bool found = true;
 
-	while(rec_ptr_page < file_instance.GetLength()) {
-		this->file_instance.GetPage(&this->buffer_page, rec_ptr_page);
+/*	while(rec_ptr_page < file_instance.GetLength()) {
+		this->file_instance.GetPage(&this->buffer_page, current_page);
 	        TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
 		if(recordList->RightLength() > 0)
                 	rec_pointer = recordList->Current(0);
@@ -178,7 +179,7 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 			} else {
 				cout <<"Record was not found on this page";
 				found = false;
-				if(file_instance.GetLength() > rec_ptr_page) {
+				if(file_instance.GetLength() > current_page) {
 					rec_ptr_page++;
 					
 				}	
@@ -189,7 +190,8 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 			cout << "Record foud!";
 			return 1;	
 		}
-	}
+	}*/
+	return 1;
 }
 
 void DBFile::GetValueFromTxt(char file_name [], off_t &return_value ){
