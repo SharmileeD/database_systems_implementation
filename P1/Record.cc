@@ -1,5 +1,4 @@
 #include "Record.h"
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -362,5 +361,11 @@ void Record :: Print (Schema *mySchema) {
 	cout << "\n";
 }
 
+void Record :: GetRecordBits(char * bits) {
+	strncpy (bits, this->bits, sizeof(this->bits));	
+}
 
+void Record :: SetRecordBits(char *) {
+	strncpy (this->bits, bits, sizeof(bits));
+}
 

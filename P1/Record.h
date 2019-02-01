@@ -65,6 +65,12 @@ public:
 	// prints the contents of the record; this requires
 	// that the schema also be given so that the record can be interpreted
 	void Print (Schema *mySchema);
+
+	//Getter to fetch bits of record
+	void GetRecordBits(char *);
+
+	//Setter to set the bits of record
+	void SetRecordBits(char *);
 };
 
 #endif

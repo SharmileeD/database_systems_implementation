@@ -75,18 +75,18 @@ void test_add(){
 }
 int test_open(){
 	Page newPage;
-	char myfname[] = "lee.txt";
+	char* myfname = "lee.txt";
 	Record temp;
 	Schema mySchema ("catalog", "lineitem");
 	DBFile dbfile;
 	Record new_rec;
-	const char * fname;
-	fname = myfname;
-	dbfile.Open(fname);
+	//const char * fname = new char(myfname);
+	//fname = myfname;
+	dbfile.Open(myfname);
 	cout<<"Ho jaa bhai" << endl;
 	cout << dbfile.file_instance.GetLength() << endl;
 	int val = dbfile.buffer_page.GetFirst(&new_rec);
-
+	cout << "Get first status" << val;
 	cout<<"Ho jaa " << val << endl;
 	new_rec.Print(&mySchema);
 	// cout << "Opened 1" << endl;
@@ -149,8 +149,8 @@ int test_move_first(){
 	
 }
 int main () {
-
-	test_move_first();
+	test_open();
+//	test_move_first();
 	cout << "Done Testing" << endl;
 	// Schema mySchema ("catalog", "lineitem");
         // File newFile;
