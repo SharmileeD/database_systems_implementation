@@ -156,6 +156,11 @@ void Page :: FromBinary (char *bits) {
 	delete temp;
 }
 
+void Page :: MoveMyRecsPointer(int offset){
+	this->myRecs->Current(offset);
+}
+
+
 File :: File () {
 }
 

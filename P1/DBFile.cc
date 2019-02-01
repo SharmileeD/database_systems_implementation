@@ -56,7 +56,6 @@ int DBFile::Open (const char *f_path) {
         Record rec;
         this->file_instance.Open(1,(char*)f_path);
         if (this->file_instance.GetLength()!=0){
-            cout << "Num pages " << this->file_instance.GetLength() << endl;
             this->file_instance.GetPage(&this->buffer_page,0);
             
         }
@@ -71,9 +70,27 @@ int DBFile::Open (const char *f_path) {
 }
 
 void DBFile::MoveFirst () {
-//In this case we just flush the page buffer -> load the first page and set the pointer to the first record
-  /*  this->file_instance.GetPage((off_t)0,this->buffer_page);
-    this->buffer_page.GetFirst(this->rec_pointer);*/
+    
+    // 1. Move page contents to file
+    off_t last_page = 0;
+    this->GetValueFromTxt("l_page.txt", last_page);
+    this->file_instance.AddPage(&this->buffer_page, last_page-1);
+
+    // 2. Set meta data dirty value to 1
+    this->SetValueFromTxt("d_page.txt", 1);
+    
+    // 3. Load first page from file
+    this->file_instance.GetPage(&this->buffer_page, 0);
+    
+    // 4. Set offset to 0
+    this->record_offset = 0;
+    
+    // 5. Set current page to 0
+    this->current_page = 0;
+    
+    // 6. Call function in Page to set myrecs of buffer_page to current(offset(0 in this case))
+    this->buffer_page.MoveMyRecsPointer(this->record_offset);
+
 }
 
 int DBFile::Close () {

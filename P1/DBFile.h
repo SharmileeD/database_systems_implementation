@@ -21,7 +21,8 @@ public:
 	DBFile (); 
 	Page  buffer_page;
 	File  file_instance;
-
+	int record_offset;
+	off_t current_page;
 	int Create (const char *fpath, fType file_type, void *startup);
 	int Open (const char *fpath);
 	int Close ();

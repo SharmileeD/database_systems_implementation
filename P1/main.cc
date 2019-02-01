@@ -100,23 +100,58 @@ int test_open(){
 	return 0;
 	
 }
+
 int test_meta_data(){
-    FILE * fp2;
-    off_t target = 0;
-    fp2 = fopen("l_page.txt", "r");
-    fread(&target, sizeof(off_t),1, fp2);
-    cout << "Off t variable incremented" << endl;
-    cout<< target<<endl;
-    fclose(fp2);
-    
-    return(0);
+	FILE * fp2;
+	off_t target = 0;
+	fp2 = fopen("l_page.txt", "r");
+	fread(&target, sizeof(off_t),1, fp2);
+	cout << "Off t variable incremented" << endl;
+	cout<< target<<endl;
+	fclose(fp2);
+
+	return(0);
 }
 
+int test_move_first(){
+	cout << "Inside test_move_first" << endl;
+	Page newPage;
+	char myfname[] = "lee.txt";
+	Record temp;
+	Schema mySchema ("catalog", "lineitem");
+	DBFile dbfile;
+	Record new_rec;
+	const char * fname;
+	fname = myfname;
+	dbfile.Open(fname);
+	int val = dbfile.buffer_page.GetFirst(&new_rec);
+	new_rec.Print(&mySchema);
+	dbfile.file_instance.GetPage(&dbfile.buffer_page, 40);
+	dbfile.current_page = 40;
+	dbfile.record_offset = 0;
+	cout<< "Old Current page: " << dbfile.current_page << endl;
+	cout << "Old Record Offset: " << dbfile.record_offset << endl;
+	val = dbfile.buffer_page.GetFirst(&new_rec);
+	new_rec.Print(&mySchema);
+	dbfile.MoveFirst();
+	cout<< "After move first Current page: " << dbfile.current_page << endl;
+	cout << "After move first Record Offset: " << dbfile.record_offset << endl;
+	val = dbfile.buffer_page.GetFirst(&new_rec);
+	if(val == 1){
+		cout << "GOT FIRST PAGE" << endl;
+	}
+	else{
+		cout << "Issue with getting FIRST PAGE" << endl;
+	}
+	new_rec.Print(&mySchema);
+	cout<< "Done with move first" << endl;
+	return 1;
+	
+}
 int main () {
-	//test_add();
-	//test_meta_data();
-	test_open();
-	cout << "Print" << endl;
+
+	test_move_first();
+	cout << "Done Testing" << endl;
 	// Schema mySchema ("catalog", "lineitem");
         // File newFile;
 	// File a;
