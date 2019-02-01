@@ -148,9 +148,31 @@ int test_move_first(){
 	return 1;
 	
 }
+int test_get_next(){
+	cout << "Inside test_move_first" << endl;
+	Page newPage;
+	char myfname[] = "lee.txt";
+	Record temp;
+	Schema mySchema ("catalog", "lineitem");
+	DBFile dbfile;
+	Record new_rec;
+	const char * fname;
+	fname = myfname;
+	dbfile.Open(fname);
+	dbfile.current_page = 40;
+	dbfile.record_offset = 0;
+	Record next_rec;
+	dbfile.GetNext(next_rec);
+	cout << "Get next is done" << endl;
+	next_rec.Print(&mySchema);
+	return 0;
+}
 int main () {
-	test_open();
+	//test_add();
+	// test_open();
 //	test_move_first();
+	test_get_next();
+
 	cout << "Done Testing" << endl;
 	// Schema mySchema ("catalog", "lineitem");
         // File newFile;

@@ -361,11 +361,11 @@ void Record :: Print (Schema *mySchema) {
 	cout << "\n";
 }
 
-void Record :: GetRecordBits(char * bits) {
-	strncpy (bits, this->bits, sizeof(this->bits));	
-}
+// void Record :: GetRecordBits(char * bits) {
+// 	bits = this->GetBits();
+// }
 
-void Record :: SetRecordBits(char *) {
-	strncpy (this->bits, bits, sizeof(bits));
-}
+// void Record :: SetRecordBits(char *) {
+// 	strncpy (this->bits, bits, sizeof(bits));
+// }
 

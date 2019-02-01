@@ -90,9 +90,9 @@ void DBFile::MoveFirst () {
     
     // 5. Set current page to 0
     this->current_page = 0;
-    
+    Record temp;
     // 6. Call function in Page to set myrecs of buffer_page to current(offset(0 in this case))
-    this->buffer_page.MoveMyRecsPointer(this->record_offset);
+    this->buffer_page.MoveMyRecsPointer(this->record_offset, temp);
 
 }
 
@@ -156,6 +156,24 @@ int DBFile::GetNext (Record &fetchme) {
 	//cout << typeid(*any_rec).name() <<endl;
 	//fetchme = *any_rec;
 	recordList->Advance ();*/
+
+    //
+    // 1. Move page contents to file
+    off_t last_page = 0;
+    this->GetValueFromTxt("l_page.txt", last_page);
+    this->file_instance.AddPage(&this->buffer_page, last_page-1);
+
+    // 2. Set meta data dirty value to 1
+    this->SetValueFromTxt("d_page.txt", 1);
+    Schema mySchema ("catalog", "lineitem");
+    // 3. Load current_page from file
+    this->file_instance.GetPage(&this->buffer_page, this->current_page);
+    Record nextRec;
+    Record * test = &nextRec;
+
+    // 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
+    this->buffer_page.MoveMyRecsPointer(this->record_offset+1, fetchme);
+    fetchme.Print(&mySchema);
 	return 1;
 }
 

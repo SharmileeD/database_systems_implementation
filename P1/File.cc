@@ -156,9 +156,21 @@ void Page :: FromBinary (char *bits) {
 	delete temp;
 }
 
-void Page :: MoveMyRecsPointer(int offset){
-	this->myRecs->Current(offset);
+void Page :: MoveMyRecsPointer(int offset, Record &record){
+	this->myRecs->MoveToStart();
+	record = *this->myRecs->Current(offset);
+	
+	// cout << "Record bits print" << endl;
+	// cout << record->bits << endl;
+	// char *b = record->GetBits();
+	// cout << "Char * b print" << endl;
+	// cout << b << endl;
+	// cout << *b << endl;
+	// curSizeInBytes -= ((int *) b)[0];
+
 }
+
+
 
 
 File :: File () {
