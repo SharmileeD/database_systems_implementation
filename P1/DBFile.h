@@ -15,6 +15,8 @@ typedef enum {heap, sorted, tree} fType;
 class DBFile {
 private:
 //	Page  buffer_page;
+	File  file_instance;
+	Record*  rec_pointer;
 //	char  aux_text_file [];
 	
 public:
@@ -35,6 +37,7 @@ public:
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
 	void GetValueFromTxt(char file_name[], off_t &return_value);
 	void SetValueFromTxt(char file_name[], off_t set_value);
+	File* GetFileInstance();
 
 
 };
