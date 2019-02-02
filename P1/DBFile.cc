@@ -240,6 +240,9 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
     //If last record reached, read and move to next page 
 
     while(1){
+        if (this->current_page == this->file_instance.GetLength()-1){
+            return 0;
+        }
         //Keep getting records till you find a match
         this->file_instance.GetPage(&this->buffer_page, this->current_page);
         if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
