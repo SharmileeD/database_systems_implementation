@@ -249,9 +249,10 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
             }
         }
         else{
+            //All we know here is it is the last record of some page
             page_num = this->current_page + 1;
             if (page_num == this->file_instance.GetLength()){
-                //This is where we,ve reached the last record of last page
+                //This is where we've reached the last record of last page
                 this->current_page++;
                 if(comp.Compare(&fetchme, &literal, &cnf)){
                     return 1;
@@ -260,13 +261,23 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
                     return 0;
                 }
                 
+                
             }
-            this->current_page++;
-            this->record_offset = 0;
-            return 1;
+            if(comp.Compare(&fetchme, &literal, &cnf)){
+                    this->current_page++;
+                    this->record_offset = 0;
+                    return 1;
+                }
+                else{
+                    this->current_page++;
+                    this->record_offset = 0;
+                }
+            
+            
         }
         
     }
+    return 0;
 }
 
 off_t DBFile::GetValueFromTxt(char file_name []){
