@@ -45,7 +45,7 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 
         Record temp;
         while (temp.SuckNextRecord (&f_schema, tableFile) == 1){
-            Add(temp);
+            this->Add(temp);
         } 
     }
     catch(const std::exception& e)
@@ -108,9 +108,12 @@ int DBFile::Close () {
         off_t last_page = 0;
         dirty = GetValueFromTxt(this->meta_dpage_name);
         if (dirty == 1){
-                
+              
             last_page = GetValueFromTxt(this->meta_lpage_name);
-            last_page = last_page -1;
+            if (last_page != 0){
+                last_page = last_page -1;
+            }
+            
             this->file_instance.AddPage(&this->buffer_page, last_page);
                 
         }
