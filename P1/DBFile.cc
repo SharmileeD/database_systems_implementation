@@ -127,7 +127,6 @@ int DBFile::Close () {
                 
         }
         
-        this->buffer_page.EmptyItOut();
         this->SetValueFromTxt(this->meta_dpage_name, 0);
 		this->file_instance.Close();
 		return 1;		
@@ -175,13 +174,10 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
-    // if (this->current_page == this->file_instance.GetLength()){
-    //     return 0;
-    // }
-    // cout << "Current page: "<< thfile is->current_page << endl;
-    // cout << "File Length:" <<  file_instance.GetLength() <<endl;
-    // cout << "Offset===============================>" << this->record_offset << endl; 
-    // 1. Move page contents to file
+    if (this->current_page == this->file_instance.GetLength()-1){
+        return 0;
+    }
+
     off_t last_page = 0;
     int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
 
@@ -197,7 +193,7 @@ int DBFile::GetNext (Record &fetchme) {
     
     // 3. Load current_page from file
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
-
+    
     if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
         this->record_offset++;
 		return 1;
@@ -206,6 +202,7 @@ int DBFile::GetNext (Record &fetchme) {
         page_num = this->current_page + 1;
         if (page_num == this->file_instance.GetLength()){
             //This is where we,ve reached the last record of last page
+            this->current_page++;
             return 1;
         }
         this->current_page++;
@@ -220,7 +217,10 @@ int DBFile::GetNext (Record &fetchme) {
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
 	bool found = true;
-
+    int page_num = 0;
+    if (this->current_page == this->file_instance.GetLength()-1){
+        return 0;
+    }
 	cout << "Record offset in masala getNext:i " <<	this->record_offset  << "Current page :" << this->current_page<<endl;	
 	// 1. Move page contents to file
 	off_t last_page = 0;
@@ -228,42 +228,45 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
     if(dirty_page==1){
         last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
+        this->buffer_page.EmptyItOut();
     }
 	// 2. Set meta data dirty value to 1
 	this->SetValueFromTxt(this->meta_dpage_name, 0);
 
-	while(this->current_page < this->file_instance.GetLength()-1) {
+    // 3. Load current_page from file
+    
+    
+    cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
+    //If last record reached, read and move to next page 
 
-	    this->file_instance.GetPage(&this->buffer_page, this->current_page);
-		cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
-		//If last record reached, read and move to next page 
-		if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme))) {
-			cout << "Reached last record" << endl;
-			this->current_page++;
-			if(comp.Compare(&fetchme, &literal, &cnf)){
-				this->record_offset = 0;
-				return 1;
-			}
-		} 
-		else {
-			while(!comp.Compare(&fetchme, &literal, &cnf)){
-				record_offset ++;
-				//If end of page is reached increment current_page and reset the record_offset
-				if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)))
-				{
-					this->current_page++;
-					this->record_offset = 0;
-					found = false;
-					break;	
-				}		
-			}
-			this->record_offset ++;
-			if(found){
-				return 1;	
-			}
-		} //else
-	}//outer while
-	return 0;
+    while(1){
+        //Keep getting records till you find a match
+        this->file_instance.GetPage(&this->buffer_page, this->current_page);
+        if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
+            this->record_offset++;
+            if(comp.Compare(&fetchme, &literal, &cnf)){
+                return 1;
+            }
+        }
+        else{
+            page_num = this->current_page + 1;
+            if (page_num == this->file_instance.GetLength()){
+                //This is where we,ve reached the last record of last page
+                this->current_page++;
+                if(comp.Compare(&fetchme, &literal, &cnf)){
+                    return 1;
+                }
+                else{
+                    return 0;
+                }
+                
+            }
+            this->current_page++;
+            this->record_offset = 0;
+            return 1;
+        }
+        
+    }
 }
 
 off_t DBFile::GetValueFromTxt(char file_name []){

@@ -24,7 +24,7 @@ Page :: Page () {
 }
 
 Page :: ~Page () {
-	delete myRecs;
+	//delete myRecs;
 }
 
 
@@ -159,7 +159,6 @@ void Page :: FromBinary (char *bits) {
 int Page :: MoveMyRecsPointer(int offset, Record &record){
 	this->myRecs->MoveToStart();
 	if(this->myRecs->RightLength()-1 > offset) {
-		cout << "Inside";
 		record = *this->myRecs->Current(offset);
 		return 1;
 	} 
