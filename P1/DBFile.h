@@ -22,8 +22,11 @@ public:
 	DBFile (); 
 	Page  buffer_page;
 	File  file_instance;
+	char meta_lpage_name[100];
+	char meta_dpage_name[100];
 	int record_offset;
 	off_t current_page;
+
 	int Create (const char *fpath, fType file_type, void *startup);
 	int Open (const char *fpath);
 	int Close ();
@@ -36,6 +39,7 @@ public:
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
 	off_t GetValueFromTxt(char file_name[]);
 	void SetValueFromTxt(char file_name[], off_t set_value);
+	void SetSchemaName(char tblpath []);
 	File* GetFileInstance();
 
 

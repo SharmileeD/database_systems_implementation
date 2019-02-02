@@ -23,6 +23,9 @@ DBFile::DBFile ()
 int DBFile::Create (const char *f_path, fType f_type, void *startup) {
     try
     {
+        this->SetSchemaName((char *)f_path);
+        this->SetValueFromTxt(this->meta_lpage_name, 0);
+        this->SetValueFromTxt(this->meta_dpage_name, 1);
     	this->file_instance.Open(0,(char*)f_path);
 	    return 1;
     }
@@ -55,11 +58,11 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 //Method to open a file stored at f_path assuming there exists one and it has data inside
 int DBFile::Open (const char *f_path) {
 	try
-	{
+	{   off_t dirty = 0;
+        this->SetValueFromTxt(this->meta_dpage_name, dirty);
         this->file_instance.Open(1,(char*)f_path);
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
-            
         }
 		return 1;	
 	}
@@ -73,14 +76,14 @@ void DBFile::MoveFirst () {
     
     // 1. Move page contents to file
     off_t last_page = 0;
-    int dirty_page = this->GetValueFromTxt("d_page.txt");
+    int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
     if(dirty_page==1){
-        last_page = this->GetValueFromTxt("l_page.txt");
+        last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
     }
 
-    // 2. Set meta data dirty value to 1
-    this->SetValueFromTxt("d_page.txt", 0);
+    // 2. Set meta data dirty value to 0
+    this->SetValueFromTxt(this->meta_dpage_name, 0);
     
     // 3. Load first page from file
     this->file_instance.GetPage(&this->buffer_page, 0);
@@ -104,13 +107,13 @@ int DBFile::Close () {
         off_t last_page = 0;
         if (this->file_instance.GetLength() != 0){
                 
-            last_page = GetValueFromTxt("l_page.txt");
+            last_page = GetValueFromTxt(this->meta_lpage_name);
             last_page = last_page -1;
                 
         }
         this->file_instance.AddPage(&this->buffer_page, last_page);
         this->buffer_page.EmptyItOut();
-        this->SetValueFromTxt("d_page.txt", 0);
+        this->SetValueFromTxt(this->meta_dpage_name, 0);
 		this->file_instance.Close();
 		return 1;		
 	}
@@ -127,14 +130,15 @@ int DBFile::Close () {
 void DBFile::Add (Record &rec) {
     try {
         off_t last_page_added = 0;
-        this->SetValueFromTxt("d_page.txt", 1);
+        this->SetValueFromTxt(this->meta_dpage_name, 1);
+        this->SetValueFromTxt(this->meta_lpage_name, last_page_added);
         // This if statement checks if the page_buffer is full
         if(this->buffer_page.Append(&rec)!=1){
             
             //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
            if (this->file_instance.GetLength() != 0){
                 
-               last_page_added = GetValueFromTxt("l_page.txt");
+               last_page_added = GetValueFromTxt(this->meta_lpage_name);
                 
            }
 		
@@ -143,7 +147,7 @@ void DBFile::Add (Record &rec) {
             int page_num = this->file_instance.GetLength();
             this->file_instance.AddPage(&this->buffer_page, last_page_added);
             last_page_added++;
-            SetValueFromTxt("l_page.txt", last_page_added);
+            this->SetValueFromTxt(this->meta_lpage_name, last_page_added);
             this->buffer_page.EmptyItOut();
             this->buffer_page.Append(&rec);
         }
@@ -162,17 +166,17 @@ int DBFile::GetNext (Record &fetchme) {
     // cout << "Offset===============================>" << this->record_offset << endl; 
     // 1. Move page contents to file
     off_t last_page = 0;
-    int dirty_page = this->GetValueFromTxt("d_page.txt");
+    int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
 
     if(dirty_page==1){
-        last_page = this->GetValueFromTxt("l_page.txt");
+        last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
     }
 
-    // 2. Set meta data dirty value to 1
-    this->SetValueFromTxt("d_page.txt", 0);
+    // 2. Set meta data dirty value to 0
+    this->SetValueFromTxt(this->meta_dpage_name, 0);
    
-    while(this->current_page < file_instance.GetLength()) {
+    while(this->current_page < file_instance.GetLength()-1) {
 
 	// 3. Load current_page from file
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
@@ -196,15 +200,15 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	cout << "Record offset in masala getNext:i " <<	this->record_offset  <<endl;	
 	// 1. Move page contents to file
 	off_t last_page = 0;
-	int dirty_page = this->GetValueFromTxt("d_page.txt");
+	int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
     if(dirty_page==1){
-        last_page = this->GetValueFromTxt("l_page.txt");
+        last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
     }
 	// 2. Set meta data dirty value to 1
-	this->SetValueFromTxt("d_page.txt", 0);
+	this->SetValueFromTxt(this->meta_dpage_name, 0);
 
-	while(this->current_page < file_instance.GetLength()) {
+	while(this->current_page < this->file_instance.GetLength()-1) {
 
 	    this->file_instance.GetPage(&this->buffer_page, this->current_page);
 		cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
@@ -260,4 +264,26 @@ File* DBFile::GetFileInstance(){
      return &this->file_instance;
 }
 
+void DBFile:: SetSchemaName(char tblpath []){
+    char * pch;
+    char meta_file_name[30];
+    pch = strtok (tblpath,"/");
+    char test [100];
+    while (pch != NULL)
+    {
+    if(pch!=NULL){
+        strcpy(test, pch);
+    }
+    pch = strtok (NULL, "/");
+    }
 
+    test[strlen(test)-4] = '\0';
+    sprintf (meta_file_name, "%s_lpage.txt", test);
+    strcpy(this->meta_lpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_dpage.txt", test);
+    strcpy(this->meta_dpage_name, meta_file_name);
+    cout<<"Schema name"<<endl;
+    cout<<this->meta_dpage_name<<endl;
+    cout<<this->meta_lpage_name<<endl;
+
+}
