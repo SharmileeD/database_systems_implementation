@@ -62,6 +62,7 @@ int DBFile::Open (const char *f_path) {
         this->SetSchemaName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         this->file_instance.Open(1,(char*)f_path);
+        cout << "curr length " << this->file_instance.GetLength()<<endl;
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
             this->current_page = 0;
@@ -78,30 +79,31 @@ int DBFile::Open (const char *f_path) {
 void DBFile::MoveFirst () {
     
     // 1. Move page contents to file
-    off_t last_page = 0;
-    int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
-    if(dirty_page==1){
-        last_page = this->GetValueFromTxt(this->meta_lpage_name);
-        this->file_instance.AddPage(&this->buffer_page, last_page-1);
-    }
+    // off_t last_page = 0;
+    // int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
+    // if(dirty_page==1){
+    //     last_page = this->GetValueFromTxt(this->meta_lpage_name);
+    //     this->file_instance.AddPage(&this->buffer_page, last_page-1);
+    // }
 
     // 2. Set meta data dirty value to 0
-    this->SetValueFromTxt(this->meta_dpage_name, 0);
+    // this->SetValueFromTxt(this->meta_dpage_name, 0);
     
     // 3. Load first page from file
 
     //TODO Check for the case where there is no data in file 
-    if (this->file_instance.GetLength()!=0){
-        this->file_instance.GetPage(&this->buffer_page, 0);
-    }
+    // if (this->file_instance.GetLength()!=0){
+    //     this->file_instance.GetPage(&this->buffer_page, 0);
+    // }
     // 4. Set offset to 0
     this->record_offset = 0;
     
     // 5. Set current page to 0
     this->current_page = 0;
-    Record temp;
+    // Record temp;
     // 6. Call function in Page to set myrecs of buffer_page to current(offset(0 in this case))
-    this->buffer_page.MoveMyRecsPointer(this->record_offset, temp);
+    //Commented this out so as to 
+   // this->buffer_page.MoveMyRecsPointer(this->record_offset, temp);
 
 }
 // Method to Close the DBFile
@@ -110,22 +112,22 @@ void DBFile::MoveFirst () {
 int DBFile::Close () {
 	try
 	{
-        off_t dirty = 0;
-        off_t last_page = 0;
-        dirty = this->GetValueFromTxt(this->meta_dpage_name);
-        if (dirty == 1){
+       // off_t dirty = 0;
+        //off_t last_page = 0;
+        // dirty = this->GetValueFromTxt(this->meta_dpage_name);
+        // if (dirty == 1){
               
-            last_page = GetValueFromTxt(this->meta_lpage_name);
-            if (last_page != 0){
-                last_page = last_page -1;
-            }
+        //     last_page = GetValueFromTxt(this->meta_lpage_name);
+        //     if (last_page != 0){
+        //         last_page = last_page -1;
+        //     }
             
-            this->file_instance.AddPage(&this->buffer_page, last_page);
+        //     this->file_instance.AddPage(&this->buffer_page, last_page);
                 
-        }
+        // }
         
-        this->buffer_page.EmptyItOut();
-        this->SetValueFromTxt(this->meta_dpage_name, 0);
+        //this->buffer_page.EmptyItOut();
+        //this->SetValueFromTxt(this->meta_dpage_name, 0);
 		this->file_instance.Close();
 		return 1;		
 	}
@@ -183,6 +185,7 @@ int DBFile::GetNext (Record &fetchme) {
     if(dirty_page==1){
         last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
+        this->buffer_page.EmptyItOut();
     }
 
     // 2. Set meta data dirty value to 0
@@ -300,8 +303,5 @@ void DBFile:: SetSchemaName(char tblpath []){
     strcpy(this->meta_lpage_name, meta_file_name);
     sprintf (meta_file_name, "%s_dpage.txt", test);
     strcpy(this->meta_dpage_name, meta_file_name);
-    cout<<"Schema name"<<endl;
-    cout<<this->meta_dpage_name<<endl;
-    cout<<this->meta_lpage_name<<endl;
-
+    
 }

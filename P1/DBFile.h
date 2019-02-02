@@ -14,9 +14,6 @@ typedef enum {heap, sorted, tree} fType;
 
 class DBFile {
 private:
-//	Page  buffer_page;
-	Record*  rec_pointer;
-//	char  aux_text_file [];
 	
 public:
 	DBFile (); 
@@ -41,6 +38,7 @@ public:
 	void SetValueFromTxt(char file_name[], off_t set_value);
 	void SetSchemaName(char tblpath []);
 	File* GetFileInstance();
+
 
 
 };

@@ -75,16 +75,17 @@ void test_add(){
 }
 int test_open(){
 	Page newPage;
-	char* myfname = "lee.txt";
+	char* myfname = "lee.bin";
 	Record temp;
 	Schema mySchema ("catalog", "lineitem");
 	DBFile dbfile;
 	Record new_rec;
 	dbfile.Open(myfname);
-	cout << dbfile.file_instance.GetLength() << endl;
+	//cout << dbfile.file_instance.GetLength() << endl;
 	int val = dbfile.buffer_page.GetFirst(&new_rec);
 	new_rec.Print(&mySchema);
 	cout << "Opened 4" << endl;
+	dbfile.Close();
 	return 0;
 	
 }
@@ -117,28 +118,13 @@ int test_move_first(){
 	DBFile dbfile;
 	Record new_rec;
 	dbfile.Open(myfname);
-
-
-	dbfile.file_instance.GetPage(&dbfile.buffer_page, 40);
 	dbfile.current_page = 40;
 	dbfile.record_offset = 0;
 	cout<< "Old Current page: " << dbfile.current_page << endl;
 	cout << "Old Record Offset: " << dbfile.record_offset << endl;
-	int val = dbfile.buffer_page.GetFirst(&new_rec);
-	new_rec.Print(&mySchema);
 	dbfile.MoveFirst();
-	cout<< "After move first Current page: " << dbfile.current_page << endl;
-	cout << "After move first Record Offset: " << dbfile.record_offset << endl;
-	val = dbfile.buffer_page.GetFirst(&new_rec);
-
-	if(val == 1){
-		cout << "GOT FIRST PAGE" << endl;
-	}
-	else{
-		cout << "Issue with getting FIRST PAGE" << endl;
-	}
-	new_rec.Print(&mySchema);
 	cout<< "Done with move first" << endl;
+	dbfile.Close();
 	return 1;
 	
 }
@@ -152,36 +138,39 @@ int test_get_next(){
 	fname = myfname;
 	dbfile.Open(fname);
 	dbfile.MoveFirst ();
+
 	dbfile.current_page = 0;
-	dbfile.record_offset = 605;
+	dbfile.record_offset = 604;
 	Record next_rec;
 	dbfile.GetNext(next_rec);
 	cout << "Get next is done" << endl;
 	cout << "Current page after getnext (should be 1)" << dbfile.current_page << endl;
 	cout << "record offset after getnext (should be 0)" << dbfile.record_offset << endl;
 	next_rec.Print(&mySchema);
+	cout << "Print done" << endl;
 	dbfile.Close();
 	return 0;
 }
 void test_load(){
 	DBFile dbfile;
 	char myfname[] = "lee.bin";
-        fType heap = heap;
-        void* ptr;
-        dbfile.Create(myfname, heap, &ptr);
-        dbfile.Open(myfname);
-	
+    fType heap = heap;
+    void* ptr;
+    dbfile.Create(myfname, heap, &ptr);
+    dbfile.Open(myfname);
+
 	Schema mySchema ("catalog", "lineitem");
 	dbfile.Load(mySchema, "tables/lineitem.tbl");
+	dbfile.Close();
 }
 int main () {
 	//test_add();
-	// test_open();
+	//test_open();
 	//test_move_first();
 	test_get_next();
 	//test_load();
 	//test_meta_data();
-	//test_get_next();
+
 	cout << "Done Testing" << endl;
 	// Schema mySchema ("catalog", "lineitem");
         // File newFile;
