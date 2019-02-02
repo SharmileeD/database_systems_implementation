@@ -183,7 +183,7 @@ int DBFile::GetNext (Record &fetchme) {
     // 2. Set meta data dirty value to 0
     this->SetValueFromTxt(this->meta_dpage_name, 0);
    
-    while(this->current_page < file_instance.GetLength()-1) {
+    while(this->current_page < this->file_instance.GetLength()-1) {
 
 	// 3. Load current_page from file
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
