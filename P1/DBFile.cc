@@ -221,7 +221,6 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
     if (this->current_page == this->file_instance.GetLength()-1){
         return 0;
     }
-	cout << "Record offset in masala getNext:i " <<	this->record_offset  << "Current page :" << this->current_page<<endl;	
 	// 1. Move page contents to file
 	off_t last_page = 0;
 	int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
@@ -236,7 +235,6 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
     // 3. Load current_page from file
     
     
-    cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
     //If last record reached, read and move to next page 
 
     while(1){
