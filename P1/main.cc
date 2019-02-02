@@ -92,39 +92,45 @@ int test_open(){
 int test_meta_data(){
 	FILE * fp2;
 	off_t target = 0;
-	fp2 = fopen("d_page.txt", "r");
+	fp2 = fopen("lee_lpage.txt", "r");
 	fread(&target, sizeof(off_t),1, fp2);
-	cout << "Off t variable incremented" << endl;
+	cout << "L Page" << endl;
+	cout<< target<<endl;
+	fclose(fp2);
+
+	fp2 = fopen("lee_dpage.txt", "r");
+	fread(&target, sizeof(off_t),1, fp2);
+	cout << "D page " << endl;
 	cout<< target<<endl;
 	fclose(fp2);
 
 	return(0);
+
+
 }
 
 int test_move_first(){
 	cout << "Inside test_move_first" << endl;
 	Page newPage;
-	char myfname[] = "lee.txt";
-	Record temp;
+	char * myfname = "lee.bin";
 	Schema mySchema ("catalog", "lineitem");
 	DBFile dbfile;
 	Record new_rec;
-	const char * fname;
-	fname = myfname;
-	dbfile.Open(fname);
-	int val = dbfile.buffer_page.GetFirst(&new_rec);
-	new_rec.Print(&mySchema);
+	dbfile.Open(myfname);
+
+
 	dbfile.file_instance.GetPage(&dbfile.buffer_page, 40);
 	dbfile.current_page = 40;
 	dbfile.record_offset = 0;
 	cout<< "Old Current page: " << dbfile.current_page << endl;
 	cout << "Old Record Offset: " << dbfile.record_offset << endl;
-	val = dbfile.buffer_page.GetFirst(&new_rec);
+	int val = dbfile.buffer_page.GetFirst(&new_rec);
 	new_rec.Print(&mySchema);
 	dbfile.MoveFirst();
 	cout<< "After move first Current page: " << dbfile.current_page << endl;
 	cout << "After move first Record Offset: " << dbfile.record_offset << endl;
 	val = dbfile.buffer_page.GetFirst(&new_rec);
+
 	if(val == 1){
 		cout << "GOT FIRST PAGE" << endl;
 	}
@@ -136,19 +142,23 @@ int test_move_first(){
 	return 1;
 	
 }
+
 int test_get_next(){
 	cout << "Inside test_move_first" << endl;
-	char myfname[] = "lee.txt";
+	char myfname[] = "lee.bin";
 	Schema mySchema ("catalog", "lineitem");
 	DBFile dbfile;
 	const char * fname;
 	fname = myfname;
 	dbfile.Open(fname);
-	dbfile.current_page = 40;
-	dbfile.record_offset = 0;
+	dbfile.MoveFirst ();
+	dbfile.current_page = 0;
+	dbfile.record_offset = 605;
 	Record next_rec;
 	dbfile.GetNext(next_rec);
 	cout << "Get next is done" << endl;
+	cout << "Current page after getnext (should be 1)" << dbfile.current_page << endl;
+	cout << "record offset after getnext (should be 0)" << dbfile.record_offset << endl;
 	next_rec.Print(&mySchema);
 	dbfile.Close();
 	return 0;
@@ -167,10 +177,11 @@ void test_load(){
 int main () {
 	//test_add();
 	// test_open();
-//	test_move_first();
-	//test_get_next();
+	//test_move_first();
+	test_get_next();
 	//test_load();
-	test_meta_data();
+	//test_meta_data();
+	//test_get_next();
 	cout << "Done Testing" << endl;
 	// Schema mySchema ("catalog", "lineitem");
         // File newFile;

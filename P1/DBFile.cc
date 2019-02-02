@@ -64,6 +64,8 @@ int DBFile::Open (const char *f_path) {
         this->file_instance.Open(1,(char*)f_path);
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
+            this->current_page = 0;
+            this->record_offset = 0;
         }
 		return 1;	
 	}
@@ -87,8 +89,11 @@ void DBFile::MoveFirst () {
     this->SetValueFromTxt(this->meta_dpage_name, 0);
     
     // 3. Load first page from file
-    this->file_instance.GetPage(&this->buffer_page, 0);
-    
+
+    //TODO Check for the case where there is no data in file 
+    if (this->file_instance.GetLength()!=0){
+        this->file_instance.GetPage(&this->buffer_page, 0);
+    }
     // 4. Set offset to 0
     this->record_offset = 0;
     
@@ -107,7 +112,7 @@ int DBFile::Close () {
 	{
         off_t dirty = 0;
         off_t last_page = 0;
-        dirty = GetValueFromTxt(this->meta_dpage_name);
+        dirty = this->GetValueFromTxt(this->meta_dpage_name);
         if (dirty == 1){
               
             last_page = GetValueFromTxt(this->meta_lpage_name);
@@ -174,6 +179,7 @@ int DBFile::GetNext (Record &fetchme) {
     off_t last_page = 0;
     int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
 
+    //If tis action follows a write(Add) then we move the contents of the buffer to the file
     if(dirty_page==1){
         last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
@@ -181,23 +187,21 @@ int DBFile::GetNext (Record &fetchme) {
 
     // 2. Set meta data dirty value to 0
     this->SetValueFromTxt(this->meta_dpage_name, 0);
-   
-    while(this->current_page < this->file_instance.GetLength()-1) {
-
-	// 3. Load current_page from file
+    
+    // 3. Load current_page from file
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
-	// 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
-	if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)) {
-		this->record_offset ++;
-		return 1;
 
-	}
-		
-	this->current_page ++;
-	this->record_offset = 0;
-	return 1;
+    if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
+        this->record_offset++;
+		return 1;
     }
-    return 0;		
+    else{
+        this->current_page++;
+        this->record_offset = 0;
+        return 1;
+    }
+
+   return 0;
        
 }
 
