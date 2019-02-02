@@ -104,14 +104,17 @@ void DBFile::MoveFirst () {
 int DBFile::Close () {
 	try
 	{
+        off_t dirty = 0;
         off_t last_page = 0;
-        if (this->file_instance.GetLength() != 0){
+        dirty = GetValueFromTxt(this->meta_dpage_name);
+        if (dirty == 1){
                 
             last_page = GetValueFromTxt(this->meta_lpage_name);
             last_page = last_page -1;
+            this->file_instance.AddPage(&this->buffer_page, last_page);
                 
         }
-        this->file_instance.AddPage(&this->buffer_page, last_page);
+        
         this->buffer_page.EmptyItOut();
         this->SetValueFromTxt(this->meta_dpage_name, 0);
 		this->file_instance.Close();
