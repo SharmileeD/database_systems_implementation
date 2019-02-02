@@ -112,22 +112,23 @@ void DBFile::MoveFirst () {
 int DBFile::Close () {
 	try
 	{
-       // off_t dirty = 0;
-        //off_t last_page = 0;
-        // dirty = this->GetValueFromTxt(this->meta_dpage_name);
-        // if (dirty == 1){
+      // Here before closing the file we will write out the records present in the page buffer if any to the file
+       off_t dirty = 0;
+        off_t last_page = 0;
+        dirty = this->GetValueFromTxt(this->meta_dpage_name);
+        if (dirty == 1){
               
-        //     last_page = GetValueFromTxt(this->meta_lpage_name);
-        //     if (last_page != 0){
-        //         last_page = last_page -1;
-        //     }
+            last_page = GetValueFromTxt(this->meta_lpage_name);
+            if (last_page != 0){
+                last_page = last_page -1;
+            }
             
-        //     this->file_instance.AddPage(&this->buffer_page, last_page);
+            this->file_instance.AddPage(&this->buffer_page, last_page);
                 
-        // }
+        }
         
-        //this->buffer_page.EmptyItOut();
-        //this->SetValueFromTxt(this->meta_dpage_name, 0);
+        this->buffer_page.EmptyItOut();
+        this->SetValueFromTxt(this->meta_dpage_name, 0);
 		this->file_instance.Close();
 		return 1;		
 	}
