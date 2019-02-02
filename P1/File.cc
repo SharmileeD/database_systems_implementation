@@ -158,13 +158,17 @@ void Page :: FromBinary (char *bits) {
 
 int Page :: MoveMyRecsPointer(int offset, Record &record){
 	this->myRecs->MoveToStart();
-	if(this->myRecs->RightLength() > offset) {
+	if(this->myRecs->RightLength()-1 > offset) {
+		cout << "Inside";
 		record = *this->myRecs->Current(offset);
 		return 1;
-	}
+	} 
+	else if (this->myRecs->RightLength()-1 == offset) {
+		record = *this->myRecs->Current(offset);
+		return 0;
+	} 
 
 	//Return 0 if no more records i.e. end of page reached.
-	return 0;
 }
 
 

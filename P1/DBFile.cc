@@ -193,8 +193,10 @@ int DBFile::GetNext (Record &fetchme) {
 		return 1;
 
 	}
+		
 	this->current_page ++;
 	this->record_offset = 0;
+	return 1;
     }
     return 0;		
        
@@ -204,7 +206,7 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
 	bool found = true;
 
-	cout << "Record offset in masala getNext:i " <<	this->record_offset  <<endl;	
+	cout << "Record offset in masala getNext:i " <<	this->record_offset  << "Current page :" << this->current_page<<endl;	
 	// 1. Move page contents to file
 	off_t last_page = 0;
 	int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
@@ -219,9 +221,14 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 
 	    this->file_instance.GetPage(&this->buffer_page, this->current_page);
 		cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
-		//If end of page is reached
+		//If last record reached, read and move to next page 
 		if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme))) {
+			cout << "Reached last record" << endl;
 			current_page++;
+			if(comp.Compare(&fetchme, &literal, &cnf)){
+				record_offset = 0;
+				return 1;
+			}
 		} 
 		else {
 			while(!comp.Compare(&fetchme, &literal, &cnf)){
@@ -241,6 +248,7 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 			}
 		} //else
 	}//outer while
+	return 0;
 }
 
 off_t DBFile::GetValueFromTxt(char file_name []){
