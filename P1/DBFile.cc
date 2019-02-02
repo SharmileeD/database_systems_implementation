@@ -102,9 +102,14 @@ int DBFile::Close () {
 	try
 	{
         off_t last_page = 0;
-        // this->GetValueFromTxt("l_page.txt", last_page);
-        // this->file_instance.AddPage(&this->buffer_page, last_page-1);
-        // this->buffer_page.EmptyItOut();
+        if (this->file_instance.GetLength() != 0){
+                
+            last_page = GetValueFromTxt("l_page.txt");
+            last_page = last_page -1;
+                
+        }
+        this->file_instance.AddPage(&this->buffer_page, last_page);
+        this->buffer_page.EmptyItOut();
         this->SetValueFromTxt("d_page.txt", 0);
 		this->file_instance.Close();
 		return 1;		
