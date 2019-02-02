@@ -59,6 +59,7 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 int DBFile::Open (const char *f_path) {
 	try
 	{   off_t dirty = 0;
+        this->SetSchemaName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         this->file_instance.Open(1,(char*)f_path);
         if (this->file_instance.GetLength()!=0){
