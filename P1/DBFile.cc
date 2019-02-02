@@ -188,7 +188,7 @@ int DBFile::GetNext (Record &fetchme) {
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
 	// 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
 	if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)) {
-		record_offset ++;
+		this->record_offset ++;
 		return 1;
 
 	}
@@ -223,9 +223,9 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 		//If last record reached, read and move to next page 
 		if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme))) {
 			cout << "Reached last record" << endl;
-			current_page++;
+			this->current_page++;
 			if(comp.Compare(&fetchme, &literal, &cnf)){
-				record_offset = 0;
+				this->record_offset = 0;
 				return 1;
 			}
 		} 
@@ -235,13 +235,13 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 				//If end of page is reached increment current_page and reset the record_offset
 				if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)))
 				{
-					current_page++;
-					record_offset = 0;
+					this->current_page++;
+					this->record_offset = 0;
 					found = false;
 					break;	
 				}		
 			}
-			record_offset ++;
+			this->record_offset ++;
 			if(found){
 				return 1;	
 			}
