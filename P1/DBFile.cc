@@ -175,6 +175,9 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
+    // if (this->current_page == this->file_instance.GetLength()){
+    //     return 0;
+    // }
     // cout << "Current page: "<< thfile is->current_page << endl;
     // cout << "File Length:" <<  file_instance.GetLength() <<endl;
     // cout << "Offset===============================>" << this->record_offset << endl; 
@@ -200,6 +203,11 @@ int DBFile::GetNext (Record &fetchme) {
 		return 1;
     }
     else{
+        page_num = this->current_page + 1;
+        if (page_num == this->file_instance.GetLength()){
+            //This is where we,ve reached the last record of last page
+            return 1;
+        }
         this->current_page++;
         this->record_offset = 0;
         return 1;
