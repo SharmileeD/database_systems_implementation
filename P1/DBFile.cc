@@ -138,7 +138,6 @@ void DBFile::Add (Record &rec) {
     try {
         off_t last_page_added = 0;
         this->SetValueFromTxt(this->meta_dpage_name, 1);
-        this->SetValueFromTxt(this->meta_lpage_name, last_page_added);
         // This if statement checks if the page_buffer is full
         if(this->buffer_page.Append(&rec)!=1){
             
