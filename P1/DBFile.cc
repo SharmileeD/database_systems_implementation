@@ -143,7 +143,9 @@ void DBFile::Add (Record &rec) {
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
-    
+    cout << "Current page: "<< this->current_page << endl;
+    cout << "File Length:" <<  file_instance.GetLength() <<endl;
+    cout << "Offset===============================>" << this->record_offset << endl; 
     // 1. Move page contents to file
     off_t last_page = 0;
     this->GetValueFromTxt("l_page.txt", last_page);
@@ -151,47 +153,63 @@ int DBFile::GetNext (Record &fetchme) {
 
     // 2. Set meta data dirty value to 1
     this->SetValueFromTxt("d_page.txt", 1);
-    // 3. Load current_page from file
-    this->file_instance.GetPage(&this->buffer_page, this->current_page);
+   
+    while(this->current_page < file_instance.GetLength()) {
 
-    // 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
-    this->buffer_page.MoveMyRecsPointer(this->record_offset+1, fetchme);
-	return 1;
+	// 3. Load current_page from file
+    	this->file_instance.GetPage(&this->buffer_page, this->current_page);
+	// 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
+	if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)) {
+		record_offset ++;
+		return 1;
+
+	}
+	this->current_page ++;
+	this->record_offset = 0;
+    }
+    return 0;		
+       
 }
 
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
-	int page_num = 0;
 	bool found = true;
 
-/*	while(rec_ptr_page < file_instance.GetLength()) {
-		this->file_instance.GetPage(&this->buffer_page, current_page);
-	        TwoWayList <Record>* recordList = buffer_page.GetMyRecs();
-		if(recordList->RightLength() > 0)
-                	rec_pointer = recordList->Current(0);
-	        else
-                	return 0;
+	cout << "Record offset in masala getNext:i " <<	this->record_offset  <<endl;	
+	// 1. Move page contents to file
+	off_t last_page = 0;
+	this->GetValueFromTxt("l_page.txt", last_page);
+    	this->file_instance.AddPage(&this->buffer_page, last_page-1);
 
-		while(!comp.Compare(rec_pointer, &literal, &cnf)){
-			if(recordList->RightLength() > 0) {
-				recordList->Advance ();
-				rec_pointer = recordList->Current(0);
-			} else {
-				cout <<"Record was not found on this page";
-				found = false;
-				if(file_instance.GetLength() > current_page) {
-					rec_ptr_page++;
-					
-				}	
-				break;
-			}//if		
-		}
-		if(found){
-			cout << "Record foud!";
-			return 1;	
-		}
-	}*/
-	return 1;
+	// 2. Set meta data dirty value to 1
+	this->SetValueFromTxt("d_page.txt", 1);
+
+	while(this->current_page < file_instance.GetLength()) {
+
+	        this->file_instance.GetPage(&this->buffer_page, this->current_page);
+		cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
+		//If end of page is reached
+		if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme))) {
+			current_page++;
+		} 
+		else {
+			while(!comp.Compare(&fetchme, &literal, &cnf)){
+				record_offset ++;
+				//If end of page is reached increment current_page and reset the record_offset
+				if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)))
+				{
+					current_page++;
+					record_offset = 0;
+					found = false;
+					break;	
+				}		
+			}
+			record_offset ++;
+			if(found){
+				return 1;	
+			}
+		} //else
+	}//outer while
 }
 
 void DBFile::GetValueFromTxt(char file_name [], off_t &return_value ){

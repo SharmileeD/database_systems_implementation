@@ -42,7 +42,7 @@ public:
 	// empty it out
 	void EmptyItOut ();
 	// Function to move aroundthe offset pointer of a given page 
-	void MoveMyRecsPointer(int offset, Record &record);
+	int MoveMyRecsPointer(int offset, Record &record);
 
 
 };
