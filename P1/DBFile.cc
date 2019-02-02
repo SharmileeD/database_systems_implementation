@@ -24,12 +24,12 @@ int DBFile::Create (const char *f_path, fType f_type, void *startup) {
     try
     {
     	this->file_instance.Open(0,(char*)f_path);
-    	this->file_instance.Close();
-	return 1;
+	    return 1;
     }
     catch(const std::exception& e)
     {
         std::cerr << e.what() << '\n';
+        return 0;
     }	
 }
 
@@ -39,6 +39,7 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
     try
     {
         FILE *tableFile = fopen (loadpath, "r");
+
         Record temp;
         while (temp.SuckNextRecord (&f_schema, tableFile) == 1){
             Add(temp);
@@ -51,7 +52,7 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
     
     
 }
-
+//Method to open a file stored at f_path assuming there exists one and it has data inside
 int DBFile::Open (const char *f_path) {
 	try
 	{
@@ -60,8 +61,6 @@ int DBFile::Open (const char *f_path) {
             this->file_instance.GetPage(&this->buffer_page,0);
             
         }
-        
-        
 		return 1;	
 	}
 	catch(const std::exception& e)
@@ -69,16 +68,19 @@ int DBFile::Open (const char *f_path) {
 		std::cerr << e.what() << '\n';
 	}
 }
-
+//Move the record pointer to the first record of the file
 void DBFile::MoveFirst () {
     
     // 1. Move page contents to file
     off_t last_page = 0;
-    this->GetValueFromTxt("l_page.txt", last_page);
-    this->file_instance.AddPage(&this->buffer_page, last_page-1);
+    int dirty_page = this->GetValueFromTxt("d_page.txt");
+    if(dirty_page==1){
+        last_page = this->GetValueFromTxt("l_page.txt");
+        this->file_instance.AddPage(&this->buffer_page, last_page-1);
+    }
 
     // 2. Set meta data dirty value to 1
-    this->SetValueFromTxt("d_page.txt", 1);
+    this->SetValueFromTxt("d_page.txt", 0);
     
     // 3. Load first page from file
     this->file_instance.GetPage(&this->buffer_page, 0);
@@ -93,11 +95,17 @@ void DBFile::MoveFirst () {
     this->buffer_page.MoveMyRecsPointer(this->record_offset, temp);
 
 }
-
+// Method to Close the DBFile
+// This method flushes the buffer_page to the file on disk
+// and empties the page out.
 int DBFile::Close () {
 	try
 	{
-        //TODO copy buffer records to file before closing
+        off_t last_page = 0;
+        // this->GetValueFromTxt("l_page.txt", last_page);
+        // this->file_instance.AddPage(&this->buffer_page, last_page-1);
+        // this->buffer_page.EmptyItOut();
+        this->SetValueFromTxt("d_page.txt", 0);
 		this->file_instance.Close();
 		return 1;		
 	}
@@ -112,15 +120,16 @@ int DBFile::Close () {
 // if the page buffer is full it writes the page out to disk 
 // and after emptying the buffer it writes the record to the buffer
 void DBFile::Add (Record &rec) {
-   // try {
+    try {
         off_t last_page_added = 0;
+        this->SetValueFromTxt("d_page.txt", 1);
         // This if statement checks if the page_buffer is full
         if(this->buffer_page.Append(&rec)!=1){
             
             //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
            if (this->file_instance.GetLength() != 0){
                 
-               GetValueFromTxt("l_page.txt", last_page_added);
+               last_page_added = GetValueFromTxt("l_page.txt");
                 
            }
 		
@@ -134,30 +143,34 @@ void DBFile::Add (Record &rec) {
             this->buffer_page.Append(&rec);
         }
 	    
-    // }
-    //catch(exception e){
-    //    cerr << e.what() <<"Inside Add DBFile" <<'\n';
-    //}
+    }
+    catch(exception e){
+       cerr << e.what() <<"Inside Add DBFile" <<'\n';
+    }
     
 }
 
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
-    cout << "Current page: "<< this->current_page << endl;
-    cout << "File Length:" <<  file_instance.GetLength() <<endl;
-    cout << "Offset===============================>" << this->record_offset << endl; 
+    // cout << "Current page: "<< thfile is->current_page << endl;
+    // cout << "File Length:" <<  file_instance.GetLength() <<endl;
+    // cout << "Offset===============================>" << this->record_offset << endl; 
     // 1. Move page contents to file
     off_t last_page = 0;
-    this->GetValueFromTxt("l_page.txt", last_page);
-    this->file_instance.AddPage(&this->buffer_page, last_page-1);
+    int dirty_page = this->GetValueFromTxt("d_page.txt");
+
+    if(dirty_page==1){
+        last_page = this->GetValueFromTxt("l_page.txt");
+        this->file_instance.AddPage(&this->buffer_page, last_page-1);
+    }
 
     // 2. Set meta data dirty value to 1
-    this->SetValueFromTxt("d_page.txt", 1);
+    this->SetValueFromTxt("d_page.txt", 0);
    
     while(this->current_page < file_instance.GetLength()) {
 
 	// 3. Load current_page from file
-    	this->file_instance.GetPage(&this->buffer_page, this->current_page);
+    this->file_instance.GetPage(&this->buffer_page, this->current_page);
 	// 4. Call function in Page to set myrecs of buffer_page to current(offset( in this case))
 	if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)) {
 		record_offset ++;
@@ -178,15 +191,17 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	cout << "Record offset in masala getNext:i " <<	this->record_offset  <<endl;	
 	// 1. Move page contents to file
 	off_t last_page = 0;
-	this->GetValueFromTxt("l_page.txt", last_page);
-    	this->file_instance.AddPage(&this->buffer_page, last_page-1);
-
+	int dirty_page = this->GetValueFromTxt("d_page.txt");
+    if(dirty_page==1){
+        last_page = this->GetValueFromTxt("l_page.txt");
+        this->file_instance.AddPage(&this->buffer_page, last_page-1);
+    }
 	// 2. Set meta data dirty value to 1
-	this->SetValueFromTxt("d_page.txt", 1);
+	this->SetValueFromTxt("d_page.txt", 0);
 
 	while(this->current_page < file_instance.GetLength()) {
 
-	        this->file_instance.GetPage(&this->buffer_page, this->current_page);
+	    this->file_instance.GetPage(&this->buffer_page, this->current_page);
 		cout << "Record offset in masala getNext:i " << this->record_offset  <<endl;	
 		//If end of page is reached
 		if(!(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme))) {
@@ -212,7 +227,7 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	}//outer while
 }
 
-void DBFile::GetValueFromTxt(char file_name [], off_t &return_value ){
+off_t DBFile::GetValueFromTxt(char file_name []){
     
     FILE * file;
     off_t target = 0;
@@ -221,8 +236,8 @@ void DBFile::GetValueFromTxt(char file_name [], off_t &return_value ){
     filename_ptr = file_name;
     file = fopen(filename_ptr, "r");
     fread(&target, sizeof(off_t),1, file);
-    return_value = target;
     fclose(file);
+    return target;
 
 }
 

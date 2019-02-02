@@ -34,7 +34,7 @@ public:
 	void Add (Record &addme);
 	int GetNext (Record &fetchme);
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
-	void GetValueFromTxt(char file_name[], off_t &return_value);
+	off_t GetValueFromTxt(char file_name[]);
 	void SetValueFromTxt(char file_name[], off_t set_value);
 	File* GetFileInstance();
 

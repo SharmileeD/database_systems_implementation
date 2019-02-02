@@ -71,7 +71,7 @@ void test_add(){
 
         }
 	newFile.Close();
-	cout<< "Number of pages added "<< counter<< endl;
+
 }
 int test_open(){
 	Page newPage;
@@ -80,22 +80,10 @@ int test_open(){
 	Schema mySchema ("catalog", "lineitem");
 	DBFile dbfile;
 	Record new_rec;
-	//const char * fname = new char(myfname);
-	//fname = myfname;
 	dbfile.Open(myfname);
-	cout<<"Ho jaa bhai" << endl;
 	cout << dbfile.file_instance.GetLength() << endl;
 	int val = dbfile.buffer_page.GetFirst(&new_rec);
-	cout << "Get first status" << val;
-	cout<<"Ho jaa " << val << endl;
 	new_rec.Print(&mySchema);
-	// cout << "Opened 1" << endl;
-	// newPage = dbfile.buffer_page;
-	// cout << "Opened 2" << endl;
-	// newPage.GetFirst(&temp);
-	// cout << "Opened 3" << endl;
-        // temp.Print(&mySchema);
-
 	cout << "Opened 4" << endl;
 	return 0;
 	
@@ -104,7 +92,7 @@ int test_open(){
 int test_meta_data(){
 	FILE * fp2;
 	off_t target = 0;
-	fp2 = fopen("l_page.txt", "r");
+	fp2 = fopen("d_page.txt", "r");
 	fread(&target, sizeof(off_t),1, fp2);
 	cout << "Off t variable incremented" << endl;
 	cout<< target<<endl;
@@ -162,14 +150,27 @@ int test_get_next(){
 	dbfile.GetNext(next_rec);
 	cout << "Get next is done" << endl;
 	next_rec.Print(&mySchema);
+	dbfile.Close();
 	return 0;
+}
+void test_load(){
+	DBFile dbfile;
+	char myfname[] = "lee.bin";
+        fType heap = heap;
+        void* ptr;
+        dbfile.Create(myfname, heap, &ptr);
+        dbfile.Open(myfname);
+	
+	Schema mySchema ("catalog", "lineitem");
+	dbfile.Load(mySchema, "tables/lineitem.tbl");
 }
 int main () {
 	//test_add();
 	// test_open();
 //	test_move_first();
-	test_get_next();
-
+	//test_get_next();
+	//test_load();
+	test_meta_data();
 	cout << "Done Testing" << endl;
 	// Schema mySchema ("catalog", "lineitem");
         // File newFile;
