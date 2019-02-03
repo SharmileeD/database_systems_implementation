@@ -12,17 +12,17 @@ ifdef linux
 tag = -n
 endif
 
-gtest_macos:  clean main
+gtest_macos:  clean main_macos
 	$(TEST_CC_MACOS) $(CC11_MACOS) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
 gtest_linux: clean main
 	$(TEST_CC_LINUX) $(CC11_LINUX) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
-test_macos.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o
-	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab_macos.o lex.yy.o test.o $(L_FLAG_MACOS)
+test_macos.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab_macos.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o $(L_FLAG_MACOS)
 
-main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab_macos.o lex.yy.o main.o DBFile.o $(L_FLAG_MACOS)
+main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab_macos.o lex.yy.o main.o DBFile.o
+	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o $(L_FLAG_MACOS)
 
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o $(L_FLAG_LINUX)
