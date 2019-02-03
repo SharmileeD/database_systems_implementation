@@ -73,6 +73,7 @@ int DBFile::Open (const char *f_path) {
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
+        return 0;
 	}
 }
 //Move the record pointer to the first record of the file
