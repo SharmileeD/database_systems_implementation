@@ -123,6 +123,28 @@ TEST(AddPagetest, AddPageSuccess) {
      dbfile.Close(); 
 }
 
+TEST(GetNextTest, GetLast) {
+     DBFile dbfile;
+     char myfname[] = "lee.txt";
+     fType heap = heap;
+     void* ptr;
+     int val = dbfile.Create(myfname, heap, &ptr);
+     ASSERT_EQ(1, val);
+     val = dbfile.Open("lee.txt");
+     ASSERT_EQ(1, val);
+     int initial_length = dbfile.file_instance.GetLength();
+     Schema mySchema ("catalog", "customer");
+     dbfile.Load(mySchema, "tables/customer.tbl");
+     int new_length = dbfile.file_instance.GetLength();
+     dbfile.record_offset = 0;
+     dbfile.current_page = 2;
+     Record next_rec;
+     int result = dbfile.GetNext(next_rec);
+     ASSERT_EQ(0, result);
+     dbfile.Close();
+}
+
+
 TEST(GetNextTest, GNSuccess) {
      DBFile dbfile;
      char myfname[] = "lee.txt";
@@ -133,38 +155,18 @@ TEST(GetNextTest, GNSuccess) {
      val = dbfile.Open("lee.txt");
      ASSERT_EQ(1, val);
      int initial_length = dbfile.file_instance.GetLength();
-     Schema mySchema ("catalog", "customer");
-     dbfile.Load(mySchema, "tables/customer.tbl");
+     Schema mySchema ("catalog", "lineitem");
+     dbfile.Load(mySchema, "tables/lineitem.tbl");
      int new_length = dbfile.file_instance.GetLength();
-     //ASSERT_LT(initial_length, new_length);
-     //dbfile.MoveFirst();
      dbfile.record_offset = 0;
      dbfile.current_page = 0;
      Record next_rec;
      int result = dbfile.GetNext(next_rec);
      ASSERT_EQ(1, result);
+     dbfile.Close();
 }
 
-TEST(GetNextTest, GNLastRec) {
-     DBFile dbfile;
-     char myfname[] = "lee.txt";
-     fType heap = heap;
-     void* ptr;
-     int val = dbfile.Create(myfname, heap, &ptr);
-     ASSERT_EQ(1, val);
-     val = dbfile.Open("lee.txt");
-     ASSERT_EQ(1, val);
-     int initial_length = dbfile.file_instance.GetLength();
-     Schema mySchema ("catalog", "customer");
-     dbfile.Load(mySchema, "tables/customer.tbl");
-     int new_length = dbfile.file_instance.GetLength();
-     //ASSERT_LT(initial_length, new_length);
-     //dbfile.MoveFirst();
-     dbfile.record_offset = 0;
-     dbfile.current_page = 2;
-     Record next_rec;
-     int result = dbfile.GetNext(next_rec);
-     ASSERT_EQ(0, result);
+
 TEST(CreateTest, CreateMetaDataFilesTest) { 
     DBFile dbfile;
     char myfname[] = "test.txt";
@@ -175,6 +177,7 @@ TEST(CreateTest, CreateMetaDataFilesTest) {
     ASSERT_TRUE(f != NULL);
     FILE* f2 = fopen("test_dpage.txt", "r");
     ASSERT_TRUE(f != NULL);
+    dbfile.Close();
 }
 
 TEST(GetValueFromTxtTest, GetValueSuccess) { 
