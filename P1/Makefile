@@ -1,26 +1,35 @@
 CC = g++ -O2 -Wno-deprecated 
-TEST_CC = clang++ 
-# CC = clang++ -fsanitize=address -O1 -fno-omit-frame-pointer -g
-CC11 = -std=c++11 -stdlib=libc++
-tag = -i
-L_FLAG = -ll
+TEST_CC_MACOS = clang++ 
+CC11_MACOS = -std=c++11 -stdlib=libc++
+CC11_LINUX = -std=c++11
 
+tag = -i
+L_FLAG_MACOS = -ll
+L_FLAG_LINUX = -lfl
+
+TEST_CC_LINUX = g++ 
 ifdef linux
 tag = -n
-TEST_CC = g++ 
-CC11 = -std=c++11
-L_FLAG = -lfl
 endif
 
-gtest:  clean main
-	$(TEST_CC) $(CC11) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
+gtest_macos:  clean main
+	$(TEST_CC_MACOS) $(CC11_MACOS) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
+
+gtest_linux: clean main
+	$(TEST_CC_LINUX) $(CC11_LINUX) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
+
+test_macos.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab_macos.o lex.yy.o test.o $(L_FLAG_MACOS)
+
+main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o
+	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab_macos.o lex.yy.o main.o DBFile.o $(L_FLAG_MACOS)
 
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o
-	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o $(L_FLAG)
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o $(L_FLAG_LINUX)
 
 main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o $(L_FLAG)
-	
+	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o $(L_FLAG_LINUX)
+
 test.o: test.cc
 	$(CC) -g -c test.cc
 
@@ -45,9 +54,14 @@ Record.o: Record.cc
 Schema.o: Schema.cc
 	$(CC) -g -c Schema.cc
 	
-y.tab.o: Parser.y
+y.tab_macos.o: Parser.y
 	yacc -d Parser.y
 	sed $(tag) -e "s/  __attribute__ ((__unused__))$$/# ifndef __cplusplus\n  __attribute__ ((__unused__));\n# endif/" y.tab.c
+	g++ -c y.tab.c
+
+y.tab.o: Parser.y
+	yacc -d Parser.y
+	sed $(tag) y.tab.c -e "s/  __attribute__ ((__unused__))$$/# ifndef __cplusplus\n  __attribute__ ((__unused__));\n# endif/" 
 	g++ -c y.tab.c
 
 lex.yy.o: Lexer.l
