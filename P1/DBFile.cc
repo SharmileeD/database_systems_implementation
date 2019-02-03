@@ -312,7 +312,7 @@ File* DBFile::GetFileInstance(){
 
 void DBFile:: SetSchemaName(char tblpath []){
     char * pch;
-    char meta_file_name[30];
+    char meta_file_name[100];
     pch = strtok (tblpath,"/");
     char test [100];
     while (pch != NULL)
