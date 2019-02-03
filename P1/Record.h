@@ -41,7 +41,7 @@ public:
 	// this call, fromMe will no longer have anything inside of it
 	void Consume (Record *fromMe);
 
-	// make a copy of the record fromMe; note that this is far more 
+	// make a copy of the record fomMe; note that this is far more 
 	// expensive (requiring a bit-by-bit copy) than Consume, which is
 	// only a pointer operation
 	void Copy (Record *copyMe);
@@ -65,6 +65,12 @@ public:
 	// prints the contents of the record; this requires
 	// that the schema also be given so that the record can be interpreted
 	void Print (Schema *mySchema);
+
+	//Getter to fetch bits of record
+	void GetRecordBits(char *);
+
+	//Setter to set the bits of record
+	void SetRecordBits(char *);
 };
 
 #endif
