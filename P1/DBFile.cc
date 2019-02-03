@@ -20,10 +20,11 @@ DBFile::DBFile ()
 {
 }
 
+//Method to Create a DBFile store
 int DBFile::Create (const char *f_path, fType f_type, void *startup) {
     try
     {
-        this->SetSchemaName((char *)f_path);
+        this->SetMetaDataFileName((char *)f_path);
         this->SetValueFromTxt(this->meta_lpage_name, 0);
         this->SetValueFromTxt(this->meta_dpage_name, 1);
     	this->file_instance.Open(0,(char*)f_path);
@@ -52,17 +53,15 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
     {
         std::cerr << e.what() << '\n';
     }
-    
-    
 }
+
 //Method to open a file stored at f_path assuming there exists one and it has data inside
 int DBFile::Open (const char *f_path) {
 	try
 	{   off_t dirty = 0;
-        this->SetSchemaName((char *)f_path);
+        this->SetMetaDataFileName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         this->file_instance.Open(1,(char*)f_path);
-        cout << "curr length " << this->file_instance.GetLength()<<endl;
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
             this->current_page = 0;
@@ -76,40 +75,18 @@ int DBFile::Open (const char *f_path) {
         return 0;
 	}
 }
+
 //Move the record pointer to the first record of the file
 void DBFile::MoveFirst () {
     
-    // 1. Move page contents to file
-    // off_t last_page = 0;
-    // int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
-    // if(dirty_page==1){
-    //     last_page = this->GetValueFromTxt(this->meta_lpage_name);
-    //     this->file_instance.AddPage(&this->buffer_page, last_page-1);
-    // }
-
-    // 2. Set meta data dirty value to 0
-    // this->SetValueFromTxt(this->meta_dpage_name, 0);
-    
-    // 3. Load first page from file
-
-    //TODO Check for the case where there is no data in file 
-    // if (this->file_instance.GetLength()!=0){
-    //     this->file_instance.GetPage(&this->buffer_page, 0);
-    // }
-    // 4. Set offset to 0
+    // Set Record offset to 0
     this->record_offset = 0;
-    
-    // 5. Set current page to 0
+    // Set current page to 0
     this->current_page = 0;
-    // Record temp;
-    // 6. Call function in Page to set myrecs of buffer_page to current(offset(0 in this case))
-    //Commented this out so as to 
-   // this->buffer_page.MoveMyRecsPointer(this->record_offset, temp);
 
 }
 // Method to Close the DBFile
 // This method flushes the buffer_page to the file on disk
-// and empties the page out.
 int DBFile::Close () {
 	try
 	{
@@ -173,6 +150,7 @@ void DBFile::Add (Record &rec) {
     
 }
 
+//Function to get the record in the next position
 int DBFile::GetNext (Record &fetchme) {
 	int page_num = 0;
     if (this->current_page == this->file_instance.GetLength()-1){
@@ -182,7 +160,7 @@ int DBFile::GetNext (Record &fetchme) {
     off_t last_page = 0;
     int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
 
-    //If tis action follows a write(Add) then we move the contents of the buffer to the file
+    //If this action follows a write(Add) then we move the contents of the buffer to the file
     if(dirty_page==1){
         last_page = this->GetValueFromTxt(this->meta_lpage_name);
         this->file_instance.AddPage(&this->buffer_page, last_page-1);
@@ -195,6 +173,7 @@ int DBFile::GetNext (Record &fetchme) {
     // 3. Load current_page from file
     this->file_instance.GetPage(&this->buffer_page, this->current_page);
     
+    //Here we call the MoveMyRecsPointer to advance the myrecs pointer by one position
     if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
         this->record_offset++;
 		return 1;
@@ -202,7 +181,7 @@ int DBFile::GetNext (Record &fetchme) {
     else{
         page_num = this->current_page + 1;
         if (page_num == this->file_instance.GetLength()){
-            //This is where we,ve reached the last record of last page
+            //This is where we've reached the last record of last page
             this->current_page++;
             return 1;
         }
@@ -210,11 +189,10 @@ int DBFile::GetNext (Record &fetchme) {
         this->record_offset = 0;
         return 1;
     }
-
-   return 0;
-       
+    return 0;  
 }
 
+//Function to get the record after the current record which matches the cnf
 int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
 	bool found = true;
@@ -233,16 +211,12 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	// 2. Set meta data dirty value to 1
 	this->SetValueFromTxt(this->meta_dpage_name, 0);
 
-    // 3. Load current_page from file
-    
-    
-    //If last record reached, read and move to next page 
-
+    //Looping through the records to find records that match the CNF and return the record that is found
     while(1){
         if (this->current_page == this->file_instance.GetLength()-1){
             return 0;
         }
-        //Keep getting records till you find a match
+        // 3. Load current_page from file
         this->file_instance.GetPage(&this->buffer_page, this->current_page);
         if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
             this->record_offset++;
@@ -262,8 +236,6 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
                 else{
                     return 0;
                 }
-                
-                
             }
             if(comp.Compare(&fetchme, &literal, &cnf)){
                     this->current_page++;
@@ -274,20 +246,17 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
                     this->current_page++;
                     this->record_offset = 0;
                 }
-            
-            
         }
-        
     }
     return 0;
 }
 
+// Method to get the value of the metadata stored in the auxiliary text file
 off_t DBFile::GetValueFromTxt(char file_name []){
     
     FILE * file;
     off_t target = 0;
     const char * filename_ptr;
-    
     filename_ptr = file_name;
     file = fopen(filename_ptr, "r");
     fread(&target, sizeof(off_t),1, file);
@@ -295,9 +264,9 @@ off_t DBFile::GetValueFromTxt(char file_name []){
     return target;
 
 }
-
+// Method to set the value of the metadata stored in the auxiliary text file
 void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
-    
+
     FILE * file;
     const char * filename_ptr;
     filename_ptr = file_name;
@@ -306,11 +275,8 @@ void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
     fclose(file);
 }
 
-File* DBFile::GetFileInstance(){
-     return &this->file_instance;
-}
-
-void DBFile:: SetSchemaName(char tblpath []){
+// Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
+void DBFile:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[30];
     pch = strtok (tblpath,"/");
