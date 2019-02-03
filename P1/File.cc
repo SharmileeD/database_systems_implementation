@@ -24,7 +24,7 @@ Page :: Page () {
 }
 
 Page :: ~Page () {
-	//delete myRecs;
+	delete myRecs;
 }
 
 
@@ -156,8 +156,12 @@ void Page :: FromBinary (char *bits) {
 	delete temp;
 }
 
+//This method moves the myrecs pointer by the given Offset and returns the record that resides at that position
+//Returns 0 if we have reached the end of myRecs (Essentially the last record of the page)
 int Page :: MoveMyRecsPointer(int offset, Record &record){
+	//Moving the pointer to the start of myRecs
 	this->myRecs->MoveToStart();
+	//Checking for records to the right of the first record against the given offset
 	if(this->myRecs->RightLength()-1 > offset) {
 		record = *this->myRecs->Current(offset);
 		return 1;
@@ -166,19 +170,13 @@ int Page :: MoveMyRecsPointer(int offset, Record &record){
 		record = *this->myRecs->Current(offset);
 		return 0;
 	} 
-
-	//Return 0 if no more records i.e. end of page reached.
 }
-
-
-
 
 File :: File () {
 }
 
 File :: ~File () {
 }
-
 
 void File :: GetPage (Page *putItHere, off_t whichPage) {
 

@@ -36,10 +36,7 @@ public:
 	int GetNext (Record &fetchme, CNF &cnf, Record &literal);
 	off_t GetValueFromTxt(char file_name[]);
 	void SetValueFromTxt(char file_name[], off_t set_value);
-	void SetSchemaName(char tblpath []);
-	File* GetFileInstance();
-
-
+	void SetMetaDataFileName(char tblpath []);
 
 };
 #endif
