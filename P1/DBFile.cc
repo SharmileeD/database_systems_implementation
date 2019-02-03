@@ -278,7 +278,7 @@ void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
 // Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
 void DBFile:: SetMetaDataFileName(char tblpath []){
     char * pch;
-    char meta_file_name[30];
+    char meta_file_name[100];
     pch = strtok (tblpath,"/");
     char test [100];
     while (pch != NULL)
