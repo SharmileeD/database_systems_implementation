@@ -7,9 +7,22 @@ ifdef linux
 tag = -n
 endif
 
+gtest_macos:  clean test.out
+	$(TEST_CC_MACOS) $(CC11_MACOS) BigQ_test.cc -o  bigq_test.o -ll -lgtest -lpthread
+gtest_linux: clean test.out
+	$(TEST_CC_LINUX) $(CC11_LINUX) BigQ_test.cc -o  bigq_test.o -ll -lgtest -lpthread
+
+test_macos.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o -ll -lpthread
+
+# setupdbfile.o: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o setup.o
+# 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o setup.o
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -lfl -lpthread
 	
+# setup.o: setup.cc
+	# $(CC) -g -c setup.cc
+
 a1test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o
 	$(CC) -o a1test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o -lfl
 	
@@ -43,6 +56,11 @@ Record.o: Record.cc
 Schema.o: Schema.cc
 	$(CC) -g -c Schema.cc
 	
+y.tab_macos.o: Parser.y
+	yacc -d Parser.y
+	sed $(tag) -e "s/  __attribute__ ((__unused__))$$/# ifndef __cplusplus\n  __attribute__ ((__unused__));\n# endif/" y.tab.c
+	g++ -c y.tab.c
+
 y.tab.o: Parser.y
 	yacc -d Parser.y
 	sed $(tag) y.tab.c -e "s/  __attribute__ ((__unused__))$$/# ifndef __cplusplus\n  __attribute__ ((__unused__));\n# endif/" 
