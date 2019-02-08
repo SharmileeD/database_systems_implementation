@@ -1,40 +1,35 @@
 CC = g++ -O2 -Wno-deprecated 
-TEST_CC_MACOS = clang++ 
-CC11_MACOS = -std=c++11 -stdlib=libc++
-CC11_LINUX = -std=c++11
-
 tag = -i
-L_FLAG_MACOS = -ll
-L_FLAG_LINUX = -lfl
-
-TEST_CC_LINUX = g++ 
 ifdef linux
 tag = -n
 endif
 
 gtest_macos:  clean main_macos
-	$(TEST_CC_MACOS) $(CC11_MACOS) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
+	clang++ -std=c++11 -stdlib=libc++ DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
 gtest_linux: clean main
-	$(TEST_CC_LINUX) $(CC11_LINUX) DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
+	g++ -std=c++11 DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
 test_macos.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test.o
-	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o -ll -lpthread
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -ll -lpthread
 
-main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab_macos.o lex.yy.o main.o DBFile.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o $(L_FLAG_MACOS)
+main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test_dbfile.o
+	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o -ll -lpthread
 
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -lfl -lpthread
 
-main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o DBFile.o $(L_FLAG_LINUX)
+main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o DBFile.o test_dbfile.o
+	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o DBFile.o test_dbfile.o -lfl
 
 a1test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o
 	$(CC) -o a1test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o -lfl
 
 test.o: test.cc
 	$(CC) -g -c test.cc
+
+test_dbfile.o: test_dbfile.cc
+	$(CC) -g -c test_dbfile.cc
 
 main.o: main.cc
 	$(CC) -g -c main.cc

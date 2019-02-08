@@ -1,6 +1,6 @@
 #include <iostream>
 #include "DBFile.h"
-#include "test.h"
+#include "test_dbfile.h"
 
 // make sure that the file path/dir information below is correct
 const char *dbfile_dir = ""; // dir where binary heap files should be stored
