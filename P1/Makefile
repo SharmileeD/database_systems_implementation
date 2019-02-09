@@ -13,13 +13,13 @@ gtest_linux: clean main
 test_macos.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -ll -lpthread
 
-main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test_dbfile.o
+test_dbfile_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test_dbfile.o
 	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o -ll -lpthread
 
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -lfl -lpthread
 
-main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o
+test_dbfile: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o
 	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o -lfl -lpthread
 
 a1test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o
@@ -27,12 +27,6 @@ a1test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pi
 
 test.o: test.cc
 	$(CC) -g -c test.cc
-
-test_dbfile.o: test_dbfile.cc
-	$(CC) -g -c test_dbfile.cc
-
-main.o: main.cc
-	$(CC) -g -c main.cc
 	
 Comparison.o: Comparison.cc
 	$(CC) -g -c Comparison.cc
