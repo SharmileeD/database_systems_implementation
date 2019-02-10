@@ -170,6 +170,7 @@ int Page :: MoveMyRecsPointer(int offset, Record &record){
 		record = *this->myRecs->Current(offset);
 		return 0;
 	} 
+	return 0;
 }
 
 File :: File () {

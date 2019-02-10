@@ -13,7 +13,7 @@ using namespace std;
 
 char *catalog_path = "catalog"; 
 char *tpch_dir ="tables/"; // dir where dbgen tpch files (extension *.tbl) can be found
-char *dbfile_dir = "dbfiles/"; 
+char *dbfile_dir = ""; 
 
 
 extern "C" {
