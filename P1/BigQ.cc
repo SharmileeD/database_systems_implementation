@@ -39,22 +39,23 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input.out_pipe = &out;
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
-	Record rec[2];
-	Record *last = NULL, *prev = NULL;
-	int err = 0;
-	int i = 0;
-	Schema mySchema ("catalog", "nation"); 
- 	while (in.Remove(&rec[i%2])) {
-		prev = last;
-		last = &rec[i%2];
-		last->Print(&mySchema);
-		i++;
-	}
+	//THIS WORKS. READS RECORDS FROM IN PIPE AND PRINTS THEM OUT
+	// Record rec[2];
+	// Record *last = NULL, *prev = NULL;
+	// int err = 0;
+	// int i = 0;
+	// Schema mySchema ("catalog", "nation"); 
+ 	// while (in.Remove(&rec[i%2])) {
+	// 	prev = last;
+	// 	last = &rec[i%2];
+	// 	last->Print(&mySchema);
+	// 	i++;
+	// }
 	cout << "Inside BIGQ"<<endl;
     // construct priority queue over sorted runs and dump sorted data 
  	// into the out pipe
 	pthread_t worker;
-	// pthread_create (&worker, NULL, sort_tpmms, (void *)&input);
+	pthread_create (&worker, NULL, sort_tpmms, (void *)&input);
 
     // finally shut down the out pipe
 	out.ShutDown ();
