@@ -13,36 +13,22 @@ gtest_linux: clean main
 test_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -ll -lpthread
 
-<<<<<<< HEAD
 test_dbfile_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test_p1.o
 	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_p1.o -ll -lpthread
-=======
-test_dbfile_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o test_dbfile.o
-	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o -ll -lpthread
->>>>>>> 148159ef47090d7614ec1e22842dbcb96499abe7
-
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -lfl -lpthread
 
-<<<<<<< HEAD
-test_dbfile: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o DBFile.o test_p1.o
-	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o DBFile.o test_p1.o -lfl
-=======
-test_dbfile: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o
-	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_dbfile.o -lfl -lpthread
->>>>>>> 148159ef47090d7614ec1e22842dbcb96499abe7
+test_dbfile: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o DBFile.o test_p1.o
+	$(CC) -o test_dbfile Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test_p1.o -lfl
 
 a1test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o
 	$(CC) -o a1test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1-test.o -lfl
 
 test.o: test.cc
 	$(CC) -g -c test.cc
-<<<<<<< HEAD
 
 test_p1.o: test_p1.cc
 	$(CC) -g -c test_p1.cc
-=======
->>>>>>> 148159ef47090d7614ec1e22842dbcb96499abe7
 	
 Comparison.o: Comparison.cc
 	$(CC) -g -c Comparison.cc
