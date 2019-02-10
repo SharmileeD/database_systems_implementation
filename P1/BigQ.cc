@@ -10,24 +10,21 @@ struct worker_data{
 };
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args = (worker_data *)arg;
-	Record inrec; 
+	Record newinrec; 
 
-	Record rec[2];
-	Record *last = NULL, *prev = NULL;
+	Record newrec[2];
+	Record *newlast = NULL, *newprev = NULL;
 	int err = 0;
 	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
 
-	while (input_args->in_pipe->Remove (&rec[i%2])) {
-		prev = last;
-		last = &rec[i%2];
-		last->Print(&mySchema);
+	while (input_args->in_pipe->Remove (&newrec[i%2])) {
+		newprev = newlast;
+		newlast = &newrec[i%2];
+		input_args->out_pipe->Insert(newlast);
 		i++;
 	}
-
-	
-	
-	cout << " producer: inserted recs into the pipe\n";
+	cout << " Worker doing some work here"<<endl;
 	pthread_exit(NULL);
 }
 
@@ -59,6 +56,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 
     // finally shut down the out pipe
 	out.ShutDown ();
+	// pthread_join (worker, NULL);
 }
 
 BigQ::~BigQ () {
