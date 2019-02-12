@@ -91,7 +91,7 @@ void test1 (int option, int runlen) {
 	int buffsz = 100; // pipe cache size
 	Pipe input (buffsz);
 	Pipe output (buffsz);
-	cout<< "did you even come here" << endl;
+
 	// thread to dump data into the input pipe (for BigQ's consumption)
 	pthread_t thread1;
 	pthread_create (&thread1, NULL, producer, (void *)&input);
