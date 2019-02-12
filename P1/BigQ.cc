@@ -2,6 +2,7 @@
 #include "Record.h"
 #include "Schema.h"
 #include "Pipe.h"
+#include "pthread.h"
 struct worker_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
@@ -9,7 +10,8 @@ struct worker_data{
 	int run_length;
 };
 void *sort_tpmms (void *arg) {
-	struct worker_data * input_args = (worker_data *)arg;
+	struct worker_data * input_args;
+	input_args = (struct worker_data *)arg;
 	Record newinrec; 
 
 	Record newrec[2];
@@ -17,11 +19,16 @@ void *sort_tpmms (void *arg) {
 	int err = 0;
 	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
-
-	while (input_args->in_pipe->Remove (&newrec[i%2])) {
+	cout<<"Tryin to debug the issue"<<endl;
+	cout<<input_args->in_pipe<<endl;
+	cout<<input_args->run_length<<endl;
+	cout<<input_args->sort_order<<endl;
+	cout<<input_args->out_pipe<<endl;
+	cout<<"Tryin to debug the issue end"<<endl;
+	while (input_args->in_pipe->Remove(&newrec[i%2])) {
 		newprev = newlast;
 		newlast = &newrec[i%2];
-		input_args->out_pipe->Insert(newlast);
+		newlast->Print(&mySchema);
 		i++;
 	}
 	cout << " Worker doing some work here"<<endl;
@@ -36,6 +43,13 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input.out_pipe = &out;
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
+
+	cout<<"Dbug in the Bigq class"<<endl;
+	cout<<input.in_pipe<<endl;
+	cout<<input.out_pipe<<endl;
+	cout<<input.sort_order<<endl;
+	cout<<input.run_length<<endl;
+	cout<<"Dbug in the Bigq class end"<<endl;
 	// // THIS WORKS. READS RECORDS FROM IN PIPE AND PRINTS THEM OUT
 	// Record rec[2];
 	// Record *last = NULL, *prev = NULL;
@@ -52,7 +66,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
     // // construct priority queue over sorted runs and dump sorted data 
  	// // into the out pipe
 	pthread_t worker;
-	pthread_create (&worker, NULL, sort_tpmms, (void *)&input);
+	pthread_create (&worker, NULL, sort_tpmms, (void*) &input);
     // // finally shut down the out pipe
 	out.ShutDown ();
 	pthread_exit (NULL);
