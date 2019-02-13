@@ -20,10 +20,12 @@ void *sort_tpmms (void *arg) {
 	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
 	cout<<"Tryin to debug the issue"<<endl;
+	
 	cout<<input_args->in_pipe<<endl;
-	cout<<input_args->run_length<<endl;
-	cout<<input_args->sort_order<<endl;
 	cout<<input_args->out_pipe<<endl;
+	cout<<input_args->sort_order<<endl;
+	cout<<input_args->run_length<<endl;
+
 	cout<<"Tryin to debug the issue end"<<endl;
 	while (input_args->in_pipe->Remove(&newrec[i%2])) {
 		newprev = newlast;
