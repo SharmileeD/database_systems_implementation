@@ -9,13 +9,14 @@ struct worker_data{
 	OrderMaker *sort_order;
 	int run_length;
 };
+struct worker_data input;
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;
-	Record newinrec; 
 
 	Record newrec[2];
 	Record *newlast = NULL, *newprev = NULL;
+	Record recrec;
 	int err = 0;
 	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
@@ -29,17 +30,16 @@ void *sort_tpmms (void *arg) {
 	cout<<"Tryin to debug the issue end"<<endl;
 	while (input_args->in_pipe->Remove(&newrec[i%2])) {
 		newprev = newlast;
-		newlast = &newrec[i%2];
-		newlast->Print(&mySchema);
+        newlast = &newrec[i%2];
+        input_args->out_pipe->Insert(newlast);
 		i++;
 	}
 	cout << " Worker doing some work here"<<endl;
-	pthread_exit(NULL);
 }
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	// read data from in pipe sort them into runlen pages
-	struct worker_data input;
+	
 	// storing address of the reference of in pipe coming in to the BigQ in the struct in_pipe variable
 	input.in_pipe = &in; 
 	input.out_pipe = &out;
