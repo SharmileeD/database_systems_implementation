@@ -14,9 +14,8 @@ void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;
 
-	Record newrec[2];
-	Record *newlast = NULL, *newprev = NULL;
-	Record recrec;
+	Record * recrec;
+	Record test;
 	int err = 0;
 	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
@@ -24,17 +23,19 @@ void *sort_tpmms (void *arg) {
 	
 	cout<<input_args->in_pipe<<endl;
 	cout<<input_args->out_pipe<<endl;
-	cout<<input_args->sort_order<<endl;
+	input_args->sort_order->Print();
 	cout<<input_args->run_length<<endl;
 
 	cout<<"Tryin to debug the issue end"<<endl;
-	while (input_args->in_pipe->Remove(&newrec[i%2])) {
-		newprev = newlast;
-        newlast = &newrec[i%2];
-        input_args->out_pipe->Insert(newlast);
+	while (input_args->in_pipe->Remove(recrec)) {
+		cout<<"writing to outpipe"<<endl;
+		test = *recrec;
+        input_args->out_pipe->Insert(&test);
+	
 		i++;
 	}
 	cout << " Worker doing some work here"<<endl;
+	// pthread_exit (NULL);
 }
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
