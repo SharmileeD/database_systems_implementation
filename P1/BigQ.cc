@@ -3,6 +3,7 @@
 #include "Schema.h"
 #include "Pipe.h"
 #include "pthread.h"
+#include <unistd.h>
 struct worker_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
@@ -12,35 +13,24 @@ struct worker_data{
 struct worker_data input;
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
-	input_args = (struct worker_data *)arg;
-
-	Record * inrec;
+	input_args = (struct worker_data *)arg;	
 	Record outrec;
-	inrec = &outrec;
-	int err = 0;
-	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
-	cout<<"Tryin to debug the issue"<<endl;
 	
-	cout<<input_args->in_pipe<<endl;
-	cout<<input_args->out_pipe<<endl;
-	input_args->sort_order->Print();
-	cout<<input_args->run_length<<endl;
+	cout << "Print this and get out" << endl;
+ 	while (input_args->in_pipe->Remove(&outrec)) {
+ 		cout<<"writing to outpipe"<<endl;
 
-	cout<<"Tryin to debug the issue end"<<endl;
-	while (input_args->in_pipe->Remove(inrec)) {
-		cout<<"writing to outpipe"<<endl;
 		outrec.Print(&mySchema);
-        // input_args->out_pipe->Insert(&recrec);
-		i++;
-		cout << "1st value"<< endl;
-		cout << inrec << endl;
-		inrec = &outrec;
-		cout << "2nd value"<< endl;
-		cout << inrec << endl;
-	}
-	cout << " Worker doing some work here"<<endl;
-	// pthread_exit (NULL);
+
+
+        // input_args->out_pipe->Insert(&outrec);
+
+ 	}
+// 	cout << " Worker doing some work here"<<endl;
+	// input_args->out_pipe->ShutDown();
+ 	pthread_exit(NULL);
+	
 }
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
@@ -52,32 +42,21 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
 
-	cout<<"Dbug in the Bigq class"<<endl;
-	cout<<input.in_pipe<<endl;
-	cout<<input.out_pipe<<endl;
-	cout<<input.sort_order<<endl;
-	cout<<input.run_length<<endl;
-	cout<<"Dbug in the Bigq class end"<<endl;
-	// // THIS WORKS. READS RECORDS FROM IN PIPE AND PRINTS THEM OUT
-	// Record rec[2];
-	// Record *last = NULL, *prev = NULL;
-	// int err = 0;
-	// int i = 0;
-	// Schema mySchema ("catalog", "nation"); 
- 	// while (in.Remove(&rec[i%2])) {
-	// 	prev = last;
-	// 	last = &rec[i%2];
-	// 	last->Print(&mySchema);
-	// 	i++;
-	// }
 	cout << "Inside BIGQ"<<endl;
     // // construct priority queue over sorted runs and dump sorted data 
  	// // into the out pipe
 	pthread_t worker;
-	pthread_create (&worker, NULL, sort_tpmms, (void*) &input);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+    int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+	if (det){
+		cout<<"Some issue with setting detached"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to detached"<<endl;
+	}
+	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
     // // finally shut down the out pipe
-	out.ShutDown ();
-	pthread_exit (NULL);
 }
 
 BigQ::~BigQ () {
