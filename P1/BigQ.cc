@@ -14,8 +14,9 @@ void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;
 
-	Record * recrec;
-	Record test;
+	Record * inrec;
+	Record outrec;
+	inrec = &outrec;
 	int err = 0;
 	int i = 0;
 	Schema mySchema ("catalog", "nation"); 
@@ -27,12 +28,16 @@ void *sort_tpmms (void *arg) {
 	cout<<input_args->run_length<<endl;
 
 	cout<<"Tryin to debug the issue end"<<endl;
-	while (input_args->in_pipe->Remove(recrec)) {
+	while (input_args->in_pipe->Remove(inrec)) {
 		cout<<"writing to outpipe"<<endl;
-		test = *recrec;
-        input_args->out_pipe->Insert(&test);
-	
+		outrec.Print(&mySchema);
+        // input_args->out_pipe->Insert(&recrec);
 		i++;
+		cout << "1st value"<< endl;
+		cout << inrec << endl;
+		inrec = &outrec;
+		cout << "2nd value"<< endl;
+		cout << inrec << endl;
 	}
 	cout << " Worker doing some work here"<<endl;
 	// pthread_exit (NULL);
