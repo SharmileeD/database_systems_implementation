@@ -24,7 +24,7 @@ Page :: Page () {
 }
 
 Page :: ~Page () {
-	//delete myRecs;
+	delete myRecs;
 }
 
 

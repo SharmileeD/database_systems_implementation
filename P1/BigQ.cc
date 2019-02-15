@@ -14,35 +14,39 @@ struct worker_data input;
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;	
-	Record outrec;
-	Schema mySchema ("catalog", "nation"); 
 	
-	cout << "Print this and get out" << endl;
- 	while (input_args->in_pipe->Remove(&outrec)) {
+	Schema mySchema ("catalog", "nation"); 
+
+	Record * tempRec;
+
+	Record outrec;
+	tempRec = &outrec;
+
+ 	while (input_args->in_pipe->Remove(tempRec)) {
+		
  		cout<<"writing to outpipe"<<endl;
+		tempRec->Print(&mySchema);
 
-		outrec.Print(&mySchema);
-
-
-        // input_args->out_pipe->Insert(&outrec);
-
+        input_args->out_pipe->Insert(tempRec);
  	}
 // 	cout << " Worker doing some work here"<<endl;
-	// input_args->out_pipe->ShutDown();
- 	pthread_exit(NULL);
+	input_args->out_pipe->ShutDown();
+ 	cout<< "Exiting the worker thread"<<endl;
+	pthread_exit(NULL);
+	
 	
 }
 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	// read data from in pipe sort them into runlen pages
-	
+	cout << "BigQ: Start"<<endl;
 	// storing address of the reference of in pipe coming in to the BigQ in the struct in_pipe variable
 	input.in_pipe = &in; 
 	input.out_pipe = &out;
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
 
-	cout << "Inside BIGQ"<<endl;
+	
     // // construct priority queue over sorted runs and dump sorted data 
  	// // into the out pipe
 	pthread_t worker;
@@ -56,6 +60,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 		cout<<"Thread attr set to detached"<<endl;
 	}
 	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
+
     // // finally shut down the out pipe
 }
 

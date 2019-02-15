@@ -11,7 +11,7 @@ Record :: Record () {
 
 Record :: ~Record () {
 	if (bits != NULL) {
-		delete [] bits;
+		//delete [] bits;
 	}
 	bits = NULL;
 
@@ -151,7 +151,9 @@ void Record :: CopyBits(char *bits, int b_len) {
 
 
 void Record :: Consume (Record *fromMe) {
-	delete [] bits;
+	if (bits != NULL) {
+		delete [] bits;
+	}
 	bits = fromMe->bits;
 	fromMe->bits = NULL;
 
