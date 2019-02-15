@@ -173,87 +173,41 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order)
 
   
 /* Driver program to test above functions */
-int main() 
-{ 
-    // int arr[] = {12, 11, 13, 5, 6, 7}; 
-	Schema mySchema ("catalog", "nation");
+//Function to test the mergesort function
+// int main() 
+// { 
+// 	Schema mySchema ("catalog", "nation");
+// 	OrderMaker sortorder(&mySchema);
+// 	cout << "\n specify sort ordering (when done press ctrl-D):\n\t ";
+
+// 	vector<Record> vec_arr; 
+
+// 	DBFile dbfile;
+// 	dbfile.Open ("nation.bin");
+	
+// 	dbfile.MoveFirst ();
+// 	int counter = 0;
+// 	Record inprec;
+// 	while (dbfile.GetNext(inprec) == 1) {
+// 		counter += 1;
+// 		vec_arr.push_back(inprec);
+// 	}
+// 	dbfile.Close ();
+
+//     int arr_size = vec_arr.size(); 
+// 	reverse(vec_arr.begin(),vec_arr.end());
+// 	Record arr[arr_size];
+//     mergeSort(arr, 0, arr_size - 1, sortorder); 
+//     return 0; 
+// } 
+
+int main () {
+
+	// sort order for records
 	OrderMaker sortorder(&mySchema);
-	cout << "\n specify sort ordering (when done press ctrl-D):\n\t ";
-	// if (yyparse() != 0) {
-	// 	cout << "Can't parse your sort CNF.\n";
-	// 	exit (1);
-	// }
-	// cout << " \n";
-	// Record literal;
-	// CNF sort_pred;
 	
-	// sort_pred.GrowFromParseTree (final, &mySchema, literal); // constructs CNF predicate
-	// OrderMaker dummy;
-	// sort_pred.GetSortOrders (sortorder, dummy);
-	
-	vector<Record> vec_arr; 
-
-	DBFile dbfile;
-	dbfile.Open ("nation.bin");
-	
-	dbfile.MoveFirst ();
-	int counter = 0;
-	Record inprec;
-	while (dbfile.GetNext(inprec) == 1) {
-		counter += 1;
-		vec_arr.push_back(inprec);
-	}
-	dbfile.Close ();
-
-    int arr_size = vec_arr.size(); 
-	reverse(vec_arr.begin(),vec_arr.end());
-	Record arr[arr_size];
-	// cout << "Array size " << arr_size << endl;
-	// cout << "Array " << &vec_arr << endl;
-	// cout<< "Comparing 3 and 4"<<endl;
-	// vec_arr[3].Print(&mySchema);
-	// vec_arr[4].Print(&mySchema);
-	// ComparisonEngine ceng;
-	// int val = ceng.Compare (&vec_arr[4], &vec_arr[3], &sortorder);
-	// cout<< "val " << val << endl;
-
-	// cout<< "Comparing 2 and 3"<<endl;
-	// vec_arr[2].Print(&mySchema);
-	// vec_arr[3].Print(&mySchema);
-	// val = ceng.Compare (&vec_arr[2], &vec_arr[3], &sortorder);
-	// cout<< "val " << val << endl;
-	
-	// cout<< "Comparing 4 and 5"<<endl;
-	// vec_arr[4].Print(&mySchema);
-	// vec_arr[5].Print(&mySchema);
-	// val = ceng.Compare (&vec_arr[4], &vec_arr[5], &sortorder);
-	// cout<< "val " << val << endl;
-
-
-
-	for(int i =0;i<arr_size;i++){
-		arr[i] = vec_arr[i];
-	}
-	cout<<"Printing before the sort" << endl;
-	for(int i =0;i<arr_size;i++){
-		arr[i].Print(&mySchema);
-	}
-
-    mergeSort(arr, 0, arr_size - 1, sortorder); 
-	cout<<"Printing after the sort" << endl;
-	for(int i =0;i<arr_size;i++){
-		arr[i].Print(&mySchema);	
-	}
-
-    // printf("\nSorted array is \n"); 
-    // printArray(arr, arr_size); 
-    // return 0; 
-} 
-// int main () {
-
-// 	// sort order for records
-	// OrderMaker sortorder;
-
+	// Logic to get sort order input from the user
+	// Confused about what happens here as of now
 	// cout << "\n specify sort ordering (when done press ctrl-D):\n\t ";
 	// if (yyparse() != 0) {
 	// 	cout << "Can't parse your sort CNF.\n";
@@ -266,54 +220,48 @@ int main()
 	// sort_pred.GrowFromParseTree (final, &mySchema, literal); // constructs CNF predicate
 	// OrderMaker dummy;
 	// sort_pred.GetSortOrders (sortorder, dummy);
-// 	int runlen =10;
-// 	int option = 1;
-// 	int buffsz = 100; // pipe cache size
-// 	Pipe input (buffsz);
-// 	Pipe output (buffsz);
+	// int runlen =10;
+	// int option = 1;
+	// int buffsz = 100; // pipe cache size
+	// Pipe input (buffsz);
+	// Pipe output (buffsz);
 
-// 	// thread to dump data into the input pipe (for BigQ's consumption)
-// 	// pthread_t thread1;
-// 	// pthread_create (&thread1, NULL, producer, (void *)&input);
-// 	Record inprec;
-// 	int counter = 0;
+	// thread to dump data into the input pipe (for BigQ's consumption)
+	// pthread_t thread1;
+	// pthread_create (&thread1, NULL, producer, (void *)&input);
+	Record inprec;
+	int counter = 0;
 
-// 	DBFile dbfile;
-// 	dbfile.Open ("nation.bin");
+	DBFile dbfile;
+	dbfile.Open ("nation.bin");
 	
-// 	dbfile.MoveFirst ();
+	dbfile.MoveFirst ();
 
-// 	while (dbfile.GetNext(inprec) == 1) {
-// 		counter += 1;
-// 		if (counter%100000 == 0) {
-// 			 cerr << " producer: " << counter << endl;	
-// 		}
-// 		input.Insert (&inprec);
-// 	}
-// 	dbfile.Close ();
-// 	input.ShutDown ();
+	while (dbfile.GetNext(inprec) == 1) {
+		counter += 1;
+		if (counter%100000 == 0) {
+			 cerr << " producer: " << counter << endl;	
+		}
+		input.Insert (&inprec);
+	}
+	dbfile.Close ();
+	input.ShutDown ();
 
-// 	cout << " producer: inserted " << counter << " recs into the pipe\n";
-// 	// thread to read sorted data from output pipe (dumped by BigQ)
-// 	// pthread_t thread2;
-// 	// testutil tutil = {&output, &sortorder, false, false};
-// 	// if (option == 2) {
-// 	// 	tutil.print = true;
-// 	// }
-// 	// else if (option == 3) {
-// 	// 	tutil.write = true;
-// 	// }
-// 	// pthread_create (&thread2, NULL, consumer, (void *)&tutil);
-// 	cout<<"Debug log main start"<<endl;
-// 	cout << &input<< endl;
-// 	cout << &output<< endl;
-// 	cout << &sortorder<< endl;
-// 	cout << runlen<< endl;
-// 	cout<<"Debug log main end"<<endl;
-// 	BigQ bq (input, output, sortorder, runlen);
+	cout << " producer: inserted " << counter << " recs into the pipe\n";
+	// thread to read sorted data from output pipe (dumped by BigQ)
+	// pthread_t thread2;
+	// testutil tutil = {&output, &sortorder, false, false};
+	// if (option == 2) {
+	// 	tutil.print = true;
+	// }
+	// else if (option == 3) {
+	// 	tutil.write = true;
+	// }
+	// pthread_create (&thread2, NULL, consumer, (void *)&tutil);
 
-// 	// pthread_join (thread1, NULL);
-// 	// pthread_join (thread2, NULL);
-// 	sleep(30);
-// 	return 0;
-// }
+	BigQ bq (input, output, sortorder, runlen);
+
+	// pthread_join (thread1, NULL);
+	// pthread_join (thread2, NULL);
+	return 0;
+}
