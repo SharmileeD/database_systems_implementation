@@ -66,7 +66,7 @@ int Page :: GetFirst (Record *firstOne) {
 
 int Page :: Append (Record *addMe) {
 	char *b = addMe->GetBits();
-
+	
 	// first see if we can fit the record
 	if (curSizeInBytes + ((int *) b)[0] > PAGE_SIZE) {
 		return 0;

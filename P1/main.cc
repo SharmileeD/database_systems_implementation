@@ -92,7 +92,7 @@ void *consumer (void *arg) {
 int main () {
 
 	// sort order for records
-	Schema mySchema ("catalog", "nation");
+	Schema mySchema ("catalog", "lineitem");
 	OrderMaker sortorder(&mySchema);
 	
 	// Logic to get sort order input from the user
@@ -122,7 +122,7 @@ int main () {
 	int counter = 0;
 
 	DBFile dbfile;
-	dbfile.Open ("nation.bin");
+	dbfile.Open ("lineitem.bin");
 	
 	dbfile.MoveFirst ();
 
