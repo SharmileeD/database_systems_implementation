@@ -4,10 +4,13 @@
 #include "Pipe.h"
 #include "File.h"
 #include "pthread.h"
+#include "DBFile.h"
 #include <unistd.h>
 #include <vector>
 #include <array>
 #include <iostream>
+#include <queue>
+
 
 struct worker_data{
 	Pipe *in_pipe;
@@ -15,96 +18,150 @@ struct worker_data{
 	OrderMaker *sort_order;
 	int run_length;
 };
+
 struct worker_data input;
+
+struct QueueNode {
+	Record rec;
+	int run;
+};
+
+struct CompareRecords {
+	bool operator()(Record r1, Record r2) {
+		ComparisonEngine ceng;
+		int val = ceng.Compare (&r1, &r2, input.sort_order);
+		if(val != 1)
+			return false;
+		return true;
+	} 
+
+};
 
 void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
 
-void createRun(vector<Record> vec_arr, File file, struct worker_data *input_args) {
+void phase2tpmms(struct worker_data *input_args, int numRuns) {
+	
+	Page runPage[numRuns];
+	int currPage[numRuns] = {0};
+
+	priority_queue<Record, vector<Record>, CompareRecords> recQ;
+	Record temp;
+	Schema mySchema ("catalog", "lineitem"); 	
+
+	DBFile file;
+	file.Open("runFile.txt");
+	cout << "File len: " << file.file_instance.GetLength() << endl;
+	//Get page from every run
+	int i =0;
+	//for(int i =0 ; i < numRuns; i++) {
+	//	file.GetPage(&runPage[i], currPage[i]);
+	//	runPage->GetFirst(&temp);
+	//	recQ.push(temp);
+	//}
+
+	//temp = recQ.top();
+	//cout << "Smallest record : " << endl;
+	temp.Print(&mySchema);
+	file.Close();
+
+}
+
+void createRun(vector<Record> vec_arr, struct worker_data *input_args) {
 	
 	Page *temp = new Page();
 	int i =0;
 	off_t page_num;
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
-				
+	cout << "vector size------>" << arr_size << endl;			
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-
+	DBFile file;
+	file.Open("runFile.txt"); 
 	//sort the run
 	mergeSort(arr,0,0,*input_args->sort_order);
 	
 	//write run to file
 	while(i < vec_arr.size()) {
-		if(temp->Append(&arr[i]) != 1)
+		file.Add(arr[i]);
+		/*if(temp->Append(&arr[i]) != 1)
 		{
 			//if page is full add page to file, flush and add new record
-			page_num = file.GetLength();
-			file.AddPage(temp,page_num);
+			page_num = file.file_instance.GetLength();
+			cout << "**Page num sent: " << page_num << endl;
+			
+		//	file.file_instance.AddPage(temp,page_num);
 			temp->EmptyItOut();
 			temp->Append(&arr[i]);
-		}	
+		}*/	
 
 		i++;
 	}
 	//Add the last page
 	//************TO DO : Check if its empty
-	file.AddPage(temp,file.GetLength());
+//	file.file_instance.AddPage(temp,file.file_instance.GetLength());
+	file.Close();
 	
 }
 
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;	
+	
 	int pageCount = 0;
 	int numRuns = 0;
+	bool writeRun = false;
+
 	Schema mySchema ("catalog", "lineitem"); 
 	
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
+	fType fileType = heap;
+	DBFile runFile;
 
-	File runFile;
-	runFile.Open(0, "runFile.txt");
+	cout << "Creating file" << endl;
+	
+	runFile.Create("runFile.txt", fileType, NULL);
+	runFile.Close();
+	
 	Page *dummy = new Page();
- 	
-	vector<Record> vec_arr; 
+ 	vector<Record> vec_arr; 
 
 	while (input_args->in_pipe->Remove(tempRec)) {
 		
+		writeRun = false;
 		vec_arr.push_back(*tempRec);
-		//Page is full
 		if(dummy->Append(tempRec)!= 1) {
-			
+			//If page is full
 			pageCount ++;
-			
 			if(pageCount == input_args->run_length) {
 			
 				//create a run 		
 				numRuns++;
-				createRun(vec_arr, runFile, input_args);
+				createRun(vec_arr, input_args);
+				writeRun = true;
 				cout << "Created run: " << numRuns << endl;
 				pageCount = 0;
-			//	vec_arr.clear();
+				vec_arr.clear();
 			}
-				
 			dummy->EmptyItOut();	
 		}
- 		//cout<<"writing to outpipe"<<endl;
-		//tempRec->Print(&mySchema);
-
+ 		
       //  input_args->out_pipe->Insert(tempRec);
  	}
 	//write last run to file
-	if(vec_arr.size() > 0) {
+	if(!writeRun) {
 			numRuns++;
-			createRun(vec_arr, runFile, input_args);
+			createRun(vec_arr, input_args);
 			cout << "Created last run: " << numRuns << endl;
 	}
+	
+//	phase2tpmms(input_args, numRuns);
 	
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
 	pthread_exit(NULL);
-	
 	
 }
 void merge(Record arr [], int l, int m, int r, OrderMaker sort_order) 
@@ -116,7 +173,7 @@ void merge(Record arr [], int l, int m, int r, OrderMaker sort_order)
 	ComparisonEngine ceng;
     /* create temp arrays */
     Record L[n1], R[n2]; 
-	Schema mySchema ("catalog", "nation");
+	Schema mySchema ("catalog", "lineitem");
     /* Copy data to temp arrays L[] and R[] */
 	// cout<<"L i initial state"<<endl;
     for (i = 0; i < n1; i++) 

@@ -1,0 +1,3 @@
+/home/babbi/Workspace/database_systems_implementation/P1/CMakeFiles/rebuild_cache.dir
+/home/babbi/Workspace/database_systems_implementation/P1/CMakeFiles/sample.dir
+/home/babbi/Workspace/database_systems_implementation/P1/CMakeFiles/edit_cache.dir
