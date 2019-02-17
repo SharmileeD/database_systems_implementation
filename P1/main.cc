@@ -267,6 +267,31 @@ void test_write(){
 	cout<< "outside loop "<< counter <<endl;
 	dbfile_test.Close();
 }
+
+void check_num_records(char f_path[]){
+	DBFile dbfile_test;
+	// cout << " DBFile will be created at "<< endl;
+	dbfile_test.Open (f_path);
+	// dbfile_test.Create("test_phase2.bin",heap,NULL);
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+	Schema mySchema ("catalog", "lineitem");
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+		// inprec.Print(&mySchema);
+	}
+	cout<< f_path <<endl;
+	cout<< "Number of records is "<< counter <<endl;
+	dbfile_test.Close();
+}
 void test_check_duplicates(){
 	Page page90_li;
 	Page page90;
@@ -279,20 +304,21 @@ void test_check_duplicates(){
 	file_inst_li.Open(1, "lineitem.bin");
 	file_inst.Open(1, "runs.bin");
 	
-	
-	file_inst_li.GetPage(&page90_li, 10);
-	file_inst.GetPage(&page90, 0);
+	cout << "Trying to get page 99 of LI"<<endl;
+	file_inst_li.GetPage(&page90_li, 97);
+	cout << "Trying to get page 99 of runs"<<endl;
+	file_inst.GetPage(&page90, 97);
 	cout << "Printing page 10 onwards"<<endl;
 	
 	cout << "********"<<endl;
 	int count =0;
-	while(count <10){
+	// while(count <10){
 		
-		page90.GetFirst(&tempRec);
-		tempRec.Print(&mySchema);
-		cout << "----------"<<endl;
-		count++;
-	}
+	// 	page90.GetFirst(&tempRec);
+	// 	tempRec.Print(&mySchema);
+	// 	cout << "----------"<<endl;
+	// 	count++;
+	// }
 	
 	// file_inst.GetPage(&page90, 21);
 	// cout << "Printing page 21 onwards"<<endl;
@@ -304,10 +330,10 @@ void test_check_duplicates(){
 	// 	count++;
 	// }
 	
-	tempRec.Print(&mySchema);
+	// tempRec.Print(&mySchema);
 	
 	
-	cout << "Printing page 90"<<endl;
+	// cout << "Printing page 90"<<endl;
 	// // tempRec.Print(&mySchema);
 	// file_inst.GetPage(&page99, 97);
 	// page99.GetFirst(&tempRec);
@@ -329,7 +355,7 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 	struct record_container temp;
 	struct record_container new_elemnt;
 	Schema mySchema ("catalog", "lineitem"); 	
-
+	int pgCountLastRun = 8;
 	DBFile file;
 	file.Open("runs.bin");
 	//Get page from every run
@@ -352,6 +378,7 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 	int count2=0;
 	int count1=0;
 	while(recQ.size()!=0){
+		
 		if (recQ.size()==3){
 			count3++;
 		}
@@ -364,10 +391,9 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
-		// temp.rec.Print(&mySchema);
 		// input_args->out_pipe->Insert(&temp.rec);
 		count++;
-
+		temp.rec.Print(&mySchema);
 		//cout << "Smallest record : " << endl;
 		recQ.pop();
 
@@ -380,8 +406,13 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		if (get_first ==0){
 			//Need to load next page from run_index
 			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
-
-			if(currPage[run_index]==runLength-1){
+			int limit;
+			if(run_index < numRuns - 1)
+				limit = runLength -1;
+			else
+				limit = pgCountLastRun - 1;
+			
+			if(currPage[run_index]==limit){
 				currPage[run_index] = -1;
 				continue;
 			}
@@ -418,6 +449,7 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		cout<<currPage[i]<<endl;
 	}
 	//temp = recQ.top();
+	
 	file.Close();
 
 }
@@ -426,5 +458,7 @@ int main(){
 	test_phase2();
 	// test_check_duplicates();
 	// test_write();
+	// check_num_records("runs.bin");
+	// check_num_records("lineitem.bin");
 	return 0;
 }
