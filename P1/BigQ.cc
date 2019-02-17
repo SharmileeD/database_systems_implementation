@@ -66,41 +66,27 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 
 }
 
-void createRun(vector<Record> vec_arr, struct worker_data *input_args) {
+void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 	
-	Page *temp = new Page();
-	int i =0;
+	int ind =0;
+	Schema mySchema ("catalog", "lineitem");
 	off_t page_num;
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
-	cout << "vector size------>" << arr_size << endl;			
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-	DBFile file;
-	file.Open("runFile.txt"); 
+	DBFile dbfile;
+	dbfile.Open("runs.bin"); 
+	dbfile.buffer_page.EmptyItOut();
 	//sort the run
-	mergeSort(arr,0,0,*input_args->sort_order);
+	mergeSort(arr,0,arr_size-1,sort_order);
 	
-	//write run to file
-	while(i < vec_arr.size()) {
-		file.Add(arr[i]);
-		/*if(temp->Append(&arr[i]) != 1)
-		{
-			//if page is full add page to file, flush and add new record
-			page_num = file.file_instance.GetLength();
-			cout << "**Page num sent: " << page_num << endl;
-			
-		//	file.file_instance.AddPage(temp,page_num);
-			temp->EmptyItOut();
-			temp->Append(&arr[i]);
-		}*/	
 
-		i++;
+	for(int j=0; j<arr_size;j++){
+		dbfile.Add(arr[j]);
 	}
-	//Add the last page
-	//************TO DO : Check if its empty
-//	file.file_instance.AddPage(temp,file.file_instance.GetLength());
-	file.Close();
+	cout << "Added records"<<endl;
+	dbfile.Close();
 	
 }
 
@@ -122,30 +108,33 @@ void *sort_tpmms (void *arg) {
 
 	cout << "Creating file" << endl;
 	
-	runFile.Create("runFile.txt", fileType, NULL);
+	runFile.Create("runs.bin", fileType, NULL);
 	runFile.Close();
 	
-	Page *dummy = new Page();
+	
+	Page dummy;
  	vector<Record> vec_arr; 
 
 	while (input_args->in_pipe->Remove(tempRec)) {
 		
 		writeRun = false;
 		vec_arr.push_back(*tempRec);
-		if(dummy->Append(tempRec)!= 1) {
+		if(dummy.Append(tempRec)!= 1) {
 			//If page is full
 			pageCount ++;
+
 			if(pageCount == input_args->run_length) {
 			
-				//create a run 		
+				//create a run
+
 				numRuns++;
-				createRun(vec_arr, input_args);
+				createRun(vec_arr, *input_args->sort_order);
 				writeRun = true;
 				cout << "Created run: " << numRuns << endl;
 				pageCount = 0;
 				vec_arr.clear();
 			}
-			dummy->EmptyItOut();	
+			dummy.EmptyItOut();	
 		}
  		
       //  input_args->out_pipe->Insert(tempRec);
@@ -153,7 +142,9 @@ void *sort_tpmms (void *arg) {
 	//write last run to file
 	if(!writeRun) {
 			numRuns++;
-			createRun(vec_arr, input_args);
+			createRun(vec_arr, *input_args->sort_order);
+			pageCount = 0;
+			vec_arr.clear();
 			cout << "Created last run: " << numRuns << endl;
 	}
 	
