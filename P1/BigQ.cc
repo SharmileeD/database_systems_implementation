@@ -37,6 +37,8 @@ struct CompareRecords {
 
 };
 
+int pgCountLastRun = 0;
+
 void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
 
 void phase2tpmms(struct worker_data *input_args, int numRuns) {
@@ -87,7 +89,13 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 		if (get_first ==0){
 			//Need to load next page from run_index
 			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
-			if(currPage[run_index]==runLength-1){
+			int limit;
+			if(run_index < numRuns - 1)
+				limit = runLength -1;
+			else
+				limit = pgCountLastRun - 1;
+			
+			if(currPage[run_index]==limit){
 				currPage[run_index] = -1;
 				continue;
 			}
@@ -150,6 +158,7 @@ void *sort_tpmms (void *arg) {
 	int pageCount = 0;
 	int numRuns = 0;
 	bool writeRun = false;
+	
 
 	Schema mySchema ("catalog", "lineitem"); 
 	
@@ -195,10 +204,10 @@ void *sort_tpmms (void *arg) {
 	if(!writeRun) {
 			numRuns++;
 			createRun(vec_arr, *input_args->sort_order);
+			pgCountLastRun = pageCount;
 			pageCount = 0;
 			vec_arr.clear();
-			pageCount = 0;
-			vec_arr.clear();
+			
 	}
 	
 	//phase2tpmms(input_args, numRuns);
