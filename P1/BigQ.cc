@@ -47,21 +47,32 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 	priority_queue<Record, vector<Record>, CompareRecords> recQ;
 	Record temp;
 	Schema mySchema ("catalog", "lineitem"); 	
-
+	
 	DBFile file;
 	file.Open("runFile.txt");
 	cout << "File len: " << file.file_instance.GetLength() << endl;
 	//Get page from every run
-	int i =0;
-	//for(int i =0 ; i < numRuns; i++) {
-	//	file.GetPage(&runPage[i], currPage[i]);
-	//	runPage->GetFirst(&temp);
-	//	recQ.push(temp);
-	//}
+	
+	struct QueueNode q;
 
-	//temp = recQ.top();
+	for(int i =0 ; i < numRuns; i = i+9) {
+		file.file_instance.GetPage(&runPage[i], currPage[i]);
+		runPage->GetFirst(&temp);
+		//runPage->GetFirst(&q.rec);
+		//q.run = i;
+		//recQ.push(q);
+		//temp.Print(&mySchema);
+		recQ.push(temp);
+	}
+
+	
+	recQ.pop();
+	temp = recQ.top();
 	//cout << "Smallest record : " << endl;
 	temp.Print(&mySchema);
+	recQ.pop();
+	//temp = recQ.top();
+	//temp.Print(&mySchema);
 	file.Close();
 
 }
@@ -114,9 +125,10 @@ void *sort_tpmms (void *arg) {
 	
 	Page dummy;
  	vector<Record> vec_arr; 
-
+	
 	while (input_args->in_pipe->Remove(tempRec)) {
 		
+		//tempRec->Print(&mySchema);
 		writeRun = false;
 		vec_arr.push_back(*tempRec);
 		if(dummy.Append(tempRec)!= 1) {
@@ -133,6 +145,8 @@ void *sort_tpmms (void *arg) {
 				cout << "Created run: " << numRuns << endl;
 				pageCount = 0;
 				vec_arr.clear();
+				cout << "vector len after clearing:" << vec_arr.size();
+
 			}
 			dummy.EmptyItOut();	
 		}
@@ -146,10 +160,25 @@ void *sort_tpmms (void *arg) {
 			pageCount = 0;
 			vec_arr.clear();
 			cout << "Created last run: " << numRuns << endl;
+			pageCount = 0;
+			vec_arr.clear();
 	}
 	
-//	phase2tpmms(input_args, numRuns);
+	//phase2tpmms(input_args, numRuns);
 	
+	DBFile dbf;
+	Record t1;
+	dbf.Open("runFile.txt");
+	while (dbf.GetNext (t1) == 1) {
+               t1.Print (&mySchema);
+               
+       }
+
+
+	
+
+	dbf.Close();
+
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
 	pthread_exit(NULL);
