@@ -131,23 +131,51 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 	
 	Schema mySchema ("catalog", "lineitem");
+	Page temp;
 	off_t page_num;
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-	DBFile dbfile;
-	dbfile.Open("runs.bin"); 
-	dbfile.buffer_page.EmptyItOut();
+	File file;
+	file.Open(1,"runs.bin"); 
+	// dbfile.buffer_page.EmptyItOut();
 	//sort the run
 	mergeSort(arr,0,arr_size-1,sort_order);
 	
+	// for(int j=0; j<arr_size;j++){
+	// 	dbfile.Add(arr[j]);
+	// }
+	off_t last_page_added = 0;
+	bool dirty = false;
 	for(int j=0; j<arr_size;j++){
-		dbfile.Add(arr[j]);
+		dirty = false;
+		if(temp.Append(&arr[j]) != 1)
+		{
+			dirty = true;
+			//if page is full add page to file, flush and add new record
+			if (file.GetLength() != 0){
+				last_page_added = file.GetLength()-1;
+			}
+
+			file.AddPage(&temp,last_page_added);
+			temp.EmptyItOut();
+			temp.Append(&arr[j]);
+
+		}	
+
+	}
+	if(dirty){
+		last_page_added = 0;
+		if (file.GetLength() != 0){
+				last_page_added = file.GetLength()-1;
+		}
+		file.AddPage(&temp,last_page_added);
+		temp.EmptyItOut();
 	}
 
 	cout << "Added records"<<endl;
-	dbfile.Close();
+	file.Close();
 	
 }
 
