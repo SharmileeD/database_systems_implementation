@@ -1,1 +1,0 @@
-/usr/bin/c++    -rdynamic CMakeFiles/sample.dir/DBFile.cc.o  -o sample -Wl,-Bstatic -lgtest -Wl,-Bdynamic -lpthread 
