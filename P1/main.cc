@@ -292,6 +292,29 @@ void check_num_records(char f_path[]){
 	cout<< "Number of records is "<< counter <<endl;
 	dbfile_test.Close();
 }
+
+void check_recs(char f_path[]) {
+	DBFile dbfile_test;
+	// cout << " DBFile will be created at "<< endl;
+	dbfile_test.Open (f_path);
+	// dbfile_test.Create("test_phase2.bin",heap,NULL);
+	Record inprec;
+	int counter = 0;
+	int tot_counter = 0;
+	Page test_page;
+	
+	for(int pages = 0; pages < 97; pages++) {
+		dbfile_test.file_instance.GetPage(&test_page, pages);
+		while(test_page.GetFirst(&inprec))
+			counter++;
+		tot_counter = tot_counter + counter;
+		cout << "Page num: " << pages << "      Records: " << counter << endl;	
+		counter = 0;
+	}
+	cout << "Total: " << tot_counter << endl;
+
+}
+
 void test_check_duplicates(){
 	Page page90_li;
 	Page page90;
@@ -455,10 +478,11 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 }
 
 int main(){
-	test_phase2();
+	//test_phase2();
 	// test_check_duplicates();
 	// test_write();
-	// check_num_records("runs.bin");
+	check_recs("runs.bin");
+	//check_num_records("runs.bin");
 	// check_num_records("lineitem.bin");
 	return 0;
 }
