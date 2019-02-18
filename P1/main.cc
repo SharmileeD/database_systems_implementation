@@ -64,58 +64,58 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns);
 // 	cout << " producer: inserted " << counter << " recs into the pipe\n";
 // }
 
-// void *consumer (void *arg) {
+void *consumer (void *arg) {
 	
-// 	testutil *t = (testutil *) arg;
+	testutil *t = (testutil *) arg;
+	Schema mySchema ("catalog", "lineitem");
+	ComparisonEngine ceng;
 
-// 	ComparisonEngine ceng;
+	DBFile dbfile;
+	char outfile[100];
 
-// 	DBFile dbfile;
-// 	char outfile[100];
+	if (t->write) {
+		sprintf (outfile, "%s.bigq", rel->path ());
+		dbfile.Create (outfile, heap, NULL);
+	}
 
-// 	if (t->write) {
-// 		sprintf (outfile, "%s.bigq", rel->path ());
-// 		dbfile.Create (outfile, heap, NULL);
-// 	}
+	int err = 0;
+	int i = 0;
 
-// 	int err = 0;
-// 	int i = 0;
+	Record rec[2];
+	Record *last = NULL, *prev = NULL;
 
-// 	Record rec[2];
-// 	Record *last = NULL, *prev = NULL;
+	while (t->pipe->Remove (&rec[i%2])) {
+		prev = last;
+		last = &rec[i%2];
 
-// 	while (t->pipe->Remove (&rec[i%2])) {
-// 		prev = last;
-// 		last = &rec[i%2];
+		if (prev && last) {
+			if (ceng.Compare (prev, last, t->order) == 1) {
+				err++;
+			}
+			if (t->write) {
+				dbfile.Add (*prev);
+			}
+		}
+		if (t->print) {
+			last->Print (&mySchema);
+		}
+		i++;
+	}
 
-// 		if (prev && last) {
-// 			if (ceng.Compare (prev, last, t->order) == 1) {
-// 				err++;
-// 			}
-// 			if (t->write) {
-// 				dbfile.Add (*prev);
-// 			}
-// 		}
-// 		if (t->print) {
-// 			last->Print (rel->schema ());
-// 		}
-// 		i++;
-// 	}
+	cout << " consumer: removed " << i << " recs from the pipe\n";
 
-// 	cout << " consumer: removed " << i << " recs from the pipe\n";
-
-// 	if (t->write) {
-// 		if (last) {
-// 			dbfile.Add (*last);
-// 		}
-// 		cerr << " consumer: recs removed written out as heap DBFile at " << outfile << endl;
-// 		dbfile.Close ();
-// 	}
-// 	cerr << " consumer: " << (i - err) << " recs out of " << i << " recs in sorted order \n";
-// 	if (err) {
-// 		cerr << " consumer: " <<  err << " recs failed sorted order test \n" << endl;
-// 	}
-// }
+	if (t->write) {
+		if (last) {
+			dbfile.Add (*last);
+		}
+		cerr << " consumer: recs removed written out as heap DBFile at " << outfile << endl;
+		dbfile.Close ();
+	}
+	cerr << " consumer: " << (i - err) << " recs out of " << i << " recs in sorted order \n";
+	if (err) {
+		cerr << " consumer: " <<  err << " recs failed sorted order test \n" << endl;
+	}
+}
 
 
 
@@ -237,11 +237,11 @@ void test_phase2(){
 	// // }
 	// cout<< dbfile2.file_instance.GetLength()<<endl;
 	// dbfile2.Close ();
-	input.run_length = 10;
+	input.run_length = 9;
 	Schema mySchema ("catalog", "lineitem");
 	OrderMaker sortorder(&mySchema);
 	input.sort_order = &sortorder;
-	phase2tpmms_test(&input, 10);
+	phase2tpmms_test(&input, 9);
 
 }	
 
@@ -303,12 +303,12 @@ void check_recs(char f_path[]) {
 	int tot_counter = 0;
 	Page test_page;
 	
-	for(int pages = 0; pages < 97; pages++) {
+	for(int pages = 0; pages < 98; pages++) {
 		dbfile_test.file_instance.GetPage(&test_page, pages);
 		while(test_page.GetFirst(&inprec))
 			counter++;
 		tot_counter = tot_counter + counter;
-		cout << "Page num: " << pages << "      Records: " << counter << endl;	
+		cout << "Page num: " << pages+1 << "      Records: " << counter << endl;	
 		counter = 0;
 	}
 	cout << "Total: " << tot_counter << endl;
@@ -392,14 +392,15 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		runPage[i].GetFirst(&que[i].rec);
 
 		que[i].run = i;
-		// que[i].rec.Print(&mySchema);
 		recQ.push(que[i]);
 
 	}
+	
 	int count = 0;
 	int count3=0;
 	int count2=0;
 	int count1=0;
+
 	while(recQ.size()!=0){
 		
 		if (recQ.size()==3){
@@ -414,10 +415,11 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
-		// input_args->out_pipe->Insert(&temp.rec);
+
+		input.out_pipe->Insert(&temp.rec);
 		count++;
-		temp.rec.Print(&mySchema);
-		//cout << "Smallest record : " << endl;
+
+		cout << "Record printed : " << count<<endl;
 		recQ.pop();
 
 		//Now that we have poped a struct out of the priority queue
@@ -478,20 +480,48 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 }
 
 void test_getLength(){
-	DBFile dbfile_test;
+	// DBFile dbfile_test;
 	DBFile dbfile;
-	dbfile_test.Create("test_getl.bin",heap,NULL);
-	cout<<"Length is "<< dbfile_test.file_instance.GetLength()<<endl;
-	dbfile.Open("nation.bin");
+	// dbfile_test.Create("runs.bin",heap,NULL);
+	// cout<<"Length is "<< dbfile_test.file_instance.GetLength()<<endl;
+	dbfile.Open("runs.bin");
 	cout<<"Length is "<< dbfile.file_instance.GetLength()<<endl;
 }
 int main(){
-	// test_phase2();
+
+	Schema mySchema ("catalog", "lineitem");
+	OrderMaker sortorder(&mySchema);
+	int option = 2;
+	int buffsz = 100; // pipe cache size
+	Pipe output (buffsz);
+	input.out_pipe = &output;
+	input.sort_order = &sortorder;
+	// thread to dump data into the input pipe (for BigQ's consumption)
+
+	// thread to read sorted data from output pipe (dumped by BigQ)
+	pthread_t thread2;
+	testutil tutil = {&output, &sortorder, false, false};
+	if (option == 2) {
+		tutil.print = true;
+	}
+	else if (option == 3) {
+		tutil.write = true;
+	}
+	cout<<"Creating thread"<<endl;
+	pthread_create (&thread2, NULL, consumer, (void *)&tutil);
+
+	// BigQ bq (input, output, sortorder, runlen);
+
+	
+	test_phase2();
 	// test_check_duplicates();
 	// test_write();
+	// test_getLength();
 	// check_recs("runs.bin");
+	// check_recs("lineitem.bin");
+	// test_getLength();
 	// check_num_records("runs.bin");
-	test_getLength();
 	// check_num_records("lineitem.bin");
+	pthread_join (thread2, NULL);
 	return 0;
 }
