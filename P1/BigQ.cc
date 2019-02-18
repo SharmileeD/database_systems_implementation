@@ -128,11 +128,13 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 
 }
 
-void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
+void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 	
+
 	Schema mySchema ("catalog", "lineitem");
 	Page temp;
 	off_t page_num;
+	
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
@@ -141,12 +143,37 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 	// file.Open(1,"runs.bin"); 
 	//***********
 	DBFile dbfile;
-	dbfile.Open("runs.bin"); 
+	if(numRuns == 1){
+		fType fileType = heap;
+		dbfile.Create("runs.bin", fileType, NULL);
+	}
+	else{
+		dbfile.Open("runs.bin"); 
+	}
+
+	
+
 	dbfile.buffer_page.EmptyItOut();
+	// //Instead of empty it out we are running get first page length times
+	// // while(1){
+	// // 	Record t;
+	// // 	if(!dbfile.buffer_page.GetFirst(&t)){
+	// // 		break;
+	// // 	}
+	// // }
+
 	//***********
 	//sort the run
-	mergeSort(arr,0,arr_size-1,sort_order);
 	
+	int count =0;
+	mergeSort(arr,0,arr_size-1,sort_order);
+	for(int i =0; i < arr_size; i++){
+		count++;
+		cout<<"Counter "<<count<<endl;
+		arr[i].Print(&mySchema);
+	} 
+ 
+	// int test_app = dbfile.buffer_page.Append(&arr[0]);
 	
 	// off_t last_page_added = 0;
 	// bool dirty = false;
@@ -178,13 +205,22 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 	// }
 
 	//***********
+	
 	for(int j=0; j<arr_size;j++){
+
 		dbfile.Add(arr[j]);
 	}
+
 	//***********
 
 	cout << "Added records"<<endl;
 	// file.Close();
+	// dbfile.file_instance.
+	off_t last_page_added = 0;
+	// if (dbfile.file_instance.GetLength() != 0){
+	// 	last_page_added = dbfile.file_instance.GetLength()-1;
+	// }
+	// dbfile.file_instance.AddPage(&dbfile.buffer_page, last_page_added);
 	dbfile.Close();
 
 	
@@ -204,39 +240,48 @@ void *sort_tpmms (void *arg) {
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
-	fType fileType = heap;
+	Record pushThis;
 	DBFile runFile;
 	// File file;
-	cout << "Creating file" << endl;
 	
-	runFile.Create("runs.bin", fileType, NULL);
-	runFile.Close();
+	// runFile.Close();
 	// file.Open(0,"runs.bin");
 	// file.Close();
 	
 	Page dummy;
  	vector<Record> vec_arr; 
-	
 	while (input_args->in_pipe->Remove(tempRec)) {
 		
 		writeRun = false;
+		
 		vec_arr.push_back(*tempRec);
-		if(dummy.Append(tempRec)!= 1) {
+		
+		if(dummy.Append(tempRec)!= 1){
 			//If page is full
 			pageCount ++;
-
+			tempRec->Print(&mySchema);
 			if(pageCount == input_args->run_length) {
-			
+				
 				//create a run when you have reached the run length limit. 
 				//Sort the records and write them out to disk
 				numRuns++;
-				createRun(vec_arr, *input_args->sort_order);
+				vec_arr.pop_back();
+				createRun(vec_arr, *input_args->sort_order, numRuns);
 				writeRun = true;
 				pageCount = 0;
+				
 				vec_arr.clear();
+				vec_arr.push_back(*tempRec);
 
 			}
+
 			dummy.EmptyItOut();	
+			tempRec->Print(&mySchema);
+			int app = dummy.Append(tempRec);
+			
+			cout<< "ret "<< app<<endl;
+			
+
 		}
  		
  	}
@@ -244,7 +289,7 @@ void *sort_tpmms (void *arg) {
 	if(!writeRun) {
 			cout<<"Last run writing out"<<endl;
 			numRuns++;
-			createRun(vec_arr, *input_args->sort_order);
+			createRun(vec_arr, *input_args->sort_order, numRuns);
 			pgCountLastRun = pageCount;
 			pageCount = 0;
 			vec_arr.clear();
