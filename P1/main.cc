@@ -477,12 +477,21 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 
 }
 
+void test_getLength(){
+	DBFile dbfile_test;
+	DBFile dbfile;
+	dbfile_test.Create("test_getl.bin",heap,NULL);
+	cout<<"Length is "<< dbfile_test.file_instance.GetLength()<<endl;
+	dbfile.Open("nation.bin");
+	cout<<"Length is "<< dbfile.file_instance.GetLength()<<endl;
+}
 int main(){
-	//test_phase2();
+	// test_phase2();
 	// test_check_duplicates();
 	// test_write();
-	check_recs("runs.bin");
-	//check_num_records("runs.bin");
+	// check_recs("runs.bin");
+	// check_num_records("runs.bin");
+	test_getLength();
 	// check_num_records("lineitem.bin");
 	return 0;
 }

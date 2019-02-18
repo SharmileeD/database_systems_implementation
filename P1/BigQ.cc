@@ -139,13 +139,15 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 		arr[i] = vec_arr[i];
 	File file;
 	file.Open(1,"runs.bin"); 
+	//***********
+	// DBFile dbfile;
+	// dbfile.Open("runs.bin"); 
 	// dbfile.buffer_page.EmptyItOut();
+	//***********
 	//sort the run
 	mergeSort(arr,0,arr_size-1,sort_order);
 	
-	// for(int j=0; j<arr_size;j++){
-	// 	dbfile.Add(arr[j]);
-	// }
+	
 	off_t last_page_added = 0;
 	bool dirty = false;
 	for(int j=0; j<arr_size;j++){
@@ -154,6 +156,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 		{
 			dirty = true;
 			//if page is full add page to file, flush and add new record
+
 			if (file.GetLength() != 0){
 				last_page_added = file.GetLength()-1;
 			}
@@ -165,8 +168,8 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 		}	
 
 	}
-	if(dirty){
-		last_page_added = 0;
+	if(!dirty){
+		
 		if (file.GetLength() != 0){
 				last_page_added = file.GetLength()-1;
 		}
@@ -174,8 +177,16 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order) {
 		temp.EmptyItOut();
 	}
 
+	//***********
+	// for(int j=0; j<arr_size;j++){
+	// 	dbfile.Add(arr[j]);
+	// }
+	//***********
+
 	cout << "Added records"<<endl;
 	file.Close();
+	// dbfile.Close();
+
 	
 }
 
@@ -194,13 +205,14 @@ void *sort_tpmms (void *arg) {
 	Record outrec;
 	tempRec = &outrec;
 	fType fileType = heap;
-	DBFile runFile;
-
+	// DBFile runFile;
+	File file;
 	cout << "Creating file" << endl;
 	
-	runFile.Create("runs.bin", fileType, NULL);
-	runFile.Close();
-	
+	// runFile.Create("runs.bin", fileType, NULL);
+	// runFile.Close();
+	file.Open(0,"runs.bin");
+	file.Close();
 	
 	Page dummy;
  	vector<Record> vec_arr; 
@@ -230,6 +242,7 @@ void *sort_tpmms (void *arg) {
  	}
 	//write last run to file if the page was never emptied into the dbifile
 	if(!writeRun) {
+			cout<<"Last run writing out"<<endl;
 			numRuns++;
 			createRun(vec_arr, *input_args->sort_order);
 			pgCountLastRun = pageCount;
