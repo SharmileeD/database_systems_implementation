@@ -18,6 +18,7 @@ using namespace std;
 
 DBFile::DBFile () 
 {
+    // this->buffer_page = Page();
 }
 
 //Method to Create a DBFile store
@@ -93,15 +94,24 @@ int DBFile::Close () {
       // Here before closing the file we will write out the records present in the page buffer if any to the file
        off_t dirty = 0;
         off_t last_page = 0;
+        off_t test;
+        // Record tempRec;
+        Schema mySchema ("catalog", "lineitem");
         dirty = this->GetValueFromTxt(this->meta_dpage_name);
         if (dirty == 1){
               
             last_page = GetValueFromTxt(this->meta_lpage_name);
-            if (last_page != 0){
-                last_page = last_page -1;
-            }
-            
+            test = this->file_instance.GetLength();
+            if (this->file_instance.GetLength() != 0){
+                
+               last_page = this->file_instance.GetLength()-1;
+                
+           }
+            // this->buffer_page.GetFirst(&tempRec);
+            // tempRec.Print(&mySchema);
             this->file_instance.AddPage(&this->buffer_page, last_page);
+            last_page++;
+            this->SetValueFromTxt(this->meta_lpage_name, last_page);
                 
         }
         
@@ -140,7 +150,7 @@ void DBFile::Add (Record &rec) {
             last_page_added++;
             this->SetValueFromTxt(this->meta_lpage_name, last_page_added);
             this->buffer_page.EmptyItOut();
-            this->buffer_page.Append(&rec);
+            int test = this->buffer_page.Append(&rec);
         }
 	    
     }

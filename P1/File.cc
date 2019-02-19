@@ -66,7 +66,7 @@ int Page :: GetFirst (Record *firstOne) {
 
 int Page :: Append (Record *addMe) {
 	char *b = addMe->GetBits();
-
+	
 	// first see if we can fit the record
 	if (curSizeInBytes + ((int *) b)[0] > PAGE_SIZE) {
 		return 0;
@@ -170,6 +170,7 @@ int Page :: MoveMyRecsPointer(int offset, Record &record){
 		record = *this->myRecs->Current(offset);
 		return 0;
 	} 
+	return 0;
 }
 
 File :: File () {
