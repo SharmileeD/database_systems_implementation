@@ -152,7 +152,7 @@ void Record :: CopyBits(char *bits, int b_len) {
 
 void Record :: Consume (Record *fromMe) {
 	if (bits != NULL) {
-		delete [] bits;
+		//delete [] bits;
 	}
 	bits = fromMe->bits;
 	fromMe->bits = NULL;
