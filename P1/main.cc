@@ -303,12 +303,12 @@ void check_recs(char f_path[]) {
 	int tot_counter = 0;
 	Page test_page;
 	
-	for(int pages = 0; pages < 98; pages++) {
+	for(int pages = 0; pages < 97; pages++) {
 		dbfile_test.file_instance.GetPage(&test_page, pages);
 		while(test_page.GetFirst(&inprec))
 			counter++;
 		tot_counter = tot_counter + counter;
-		cout << "Page num: " << pages+1 << "      Records: " << counter << endl;	
+		// cout << "Page num: " << pages+1 << "      Records: " << counter << endl;	
 		counter = 0;
 	}
 	cout << "Total: " << tot_counter << endl;
@@ -378,7 +378,7 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 	struct record_container temp;
 	struct record_container new_elemnt;
 	Schema mySchema ("catalog", "lineitem"); 	
-	int pgCountLastRun = 8;
+
 	DBFile file;
 	file.Open("runs.bin");
 	//Get page from every run
@@ -392,17 +392,15 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		runPage[i].GetFirst(&que[i].rec);
 
 		que[i].run = i;
+		// que[i].rec.Print(&mySchema);
 		recQ.push(que[i]);
 
 	}
-	
 	int count = 0;
 	int count3=0;
 	int count2=0;
 	int count1=0;
-
 	while(recQ.size()!=0){
-		
 		if (recQ.size()==3){
 			count3++;
 		}
@@ -415,11 +413,11 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
-
-		input.out_pipe->Insert(&temp.rec);
+		temp.rec.Print(&mySchema);
+		// input_args->out_pipe->Insert(&temp.rec);
 		count++;
 
-		cout << "Record printed : " << count<<endl;
+		//cout << "Smallest record : " << endl;
 		recQ.pop();
 
 		//Now that we have poped a struct out of the priority queue
@@ -431,13 +429,8 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		if (get_first ==0){
 			//Need to load next page from run_index
 			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
-			int limit;
-			if(run_index < numRuns - 1)
-				limit = runLength -1;
-			else
-				limit = pgCountLastRun - 1;
-			
-			if(currPage[run_index]==limit){
+
+			if(currPage[run_index]==runLength-1){
 				currPage[run_index] = -1;
 				continue;
 			}
@@ -474,7 +467,6 @@ void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 		cout<<currPage[i]<<endl;
 	}
 	//temp = recQ.top();
-	
 	file.Close();
 
 }
@@ -489,39 +481,39 @@ void test_getLength(){
 }
 int main(){
 
-	Schema mySchema ("catalog", "lineitem");
-	OrderMaker sortorder(&mySchema);
-	int option = 2;
-	int buffsz = 100; // pipe cache size
-	Pipe output (buffsz);
-	input.out_pipe = &output;
-	input.sort_order = &sortorder;
-	// thread to dump data into the input pipe (for BigQ's consumption)
+	// Schema mySchema ("catalog", "lineitem");
+	// OrderMaker sortorder(&mySchema);
+	// int option = 1;
+	// int buffsz = 100; // pipe cache size
+	// Pipe output (buffsz);
+	// input.out_pipe = &output;
+	// input.sort_order = &sortorder;
+	// // thread to dump data into the input pipe (for BigQ's consumption)
 
-	// thread to read sorted data from output pipe (dumped by BigQ)
-	pthread_t thread2;
-	testutil tutil = {&output, &sortorder, false, false};
-	if (option == 2) {
-		tutil.print = true;
-	}
-	else if (option == 3) {
-		tutil.write = true;
-	}
-	cout<<"Creating thread"<<endl;
-	pthread_create (&thread2, NULL, consumer, (void *)&tutil);
+	// // thread to read sorted data from output pipe (dumped by BigQ)
+	// pthread_t thread2;
+	// testutil tutil = {&output, &sortorder, false, false};
+	// if (option == 2) {
+	// 	tutil.print = true;
+	// }
+	// else if (option == 3) {
+	// 	tutil.write = true;
+	// }
+	// cout<<"Creating thread"<<endl;
+	// pthread_create (&thread2, NULL, consumer, (void *)&tutil);
 
 	// BigQ bq (input, output, sortorder, runlen);
 
 	
-	test_phase2();
+	// test_phase2();
 	// test_check_duplicates();
 	// test_write();
 	// test_getLength();
-	// check_recs("runs.bin");
+	check_recs("runs.bin");
 	// check_recs("lineitem.bin");
 	// test_getLength();
 	// check_num_records("runs.bin");
 	// check_num_records("lineitem.bin");
-	pthread_join (thread2, NULL);
+	// pthread_join (thread2, NULL);
 	return 0;
 }

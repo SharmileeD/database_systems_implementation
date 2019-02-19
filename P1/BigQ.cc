@@ -41,7 +41,7 @@ int pgCountLastRun = 0;
 
 void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
 
-void phase2tpmms(struct worker_data *input_args, int numRuns) {
+void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	
 	Page runPage[numRuns];
 	int currPage[numRuns] = {0};
@@ -49,9 +49,11 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 	int get_first = 0;
 	int load_more = 0;
 	int runLength = input_args->run_length;
-	record_container to_push;
+	struct record_container to_push;
+	struct record_container que[numRuns];
 	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
-	record_container temp;
+	struct record_container temp;
+	struct record_container new_elemnt;
 	Schema mySchema ("catalog", "lineitem"); 	
 
 	DBFile file;
@@ -59,24 +61,39 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 	//Get page from every run
 	
 	
-	struct record_container que;
+	
 	//First time load the runPage array with the first page of each run
 	for(int i =0 ; i < numRuns;i++) {
-		file.file_instance.GetPage(&runPage[i], i*runLength);
-		runPage[i].GetFirst(&que.rec);
-
-		que.run = i;
 		
-		recQ.push(que);
+		file.file_instance.GetPage(&runPage[i], i*runLength);
+		runPage[i].GetFirst(&que[i].rec);
+
+		que[i].run = i;
+		// que[i].rec.Print(&mySchema);
+		recQ.push(que[i]);
 
 	}
-
-	while(!recQ.empty()){
+	int count = 0;
+	int count3=0;
+	int count2=0;
+	int count1=0;
+	while(recQ.size()!=0){
+		if (recQ.size()==3){
+			count3++;
+		}
+		if (recQ.size()==2){
+			count2++;
+		}
+		if (recQ.size()==1){
+			count1++;
+		}
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
-		// input_args->out_pipe->Insert(&temp.rec);
-		temp.rec.Print(&mySchema);
+		// temp.rec.Print(&mySchema);
+		input_args->out_pipe->Insert(&temp.rec);
+		count++;
+
 		//cout << "Smallest record : " << endl;
 		recQ.pop();
 
@@ -89,12 +106,14 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 		if (get_first ==0){
 			//Need to load next page from run_index
 			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
-			int limit;
-			if(run_index < numRuns - 1)
-				limit = runLength -1;
-			else
-				limit = pgCountLastRun - 1;
-			
+			int limit = 0;
+			if(run_index == numRuns-1){
+				limit = numPages-1;
+			}
+			else{
+				limit = runLength-1;
+			}
+
 			if(currPage[run_index]==limit){
 				currPage[run_index] = -1;
 				continue;
@@ -104,6 +123,10 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 			{
 				currPage[run_index] = currPage[run_index] + 1;
 				file.file_instance.GetPage(&runPage[run_index], (run_index*runLength)+currPage[run_index]);
+				int temp_getf=0;
+				temp_getf = runPage[run_index].GetFirst(&new_elemnt.rec);
+				new_elemnt.run= run_index;
+				recQ.push(new_elemnt);
 			}
 			
 
@@ -112,20 +135,12 @@ void phase2tpmms(struct worker_data *input_args, int numRuns) {
 		else if (get_first ==1)
 		{
 			// The current page still has some records so just getting the first record from that page
-			struct record_container new_elemnt;
-			runPage[run_index].GetFirst(&new_elemnt.rec);
-			new_elemnt.run= run_index;
-			recQ.push(new_elemnt);
+			to_push.run= run_index;
+			recQ.push(to_push);
 		}
-		
-		to_push.run = run_index;
-		recQ.push(to_push);
 	}
-	
-	
-	//temp = recQ.top();
-	file.Close();
 
+	file.Close();
 }
 
 void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
@@ -139,9 +154,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-	// File file;
-	// file.Open(1,"runs.bin"); 
-	//***********
+
 	DBFile dbfile;
 	if(numRuns == 1){
 		fType fileType = heap;
@@ -151,76 +164,20 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 		dbfile.Open("runs.bin"); 
 	}
 
-	
-
 	dbfile.buffer_page.EmptyItOut();
-	// //Instead of empty it out we are running get first page length times
-	// // while(1){
-	// // 	Record t;
-	// // 	if(!dbfile.buffer_page.GetFirst(&t)){
-	// // 		break;
-	// // 	}
-	// // }
 
-	//***********
 	//sort the run
 	
 	int count =0;
 	mergeSort(arr,0,arr_size-1,sort_order);
-	for(int i =0; i < arr_size; i++){
-		count++;
-		cout<<"Counter "<<count<<endl;
-		arr[i].Print(&mySchema);
-	} 
  
-	// int test_app = dbfile.buffer_page.Append(&arr[0]);
-	
-	// off_t last_page_added = 0;
-	// bool dirty = false;
-	// for(int j=0; j<arr_size;j++){
-	// 	dirty = false;
-	// 	if(temp.Append(&arr[j]) != 1)
-	// 	{
-	// 		dirty = true;
-	// 		//if page is full add page to file, flush and add new record
-
-	// 		if (file.GetLength() != 0){
-	// 			last_page_added = file.GetLength()-1;
-	// 		}
-
-	// 		file.AddPage(&temp,last_page_added);
-	// 		temp.EmptyItOut();
-	// 		temp.Append(&arr[j]);
-
-	// 	}	
-
-	// }
-	// if(!dirty){
-		
-	// 	if (file.GetLength() != 0){
-	// 			last_page_added = file.GetLength()-1;
-	// 	}
-	// 	file.AddPage(&temp,last_page_added);
-	// 	temp.EmptyItOut();
-	// }
-
-	//***********
-	
 	for(int j=0; j<arr_size;j++){
 
 		dbfile.Add(arr[j]);
 	}
 
-	//***********
-
-	cout << "Added records"<<endl;
-	// file.Close();
-	// dbfile.file_instance.
 	off_t last_page_added = 0;
-	// if (dbfile.file_instance.GetLength() != 0){
-	// 	last_page_added = dbfile.file_instance.GetLength()-1;
-	// }
-	// dbfile.file_instance.AddPage(&dbfile.buffer_page, last_page_added);
+
 	dbfile.Close();
 
 	
@@ -233,20 +190,12 @@ void *sort_tpmms (void *arg) {
 	int pageCount = 0;
 	int numRuns = 0;
 	bool writeRun = false;
-	
-
-	Schema mySchema ("catalog", "lineitem"); 
-	
+		
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
 	Record pushThis;
-	DBFile runFile;
-	// File file;
-	
-	// runFile.Close();
-	// file.Open(0,"runs.bin");
-	// file.Close();
+
 	
 	Page dummy;
  	vector<Record> vec_arr; 
@@ -259,7 +208,6 @@ void *sort_tpmms (void *arg) {
 		if(dummy.Append(tempRec)!= 1){
 			//If page is full
 			pageCount ++;
-			tempRec->Print(&mySchema);
 			if(pageCount == input_args->run_length) {
 				
 				//create a run when you have reached the run length limit. 
@@ -276,27 +224,24 @@ void *sort_tpmms (void *arg) {
 			}
 
 			dummy.EmptyItOut();	
-			tempRec->Print(&mySchema);
 			int app = dummy.Append(tempRec);
-			
-			cout<< "ret "<< app<<endl;
-			
 
 		}
  		
  	}
 	//write last run to file if the page was never emptied into the dbifile
 	if(!writeRun) {
-			cout<<"Last run writing out"<<endl;
 			numRuns++;
 			createRun(vec_arr, *input_args->sort_order, numRuns);
 			pgCountLastRun = pageCount;
 			pageCount = 0;
 			vec_arr.clear();
+			pgCountLastRun++;
 			
 	}
 	
-	//phase2tpmms(input_args, numRuns);
+	
+	phase2tpmms(input_args, numRuns, pgCountLastRun);
 	
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
