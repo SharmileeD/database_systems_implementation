@@ -43,24 +43,23 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order);
 
 void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	
+	//Stores a page from each run
 	Page runPage[numRuns];
+	//Stores which page from "run_index" is loaded in runPage
 	int currPage[numRuns] = {0};
 	int run_index = 0;
 	int get_first = 0;
 	int load_more = 0;
-	int runLength = input_args->run_length;
-	struct record_container to_push;
-	struct record_container que[numRuns];
+	int runLength = input_args->run_length; //Number of pages in each run
+	struct record_container to_push; //Struct to store entity to push to the priority queue
+	struct record_container que[numRuns]; //Array of record_container struct which acts as the priority queue
 	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
-	struct record_container temp;
+	struct record_container temp; 
 	struct record_container new_elemnt;
-	Schema mySchema ("catalog", "lineitem"); 	
 
 	DBFile file;
 	file.Open("runs.bin");
 	//Get page from every run
-	
-	
 	
 	//First time load the runPage array with the first page of each run
 	for(int i =0 ; i < numRuns;i++) {
@@ -69,30 +68,16 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		runPage[i].GetFirst(&que[i].rec);
 
 		que[i].run = i;
-		// que[i].rec.Print(&mySchema);
 		recQ.push(que[i]);
 
 	}
-	int count = 0;
-	int count3=0;
-	int count2=0;
-	int count1=0;
+	
 	while(recQ.size()!=0){
-		if (recQ.size()==3){
-			count3++;
-		}
-		if (recQ.size()==2){
-			count2++;
-		}
-		if (recQ.size()==1){
-			count1++;
-		}
+		
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
-		// temp.rec.Print(&mySchema);
 		input_args->out_pipe->Insert(&temp.rec);
-		count++;
 
 		//cout << "Smallest record : " << endl;
 		recQ.pop();
@@ -106,6 +91,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		if (get_first ==0){
 			//Need to load next page from run_index
 			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
+			//Also the last page for the kast run might be different than that for other runs so taking care of that 
 			int limit = 0;
 			if(run_index == numRuns-1){
 				limit = numPages-1;
@@ -113,7 +99,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 			else{
 				limit = runLength-1;
 			}
-
+			//Just setting the currPage value for "run_index" to -1 in case all records from the run are exhausted
 			if(currPage[run_index]==limit){
 				currPage[run_index] = -1;
 				continue;
@@ -143,10 +129,9 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	file.Close();
 }
 
+//Function that creates a sorted run and writes it to a file named runs.bin
 void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 	
-
-	Schema mySchema ("catalog", "lineitem");
 	Page temp;
 	off_t page_num;
 	
@@ -156,6 +141,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 		arr[i] = vec_arr[i];
 
 	DBFile dbfile;
+	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
 		fType fileType = heap;
 		dbfile.Create("runs.bin", fileType, NULL);
@@ -163,26 +149,22 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 	else{
 		dbfile.Open("runs.bin"); 
 	}
-
+	//The first page is loaded when we call dbfile.Open so we need to empty it out
 	dbfile.buffer_page.EmptyItOut();
 
-	//sort the run
-	
-	int count =0;
+	//sort the run 	
 	mergeSort(arr,0,arr_size-1,sort_order);
  
+	//Just add the run to the runs.bin dbfile
 	for(int j=0; j<arr_size;j++){
-
 		dbfile.Add(arr[j]);
 	}
 
-	off_t last_page_added = 0;
-
 	dbfile.Close();
-
 	
 }
 
+//Function to implement phase one and two of the tpmms external sortingalgorithm
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;	
@@ -202,7 +184,6 @@ void *sort_tpmms (void *arg) {
 	while (input_args->in_pipe->Remove(tempRec)) {
 		
 		writeRun = false;
-		
 		vec_arr.push_back(*tempRec);
 		
 		if(dummy.Append(tempRec)!= 1){
@@ -222,7 +203,6 @@ void *sort_tpmms (void *arg) {
 				vec_arr.push_back(*tempRec);
 
 			}
-
 			dummy.EmptyItOut();	
 			int app = dummy.Append(tempRec);
 
@@ -240,9 +220,9 @@ void *sort_tpmms (void *arg) {
 			
 	}
 	
-	
 	phase2tpmms(input_args, numRuns, pgCountLastRun);
-	
+
+	//Done with external sort so shutting down the outpipe
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
 	pthread_exit(NULL);
@@ -257,16 +237,13 @@ void merge(Record arr [], int l, int m, int r, OrderMaker sort_order)
 	ComparisonEngine ceng;
     /* create temp arrays */
     Record L[n1], R[n2]; 
-	Schema mySchema ("catalog", "lineitem");
     /* Copy data to temp arrays L[] and R[] */
-	// cout<<"L i initial state"<<endl;
+
     for (i = 0; i < n1; i++) 
         L[i] = arr[l + i]; 
-		// arr[l + i].Print(&mySchema);
-	// cout<<"R j initial state"<<endl;
+
     for (j = 0; j < n2; j++) 
         R[j] = arr[m + 1+ j]; 
-		// arr[m + 1+ j].Print(&mySchema);
 	
     /* Merge the temp arrays back into arr[l..r]*/
     i = 0; // Initial index of first subarray 
@@ -335,9 +312,8 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
 
-	
-    // // construct priority queue over sorted runs and dump sorted data 
- 	// // into the out pipe
+    // construct priority queue over sorted runs and dump sorted data 
+ 	// into the out pipe
 	pthread_t worker;
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -350,7 +326,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	}
 	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
 
-    // // finally shut down the out pipe
+    // finally shut down the out pipe
 }
 
 BigQ::~BigQ () {

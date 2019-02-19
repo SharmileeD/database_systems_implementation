@@ -38,31 +38,31 @@ struct CompareRecords {
 
 };
 void phase2tpmms_test(struct worker_data *input_args, int numRuns);
-// void *producer (void *arg) {
+void *producer (void *arg) {
 
-// 	Pipe *myPipe = (Pipe *) arg;
+	Pipe *myPipe = (Pipe *) arg;
 
-// 	Record inprec;
-// 	int counter = 0;
+	Record inprec;
+	int counter = 0;
 
-// 	DBFile dbfile;
-// 	dbfile.Open (rel->path ());
-// 	cout << " producer: opened DBFile " << rel->path () << endl;
-// 	dbfile.MoveFirst ();
+	DBFile dbfile;
+	dbfile.Open (rel->path ());
+	cout << " producer: opened DBFile " << rel->path () << endl;
+	dbfile.MoveFirst ();
 
-// 	while (dbfile.GetNext (inprec) == 1) {
-// 		counter += 1;
-// 		if (counter%100000 == 0) {
-// 			 cerr << " producer: " << counter << endl;	
-// 		}
-// 		myPipe->Insert (&inprec);
-// 	}
+	while (dbfile.GetNext (inprec) == 1) {
+		counter += 1;
+		if (counter%100000 == 0) {
+			 cerr << " producer: " << counter << endl;	
+		}
+		myPipe->Insert (&inprec);
+	}
 
-// 	dbfile.Close ();
-// 	myPipe->ShutDown ();
+	dbfile.Close ();
+	myPipe->ShutDown ();
 
-// 	cout << " producer: inserted " << counter << " recs into the pipe\n";
-// }
+	cout << " producer: inserted " << counter << " recs into the pipe\n";
+}
 
 void *consumer (void *arg) {
 	
@@ -118,79 +118,6 @@ void *consumer (void *arg) {
 }
 
 
-
-
-
-// int main () {
-
-// 	// sort order for records
-// 	Schema mySchema ("catalog", "nation");
-// 	OrderMaker sortorder(&mySchema);
-// 	cout<< "Started the call to main"<<endl;
-// 	// Logic to get sort order input from the user
-// 	// Confused about what happens here as of now
-// 	// cout << "\n specify sort ordering (when done press ctrl-D):\n\t ";
-// 	// if (yyparse() != 0) {
-// 	// 	cout << "Can't parse your sort CNF.\n";
-// 	// 	exit (1);
-// 	// }
-// 	// cout << " \n";
-// 	// Record literal;
-// 	// CNF sort_pred;
-// 	// Schema mySchema ("catalog", "nation");
-// 	// sort_pred.GrowFromParseTree (final, &mySchema, literal); // constructs CNF predicate
-// 	// OrderMaker dummy;
-// 	// sort_pred.GetSortOrders (sortorder, dummy);
-// 	int runlen =10;
-// 	// int option = 1;
-// 	int buffsz = 100; // pipe cache size
-// 	Pipe input (buffsz);
-// 	Pipe output (buffsz);
-
-// 	// thread to dump data into the input pipe (for BigQ's consumption)
-// 	// pthread_t thread1;
-// 	// pthread_create (&thread1, NULL, producer, (void *)&input);
-// 	Record inprec;
-// 	int counter = 0;
-
-// 	DBFile dbfile;
-// 	dbfile.Open ("nation.bin");
-	
-// 	dbfile.MoveFirst ();
-
-// 	while (dbfile.GetNext(inprec) == 1) {
-// 		counter += 1;
-// 		cout<< "inside populate loop "<< counter<<endl;
-// 		if(counter == 1000){
-// 			break;
-// 		}
-// 		if (counter%100000 == 0) {
-// 			 cerr << " producer: " << counter << endl;	
-// 		}
-// 		input.Insert (&inprec);
-// 	}
-// 	cout<< "outside loop "<<endl;
-// 	dbfile.Close ();
-// 	input.ShutDown ();
-
-// 	cout << " producer: inserted " << counter << " recs into the pipe\n";
-// 	// thread to read sorted data from output pipe (dumped by BigQ)
-// 	pthread_t thread2;
-// 	testutil tutil = {&output, &sortorder, false, false};
-// 	// if (option == 2) {
-// 	// 	tutil.print = true;
-// 	// }
-// 	// else if (option == 3) {
-// 	// 	tutil.write = true;
-// 	// }
-// 	pthread_create (&thread2, NULL, consumer, (void *)&tutil);
-
-// 	BigQ bq (input, output, sortorder, runlen);
-
-// 	// pthread_join (thread1, NULL);
-// 	pthread_join (thread2, NULL);
-// 	return 0;
-// }
 
 void test_phase2(){
 	// This logic writes three page worth of records to a file named test_phase2.bin
@@ -335,33 +262,7 @@ void test_check_duplicates(){
 	
 	cout << "********"<<endl;
 	int count =0;
-	// while(count <10){
-		
-	// 	page90.GetFirst(&tempRec);
-	// 	tempRec.Print(&mySchema);
-	// 	cout << "----------"<<endl;
-	// 	count++;
-	// }
-	
-	// file_inst.GetPage(&page90, 21);
-	// cout << "Printing page 21 onwards"<<endl;
-	// count =0;
-	// while(count <10){
-	// 	page90.GetFirst(&tempRec);
-	// 	tempRec.Print(&mySchema);
-	// 	cout << "----------"<<endl;
-	// 	count++;
-	// }
-	
-	// tempRec.Print(&mySchema);
-	
-	
-	// cout << "Printing page 90"<<endl;
-	// // tempRec.Print(&mySchema);
-	// file_inst.GetPage(&page99, 97);
-	// page99.GetFirst(&tempRec);
-	// cout << "Printing page 99"<<endl;
-	// tempRec.Print(&mySchema);
+
 }
 
 void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
