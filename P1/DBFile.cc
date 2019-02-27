@@ -16,18 +16,272 @@ using namespace std;
 
 // stub file .. replace it with your own DBFile.cc
 
-DBFile::DBFile () 
+DBFile::DBFile (){
+    // this->buffer_page = Page();
+}
+Heap hp_obj;
+Sorted srt_obj;
+struct SortInfo { OrderMaker *myOrder; int runLength; };
+//Method to Create a DBFile store
+int DBFile::Create (const char *f_path, fType f_type, void *startup) {
+    try
+    {   
+        
+        this->SetMetaDataFileName((char *)f_path);
+        ofstream myfile;
+        myfile.open (this->meta_type_name);
+        // Check what is the 
+        struct SortInfo * input_args;
+	    input_args = (struct SortInfo *)startup;	
+        if (f_type == heap){
+            myfile << "heap\n";
+            this->instVar = &hp_obj;
+            
+        }
+        if (f_type == sorted){
+            cout<<"Filetype is sorted"<<endl;
+            myfile << "sorted\n";
+            // Write the order maker here
+            myfile << input_args->myOrder->returnOrderMaker()<<endl;
+            
+            this->instVar = &srt_obj;
+        }
+        myfile.close();
+        this->SetMetaDataFileName((char *)f_path);
+        this->SetValueFromTxt(this->meta_lpage_name, 0);
+        this->SetValueFromTxt(this->meta_dpage_name, 1);
+        int ret_val = this->instVar->Create(f_path, f_type, startup);
+        
+	    return ret_val;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return 0;
+    }	
+}
+
+// Method to bulk load the DBFile from a text file
+// This method essentially calls the Add method of the DBFile class for each record read from the text file 
+void DBFile::Load (Schema &f_schema, const char *loadpath) {
+    try
+    {
+        this->instVar->Load(f_schema, loadpath);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
+
+//Method to open a file stored at f_path assuming there exists one and it has data inside
+int DBFile::Open (const char *f_path) {
+	try
+	{   off_t dirty = 0;
+        ifstream infile; 
+        
+        this->SetMetaDataFileName((char *)f_path);
+        this->SetValueFromTxt(this->meta_dpage_name, dirty);
+        infile.open(this->meta_type_name);
+        string ftype;
+        getline (infile,ftype);
+        
+        if(ftype == "heap"){
+            cout<<"file type is inside if also " <<ftype<<endl;
+            
+            this->instVar = &hp_obj;
+        }
+        if(ftype == "sorted"){
+            
+            this->instVar = &srt_obj;
+        }
+        int ret_val = this->instVar->Open(f_path);
+        
+		return ret_val;	
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+        return 0;
+	}
+}
+
+//Move the record pointer to the first record of the file
+void DBFile::MoveFirst () {
+    this->instVar->MoveFirst();
+    // // Set Record offset to 0
+    // this->record_offset = 0;
+    // // Set current page to 0
+    // this->current_page = 0;
+
+}
+// Method to Close the DBFile
+// This method flushes the buffer_page to the file on disk
+int DBFile::Close () {
+	try
+	{
+        int return_val = this->instVar->Close();
+      // Here before closing the file we will write out the records present in the page buffer if any to the file
+    //    off_t dirty = 0;
+    //     off_t last_page = 0;
+    //     off_t test;
+    //     // Record tempRec;
+    //     dirty = this->GetValueFromTxt(this->meta_dpage_name);
+    //     if (dirty == 1){
+              
+    //         last_page = GetValueFromTxt(this->meta_lpage_name);
+    //         test = this->file_instance.GetLength();
+    //         if (this->file_instance.GetLength() != 0){
+                
+    //            last_page = this->file_instance.GetLength()-1;
+                
+    //        }
+    //         this->file_instance.AddPage(&this->buffer_page, last_page);
+    //         last_page++;
+    //         this->SetValueFromTxt(this->meta_lpage_name, last_page);
+                
+    //     }
+        
+    //     this->SetValueFromTxt(this->meta_dpage_name, 0);
+	// 	this->file_instance.Close();
+		return return_val;		
+	}
+	catch(const std::exception& e) {
+		std::cerr << e.what() << '\n';
+		return 0;
+	}
+}
+
+// Method to Add a record to the DBFile instance. 
+// This essentially adds the record to the page buffer and 
+// if the page buffer is full it writes the page out to disk 
+// and after emptying the buffer it writes the record to the buffer
+void DBFile::Add (Record &rec) {
+    try {
+
+        this->instVar->Add(rec);
+	    
+    }
+    catch(exception e){
+       cerr << e.what() <<"Inside Add DBFile" <<'\n';
+    }
+    
+}
+
+//Function to get the record in the next position
+int DBFile::GetNext (Record &fetchme) {
+    int ret_val = this->instVar->GetNext(fetchme);
+    return ret_val;
+}
+
+// Method to get the value of the metadata stored in the auxiliary text file
+off_t DBFile::GetValueFromTxt(char file_name []){
+    
+    FILE * file;
+    off_t target = 0;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "r");
+    fread(&target, sizeof(off_t),1, file);
+    fclose(file);
+    return target;
+
+}
+// Method to set the value of the metadata stored in the auxiliary text file
+void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
+
+    FILE * file;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "w");
+    fwrite(&set_value, sizeof(off_t), 1, file);
+    fclose(file);
+}
+
+// Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
+void DBFile:: SetMetaDataFileName(char tblpath []){
+    char * pch;
+    char meta_file_name[100];
+    pch = strtok (tblpath,"/");
+    char test [100];
+    while (pch != NULL)
+    {
+    if(pch!=NULL){
+        strcpy(test, pch);
+    }
+    pch = strtok (NULL, "/");
+    }
+
+    test[strlen(test)-4] = '\0';
+    sprintf (meta_file_name, "%s_lpage.txt", test);
+    strcpy(this->meta_lpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_dpage.txt", test);
+    strcpy(this->meta_dpage_name, meta_file_name);
+    sprintf(meta_file_name, "%s_type.txt", test);
+    strcpy(this->meta_type_name, meta_file_name);
+    
+}
+GenericDBFile::GenericDBFile () 
 {
     // this->buffer_page = Page();
 }
 
 //Method to Create a DBFile store
-int DBFile::Create (const char *f_path, fType f_type, void *startup) {
+int GenericDBFile::Create (const char *f_path, fType f_type, void *startup) {}
+
+// Method to bulk load the DBFile from a text file
+// This method essentially calls the Add method of the DBFile class for each record read from the text file 
+void GenericDBFile::Load (Schema &f_schema, const char *loadpath) {
+}
+
+//Method to open a file stored at f_path assuming there exists one and it has data inside
+int GenericDBFile::Open (const char *f_path) {
+}
+
+//Move the record pointer to the first record of the file
+void GenericDBFile::MoveFirst () {
+
+}
+// Method to Close the DBFile
+// This method flushes the buffer_page to the file on disk
+int GenericDBFile::Close () {}
+
+// Method to Add a record to the DBFile instance. 
+// This essentially adds the record to the page buffer and 
+// if the page buffer is full it writes the page out to disk 
+// and after emptying the buffer it writes the record to the buffer
+void GenericDBFile::Add (Record &rec) {    
+}
+
+//Function to get the record in the next position
+int GenericDBFile::GetNext (Record &fetchme) {}
+
+//Function to get the record after the current record which matches the cnf
+int GenericDBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
+
+// Method to get the value of the metadata stored in the auxiliary text file
+off_t GenericDBFile::GetValueFromTxt(char file_name []){
+
+}
+// Method to set the value of the metadata stored in the auxiliary text file
+void GenericDBFile::SetValueFromTxt(char file_name [], off_t set_value ){
+}
+
+// Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
+void GenericDBFile:: SetMetaDataFileName(char tblpath []){
+    
+}
+
+Heap::Heap () 
+{
+    // this->buffer_page = Page();
+}
+
+//Method to Create a DBFile store
+int Heap::Create (const char *f_path, fType f_type, void *startup) {
     try
     {
         this->SetMetaDataFileName((char *)f_path);
-        this->SetValueFromTxt(this->meta_lpage_name, 0);
-        this->SetValueFromTxt(this->meta_dpage_name, 1);
     	this->file_instance.Open(0,(char*)f_path);
 	    return 1;
     }
@@ -40,7 +294,7 @@ int DBFile::Create (const char *f_path, fType f_type, void *startup) {
 
 // Method to bulk load the DBFile from a text file
 // This method essentially calls the Add method of the DBFile class for each record read from the text file 
-void DBFile::Load (Schema &f_schema, const char *loadpath) {
+void Heap::Load (Schema &f_schema, const char *loadpath) {
     try
     {
         FILE *tableFile = fopen (loadpath, "r");
@@ -57,17 +311,20 @@ void DBFile::Load (Schema &f_schema, const char *loadpath) {
 }
 
 //Method to open a file stored at f_path assuming there exists one and it has data inside
-int DBFile::Open (const char *f_path) {
+int Heap::Open (const char *f_path) {
 	try
-	{   off_t dirty = 0;
+	{   
+        off_t dirty = 0;
         this->SetMetaDataFileName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         this->file_instance.Open(1,(char*)f_path);
+        Record temp;
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
             this->current_page = 0;
             this->record_offset = 0;
         }
+        this->buffer_page.GetFirst(&temp);
 		return 1;	
 	}
 	catch(const std::exception& e)
@@ -78,7 +335,7 @@ int DBFile::Open (const char *f_path) {
 }
 
 //Move the record pointer to the first record of the file
-void DBFile::MoveFirst () {
+void Heap::MoveFirst () {
     
     // Set Record offset to 0
     this->record_offset = 0;
@@ -88,7 +345,7 @@ void DBFile::MoveFirst () {
 }
 // Method to Close the DBFile
 // This method flushes the buffer_page to the file on disk
-int DBFile::Close () {
+int Heap::Close () {
 	try
 	{
       // Here before closing the file we will write out the records present in the page buffer if any to the file
@@ -129,7 +386,7 @@ int DBFile::Close () {
 // This essentially adds the record to the page buffer and 
 // if the page buffer is full it writes the page out to disk 
 // and after emptying the buffer it writes the record to the buffer
-void DBFile::Add (Record &rec) {
+void Heap::Add (Record &rec) {
     try {
         off_t last_page_added = 0;
         this->SetValueFromTxt(this->meta_dpage_name, 1);
@@ -161,7 +418,7 @@ void DBFile::Add (Record &rec) {
 }
 
 //Function to get the record in the next position
-int DBFile::GetNext (Record &fetchme) {
+int Heap::GetNext (Record &fetchme) {
 	int page_num = 0;
     if (this->current_page == this->file_instance.GetLength()-1){
         return 0;
@@ -203,7 +460,7 @@ int DBFile::GetNext (Record &fetchme) {
 }
 
 //Function to get the record after the current record which matches the cnf
-int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+int Heap::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
 	bool found = true;
     int page_num = 0;
@@ -262,7 +519,7 @@ int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 }
 
 // Method to get the value of the metadata stored in the auxiliary text file
-off_t DBFile::GetValueFromTxt(char file_name []){
+off_t Heap::GetValueFromTxt(char file_name []){
     
     FILE * file;
     off_t target = 0;
@@ -275,7 +532,7 @@ off_t DBFile::GetValueFromTxt(char file_name []){
 
 }
 // Method to set the value of the metadata stored in the auxiliary text file
-void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
+void Heap::SetValueFromTxt(char file_name [], off_t set_value ){
 
     FILE * file;
     const char * filename_ptr;
@@ -286,7 +543,7 @@ void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
 }
 
 // Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
-void DBFile:: SetMetaDataFileName(char tblpath []){
+void Heap:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[100];
     pch = strtok (tblpath,"/");
@@ -304,5 +561,56 @@ void DBFile:: SetMetaDataFileName(char tblpath []){
     strcpy(this->meta_lpage_name, meta_file_name);
     sprintf (meta_file_name, "%s_dpage.txt", test);
     strcpy(this->meta_dpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_type.txt", test);
+    strcpy(this->meta_type_name, meta_file_name);
+    
+}
+
+Sorted::Sorted () 
+{
+    // this->buffer_page = Page();
+}
+
+//Method to Create a DBFile store
+int Sorted::Create (const char *f_path, fType f_type, void *startup) {}
+
+// Method to bulk load the DBFile from a text file
+// This method essentially calls the Add method of the DBFile class for each record read from the text file 
+void Sorted::Load (Schema &f_schema, const char *loadpath) {}
+
+//Method to open a file stored at f_path assuming there exists one and it has data inside
+int Sorted::Open (const char *f_path) {}
+
+//Move the record pointer to the first record of the file
+void Sorted::MoveFirst () {
+
+}
+// Method to Close the DBFile
+// This method flushes the buffer_page to the file on disk
+int Sorted::Close () {}
+
+// Method to Add a record to the DBFile instance. 
+// This essentially adds the record to the page buffer and 
+// if the page buffer is full it writes the page out to disk 
+// and after emptying the buffer it writes the record to the buffer
+void Sorted::Add (Record &rec) {    
+}
+
+//Function to get the record in the next position
+int Sorted::GetNext (Record &fetchme) {}
+
+//Function to get the record after the current record which matches the cnf
+int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
+
+// Method to get the value of the metadata stored in the auxiliary text file
+off_t Sorted::GetValueFromTxt(char file_name []){
+
+}
+// Method to set the value of the metadata stored in the auxiliary text file
+void Sorted::SetValueFromTxt(char file_name [], off_t set_value ){
+}
+
+// Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
+void Sorted:: SetMetaDataFileName(char tblpath []){
     
 }

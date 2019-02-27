@@ -6,6 +6,8 @@
 #include "File.h"
 #include "Comparison.h"
 #include "ComparisonEngine.h"
+#include <string>
+
 
 
 // This stores an individual comparison that is part of a CNF
@@ -59,6 +61,7 @@ public:
 
 	// print to the screen
 	void Print ();
+	std::string returnOrderMaker();
 };
 
 class Record;

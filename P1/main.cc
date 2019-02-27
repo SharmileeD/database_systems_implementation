@@ -380,6 +380,40 @@ void test_getLength(){
 	dbfile.Open("runs.bin");
 	cout<<"Length is "<< dbfile.file_instance.GetLength()<<endl;
 }
+
+void test_read_write_logic(){   
+    // char metadata_file_name [] = "l_page.txt";
+    // cout << "Hello world!" << endl;
+    // FILE * fp;
+    // const char * ip;
+    // ip = metadata_file_name;
+    // off_t big_var = 190791;
+    // fp = fopen(ip, "w");
+    // fwrite(&big_var, sizeof(off_t), 1, fp);
+    // fclose(fp);
+
+    FILE * fp2;
+    off_t target = 0;
+    fp2 = fopen("database_systems_implementation/P1/runs_lpage.txt", "r");
+    fread(&target, sizeof(off_t),1, fp2);
+    cout << "Off t variable incremented" << endl;
+    cout<< target<<endl;
+    fclose(fp2);
+    string test = "hello";
+    string test2 = "world";
+    cout << test+test2<< endl;
+
+}
+void test_DBFile_create(){
+	DBFile dbfile;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "lineitem");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	// dbfile.Create("test_phase2.bin",heap,&startup);
+	dbfile.Open("nation.bin");
+}
 int main(){
 
 	// Schema mySchema ("catalog", "lineitem");
@@ -410,11 +444,13 @@ int main(){
 	// test_check_duplicates();
 	// test_write();
 	// test_getLength();
-	check_recs("runs.bin");
+	// check_recs("runs.bin");
 	// check_recs("lineitem.bin");
 	// test_getLength();
 	// check_num_records("runs.bin");
 	// check_num_records("lineitem.bin");
 	// pthread_join (thread2, NULL);
+	test_DBFile_create();
+	
 	return 0;
 }
