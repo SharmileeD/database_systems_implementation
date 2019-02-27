@@ -118,6 +118,22 @@ void OrderMaker :: Print () {
 }
 
 
+string OrderMaker :: returnOrderMaker () {
+	string out;
+	for (int i = 0; i < numAtts; i++)
+	{
+		out.append(to_string(i)+" : "+ to_string(whichAtts[i])+" ");
+
+		if (whichTypes[i] == Int)
+			out.append("Int\n");
+		else if (whichTypes[i] == Double)
+			out.append("Double\n");
+		else
+			out.append("String\n");
+	}
+	return out;
+}
+
 
 int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 
