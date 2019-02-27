@@ -174,6 +174,11 @@ int DBFile::GetNext (Record &fetchme) {
     return ret_val;
 }
 
+int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+    int ret_val = this->instVar->GetNext(fetchme, cnf, literal);
+    return ret_val;
+}
+
 // Method to get the value of the metadata stored in the auxiliary text file
 off_t DBFile::GetValueFromTxt(char file_name []){
     
