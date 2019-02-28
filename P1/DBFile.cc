@@ -277,6 +277,9 @@ void GenericDBFile:: SetMetaDataFileName(char tblpath []){
     
 }
 
+void GenericDBFile::GetPage(Page *putItHere, off_t whichPage){
+    // this->file_instance.GetPage(putItHere, whichPage);
+}
 Heap::Heap () 
 {
     // this->buffer_page = Page();
@@ -287,6 +290,8 @@ int Heap::Create (const char *f_path, fType f_type, void *startup) {
     try
     {
         this->SetMetaDataFileName((char *)f_path);
+        this->SetValueFromTxt(this->meta_lpage_name, 0);
+        this->SetValueFromTxt(this->meta_dpage_name, 1);
     	this->file_instance.Open(0,(char*)f_path);
 	    return 1;
     }
@@ -323,13 +328,11 @@ int Heap::Open (const char *f_path) {
         this->SetMetaDataFileName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         this->file_instance.Open(1,(char*)f_path);
-        Record temp;
         if (this->file_instance.GetLength()!=0){
             this->file_instance.GetPage(&this->buffer_page,0);
             this->current_page = 0;
             this->record_offset = 0;
         }
-        this->buffer_page.GetFirst(&temp);
 		return 1;	
 	}
 	catch(const std::exception& e)
@@ -571,6 +574,9 @@ void Heap:: SetMetaDataFileName(char tblpath []){
     
 }
 
+void Heap::GetPage(Page *putItHere, off_t whichPage){
+    this->file_instance.GetPage(putItHere, whichPage);
+}
 Sorted::Sorted () 
 {
     // this->buffer_page = Page();

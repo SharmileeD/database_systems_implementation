@@ -15,7 +15,13 @@ typedef enum {heap, sorted, tree} fType;
 class GenericDBFile{
 	public:
 		GenericDBFile();
-		
+		Page  buffer_page;
+		File  file_instance;
+		char meta_lpage_name[100];
+		char meta_dpage_name[100];
+		char meta_type_name[100];
+		int record_offset;
+		off_t current_page;
 		virtual int Create (const char *fpath, fType file_type, void *startup);
 		virtual int Open (const char *fpath);
 		virtual int Close ();
@@ -29,6 +35,7 @@ class GenericDBFile{
 		virtual off_t GetValueFromTxt(char file_name[]);
 		virtual void SetValueFromTxt(char file_name[], off_t set_value);
 		virtual void SetMetaDataFileName(char tblpath []);
+		virtual void GetPage(Page *putItHere, off_t whichPage);
 };
 class Heap: public GenericDBFile{
 	public:
@@ -54,6 +61,7 @@ class Heap: public GenericDBFile{
 		off_t GetValueFromTxt(char file_name[]);
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
+		void GetPage(Page *putItHere, off_t whichPage);
 };
 
 class Sorted: public GenericDBFile{
