@@ -414,6 +414,13 @@ void test_DBFile_create(){
 	// dbfile.Create("test_phase2.bin",heap,&startup);
 	dbfile.Open("nation.bin");
 }
+void test_GetPage(){
+	DBFile file;
+	file.Open("runs.bin");
+	Page test;
+	file.instVar->GetPage(&test, 0);
+	cout<<"testing end"<<endl;
+}
 int main(){
 
 	// Schema mySchema ("catalog", "lineitem");
@@ -450,7 +457,8 @@ int main(){
 	// check_num_records("runs.bin");
 	// check_num_records("lineitem.bin");
 	// pthread_join (thread2, NULL);
-	test_DBFile_create();
+	// test_DBFile_create();
+	test_GetPage();
 	
 	return 0;
 }

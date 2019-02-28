@@ -57,13 +57,13 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	struct record_container temp; 
 	struct record_container new_elemnt;
 
-	DBFile file;
+	Heap file;
 	file.Open("runs.bin");
 	//Get page from every run
 	
 	//First time load the runPage array with the first page of each run
 	for(int i =0 ; i < numRuns;i++) {
-		
+
 		file.file_instance.GetPage(&runPage[i], i*runLength);
 		runPage[i].GetFirst(&que[i].rec);
 
@@ -71,9 +71,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		recQ.push(que[i]);
 
 	}
-	
 	while(recQ.size()!=0){
-		
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
@@ -140,7 +138,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
 
-	DBFile dbfile;
+	Heap dbfile;
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
 		fType fileType = heap;
@@ -228,8 +226,7 @@ void *sort_tpmms (void *arg) {
 	pthread_exit(NULL);
 	
 }
-void merge(Record arr [], int l, int m, int r, OrderMaker sort_order) 
-{ 
+void merge(Record arr [], int l, int m, int r, OrderMaker sort_order) { 
     int i, j, k; 
     int n1 = m - l + 1; 
     int n2 =  r - m; 
@@ -286,8 +283,7 @@ void merge(Record arr [], int l, int m, int r, OrderMaker sort_order)
         k++; 
     } 
 } 
-void mergeSort(Record arr[], int l, int r, OrderMaker sort_order) 
-{ 
+void mergeSort(Record arr[], int l, int r, OrderMaker sort_order) { 
     if (l < r) 
     { 
         // Same as (l+r)/2, but avoids overflow for 
@@ -311,7 +307,6 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input.out_pipe = &out;
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
-
     // construct priority queue over sorted runs and dump sorted data 
  	// into the out pipe
 	pthread_t worker;
