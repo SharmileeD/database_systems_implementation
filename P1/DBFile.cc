@@ -11,6 +11,10 @@
 #include <fstream>
 #include <typeinfo>
 #include <cstring>
+#include <vector>
+#include "BigQ.h"
+#include "Pipe.h"
+
 
 using namespace std;
 
@@ -42,8 +46,10 @@ int DBFile::Create (const char *f_path, fType f_type, void *startup) {
             cout<<"Filetype is sorted"<<endl;
             myfile << "sorted\n";
             // Write the order maker here
-            myfile << input_args->myOrder->returnOrderMaker()<<endl;
-            
+            myfile << "sortorder"<<endl;
+            myfile << input_args->myOrder->returnOrderMaker();
+            myfile << "runlength"<<endl;
+            myfile << input_args->runLength<<endl;
             this->instVar = &srt_obj;
         }
         myfile.close();
@@ -79,21 +85,69 @@ int DBFile::Open (const char *f_path) {
 	try
 	{   off_t dirty = 0;
         ifstream infile; 
-        
+        //Boolean variables to identify the part of file we are reading
+        bool om_started = false;
+        bool rl_started = false;
+
         this->SetMetaDataFileName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         infile.open(this->meta_type_name);
-        string ftype;
-        getline (infile,ftype);
-        
-        if(ftype == "heap"){
-            cout<<"file type is inside if also " <<ftype<<endl;
-            
+        //Variable to store the line we just read
+        string line;
+        getline (infile,line);
+        if(line == "heap"){            
             this->instVar = &hp_obj;
         }
-        if(ftype == "sorted"){
-            
+        vector<int> wch_atts; 
+        vector<Type> wch_types; 
+        if(line == "sorted"){
+            while ( getline (infile,line) )
+                {
+                    if (line=="sortorder"){
+                        om_started = true;
+                        continue;
+                    }
+                        
+                    
+                    if (line=="runlength"){
+                            om_started = false;
+                            rl_started = true;
+                            continue;
+                        }
+                // cout << line << '\n';
+                    if(om_started){
+                        //write the order maker to two arrays
+                        string token = line.substr(line.find(":")+2);
+                        string att = token.substr(0,token.find(" "));
+                        string ty = token.substr(token.find(" ")+1);
+                        wch_atts.push_back(atoi(att.c_str()));
+                        if(ty == "Int")
+                            wch_types.push_back(Int);
+                        else if(ty == "Double")
+                            wch_types.push_back(Double);
+                        else
+                            wch_types.push_back(String);
+
+                    }
+                    if(rl_started){
+                        srt_obj.run_length = atoi(line.c_str());
+                    }
+
+                }
+                
+                int wch_atts_arr [wch_atts.size()];
+                Type wch_type_arr [wch_types.size()];
+                cout<<"Printing the arrays"<<endl;
+                for(int i =0; i<wch_atts.size();i++){
+                    wch_type_arr[i] = wch_types[i];
+                    wch_atts_arr[i] = wch_atts[i];
+                }
+                // srt_obj.odr_mkr = getOrderMaker(wch_atts_arr, wch_type_arr, wch_atts.size());
+                Schema mySchema ("catalog", "lineitem");
+                srt_obj.odr_mkr = OrderMaker(&mySchema);
             this->instVar = &srt_obj;
+
+
         }
         int ret_val = this->instVar->Open(f_path);
         
@@ -121,29 +175,6 @@ int DBFile::Close () {
 	try
 	{
         int return_val = this->instVar->Close();
-      // Here before closing the file we will write out the records present in the page buffer if any to the file
-    //    off_t dirty = 0;
-    //     off_t last_page = 0;
-    //     off_t test;
-    //     // Record tempRec;
-    //     dirty = this->GetValueFromTxt(this->meta_dpage_name);
-    //     if (dirty == 1){
-              
-    //         last_page = GetValueFromTxt(this->meta_lpage_name);
-    //         test = this->file_instance.GetLength();
-    //         if (this->file_instance.GetLength() != 0){
-                
-    //            last_page = this->file_instance.GetLength()-1;
-                
-    //        }
-    //         this->file_instance.AddPage(&this->buffer_page, last_page);
-    //         last_page++;
-    //         this->SetValueFromTxt(this->meta_lpage_name, last_page);
-                
-    //     }
-        
-    //     this->SetValueFromTxt(this->meta_dpage_name, 0);
-	// 	this->file_instance.Close();
 		return return_val;		
 	}
 	catch(const std::exception& e) {
@@ -232,7 +263,7 @@ GenericDBFile::GenericDBFile ()
 }
 
 //Method to Create a DBFile store
-int GenericDBFile::Create (const char *f_path, fType f_type, void *startup) {}
+int GenericDBFile::Create (const char *f_path, fType f_type, void *startup) {return 0;}
 
 // Method to bulk load the DBFile from a text file
 // This method essentially calls the Add method of the DBFile class for each record read from the text file 
@@ -240,8 +271,7 @@ void GenericDBFile::Load (Schema &f_schema, const char *loadpath) {
 }
 
 //Method to open a file stored at f_path assuming there exists one and it has data inside
-int GenericDBFile::Open (const char *f_path) {
-}
+int GenericDBFile::Open (const char *f_path) {return 0;}
 
 //Move the record pointer to the first record of the file
 void GenericDBFile::MoveFirst () {
@@ -249,7 +279,7 @@ void GenericDBFile::MoveFirst () {
 }
 // Method to Close the DBFile
 // This method flushes the buffer_page to the file on disk
-int GenericDBFile::Close () {}
+int GenericDBFile::Close () {return 0;}
 
 // Method to Add a record to the DBFile instance. 
 // This essentially adds the record to the page buffer and 
@@ -259,10 +289,10 @@ void GenericDBFile::Add (Record &rec) {
 }
 
 //Function to get the record in the next position
-int GenericDBFile::GetNext (Record &fetchme) {}
+int GenericDBFile::GetNext (Record &fetchme) {return 0;}
 
 //Function to get the record after the current record which matches the cnf
-int GenericDBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
+int GenericDBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) { return 0;}
 
 // Method to get the value of the metadata stored in the auxiliary text file
 off_t GenericDBFile::GetValueFromTxt(char file_name []){
@@ -280,10 +310,12 @@ void GenericDBFile:: SetMetaDataFileName(char tblpath []){
 void GenericDBFile::GetPage(Page *putItHere, off_t whichPage){
     // this->file_instance.GetPage(putItHere, whichPage);
 }
+void GenericDBFile::testoutpipe (){}
 Heap::Heap () 
 {
     // this->buffer_page = Page();
 }
+void Heap::testoutpipe (){}
 
 //Method to Create a DBFile store
 int Heap::Create (const char *f_path, fType f_type, void *startup) {
@@ -333,6 +365,7 @@ int Heap::Open (const char *f_path) {
             this->current_page = 0;
             this->record_offset = 0;
         }
+        
 		return 1;	
 	}
 	catch(const std::exception& e)
@@ -583,14 +616,46 @@ Sorted::Sorted ()
 }
 
 //Method to Create a DBFile store
-int Sorted::Create (const char *f_path, fType f_type, void *startup) {}
+int Sorted::Create (const char *f_path, fType f_type, void *startup) {
+ try
+    {
+        struct SortInfo * input_args;
+	    input_args = (struct SortInfo *)startup;
+
+        this->SetMetaDataFileName((char *)f_path);
+        this->SetValueFromTxt(this->meta_lpage_name, 0);
+        this->SetValueFromTxt(this->meta_dpage_name, 1);
+        this->run_length = input_args->runLength;
+        this->odr_mkr = *input_args->myOrder;
+        this->file_instance.Open(0,(char*)f_path);
+        return 1;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return 0;
+    }      
+}
 
 // Method to bulk load the DBFile from a text file
 // This method essentially calls the Add method of the DBFile class for each record read from the text file 
 void Sorted::Load (Schema &f_schema, const char *loadpath) {}
 
 //Method to open a file stored at f_path assuming there exists one and it has data inside
-int Sorted::Open (const char *f_path) {}
+int Sorted::Open (const char *f_path) {
+    off_t dirty = 0;
+    this->SetMetaDataFileName((char *)f_path);
+    this->SetValueFromTxt(this->meta_dpage_name, dirty);
+    this->mode = "reading";
+    this->file_instance.Open(1,(char*)f_path);
+    if (this->file_instance.GetLength()!=0){
+        this->file_instance.GetPage(&this->buffer_page,0);
+        this->current_page = 0;
+        this->record_offset = 0;
+    }
+    
+    return 1;	
+}
 
 //Move the record pointer to the first record of the file
 void Sorted::MoveFirst () {
@@ -605,11 +670,67 @@ int Sorted::Close () {}
 // if the page buffer is full it writes the page out to disk 
 // and after emptying the buffer it writes the record to the buffer
 void Sorted::Add (Record &rec) {    
+    try {
+        Record tempRec;
+        Schema mySchema ("catalog", "lineitem");
+        Record ins;
+        ins.Copy(&rec);
+        if(this->mode == "reading"){
+            // DO something
+            BigQ bq (this->input_pipe, this->output_pipe, this->odr_mkr, this->run_length);
+            this->mode = "writing";
+            this->input_pipe.Insert(&rec);
+            // this->input_pipe.Remove(&tempRec);
+            // tempRec.Print(&mySchema);
+            
+
+        }
+        if(this->mode == "writing"){
+            // BigQ bq (this->input_pipe, this->output_pipe, this->odr_mkr, this->run_length);
+            this->input_pipe.Insert(&ins);
+            
+        }
+        // off_t last_page_added = 0;
+        // this->SetValueFromTxt(this->meta_dpage_name, 1);
+        // // This if statement checks if the page_buffer is full
+        // if(this->buffer_page.Append(&rec)!=1){
+            
+        //     //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
+        //    if (this->file_instance.GetLength() != 0){
+                
+        //        last_page_added = GetValueFromTxt(this->meta_lpage_name);
+                
+        //    }
+		
+        //     // Here we write the page to file and empty it out and 
+        //     // add record to the new empty page buffer
+        //     int page_num = this->file_instance.GetLength();
+        //     this->file_instance.AddPage(&this->buffer_page, last_page_added);
+        //     last_page_added++;
+        //     this->SetValueFromTxt(this->meta_lpage_name, last_page_added);
+        //     this->buffer_page.EmptyItOut();
+        //     int test = this->buffer_page.Append(&rec);
+        // }
+	    
+    }
+    catch(exception e){
+       cerr << e.what() <<"Inside Add DBFile" <<'\n';
+    }
 }
 
 //Function to get the record in the next position
-int Sorted::GetNext (Record &fetchme) {}
+int Sorted::GetNext (Record &fetchme) {
 
+}
+
+void Sorted::testoutpipe () {
+    Record rec;
+    Schema mySchema ("catalog", "lineitem");
+    this->input_pipe.ShutDown();
+    while (this->output_pipe.Remove (&rec)) {
+		rec.Print(&mySchema);
+	}
+}
 //Function to get the record after the current record which matches the cnf
 int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
 

@@ -8,6 +8,7 @@
 #include "Comparison.h"
 #include "ComparisonEngine.h"
 #include "string"
+#include "Pipe.h"
 typedef enum {heap, sorted, tree} fType;
 
 // stub DBFile header..replace it with your own DBFile.h 
@@ -36,6 +37,7 @@ class GenericDBFile{
 		virtual void SetValueFromTxt(char file_name[], off_t set_value);
 		virtual void SetMetaDataFileName(char tblpath []);
 		virtual void GetPage(Page *putItHere, off_t whichPage);
+		virtual void testoutpipe ();
 };
 class Heap: public GenericDBFile{
 	public:
@@ -62,11 +64,14 @@ class Heap: public GenericDBFile{
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
 		void GetPage(Page *putItHere, off_t whichPage);
+		void testoutpipe ();
 };
 
 class Sorted: public GenericDBFile{
 	public:
 		Sorted ();
+		Pipe input_pipe = Pipe(200);
+		Pipe output_pipe = Pipe(200);
 		Page  buffer_page;
 		File  file_instance;
 		char meta_lpage_name[100];
@@ -74,6 +79,11 @@ class Sorted: public GenericDBFile{
 		char meta_type_name[100];
 		int record_offset;
 		off_t current_page;
+		OrderMaker odr_mkr;
+		int run_length;
+		std::string mode;
+		int buffersize = 100;
+		
 
 		int Create (const char *fpath, fType file_type, void *startup);
 		int Open (const char *fpath);
@@ -88,6 +98,7 @@ class Sorted: public GenericDBFile{
 		off_t GetValueFromTxt(char file_name[]);
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
+		void testoutpipe ();
 };
 class DBFile {
 private:

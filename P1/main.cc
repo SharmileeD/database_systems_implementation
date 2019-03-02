@@ -13,30 +13,30 @@
 #include <array>
 #include <iostream>
 #include <queue>
-struct worker_data{
-	Pipe *in_pipe;
-	Pipe *out_pipe;
-	OrderMaker *sort_order;
-	int run_length;
-};
+// struct worker_data{
+// 	Pipe *in_pipe;
+// 	Pipe *out_pipe;
+// 	OrderMaker *sort_order;
+// 	int run_length;
+// };
 
-struct worker_data input;
+// struct worker_data input;
 
 struct record_container {
 	Record rec;
 	int run;
 };
 
-struct CompareRecords {
-	bool operator()(record_container r1, record_container r2) {
-		ComparisonEngine ceng;
-		int val = ceng.Compare (&r1.rec, &r2.rec, input.sort_order);
-		if(val != 1)
-			return false;
-		return true;
-	} 
+// struct CompareRecords {
+// 	bool operator()(record_container r1, record_container r2) {
+// 		ComparisonEngine ceng;
+// 		int val = ceng.Compare (&r1.rec, &r2.rec, input.sort_order);
+// 		if(val != 1)
+// 			return false;
+// 		return true;
+// 	} 
 
-};
+// };
 void phase2tpmms_test(struct worker_data *input_args, int numRuns);
 void *producer (void *arg) {
 
@@ -164,11 +164,11 @@ void test_phase2(){
 	// // }
 	// cout<< dbfile2.file_instance.GetLength()<<endl;
 	// dbfile2.Close ();
-	input.run_length = 9;
-	Schema mySchema ("catalog", "lineitem");
-	OrderMaker sortorder(&mySchema);
-	input.sort_order = &sortorder;
-	phase2tpmms_test(&input, 9);
+	// input.run_length = 9;
+	// Schema mySchema ("catalog", "lineitem");
+	// OrderMaker sortorder(&mySchema);
+	// input.sort_order = &sortorder;
+	// phase2tpmms_test(&input, 9);
 
 }	
 
@@ -265,112 +265,112 @@ void test_check_duplicates(){
 
 }
 
-void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
+// void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
 	
-	Page runPage[numRuns];
-	int currPage[numRuns] = {0};
-	int run_index = 0;
-	int get_first = 0;
-	int load_more = 0;
-	int runLength = input_args->run_length;
-	struct record_container to_push;
-	struct record_container que[numRuns];
-	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
-	struct record_container temp;
-	struct record_container new_elemnt;
-	Schema mySchema ("catalog", "lineitem"); 	
+// 	Page runPage[numRuns];
+// 	int currPage[numRuns] = {0};
+// 	int run_index = 0;
+// 	int get_first = 0;
+// 	int load_more = 0;
+// 	int runLength = input_args->run_length;
+// 	struct record_container to_push;
+// 	struct record_container que[numRuns];
+// 	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
+// 	struct record_container temp;
+// 	struct record_container new_elemnt;
+// 	Schema mySchema ("catalog", "lineitem"); 	
 
-	DBFile file;
-	file.Open("runs.bin");
-	//Get page from every run
+// 	DBFile file;
+// 	file.Open("runs.bin");
+// 	//Get page from every run
 	
 	
 	
-	//First time load the runPage array with the first page of each run
-	for(int i =0 ; i < numRuns;i++) {
+// 	//First time load the runPage array with the first page of each run
+// 	for(int i =0 ; i < numRuns;i++) {
 		
-		file.file_instance.GetPage(&runPage[i], i*runLength);
-		runPage[i].GetFirst(&que[i].rec);
+// 		file.file_instance.GetPage(&runPage[i], i*runLength);
+// 		runPage[i].GetFirst(&que[i].rec);
 
-		que[i].run = i;
-		// que[i].rec.Print(&mySchema);
-		recQ.push(que[i]);
+// 		que[i].run = i;
+// 		// que[i].rec.Print(&mySchema);
+// 		recQ.push(que[i]);
 
-	}
-	int count = 0;
-	int count3=0;
-	int count2=0;
-	int count1=0;
-	while(recQ.size()!=0){
-		if (recQ.size()==3){
-			count3++;
-		}
-		if (recQ.size()==2){
-			count2++;
-		}
-		if (recQ.size()==1){
-			count1++;
-		}
-		//Step 1: Getting the first record(smallest) of the priority queue
-		temp = recQ.top();
-		run_index = temp.run;
-		temp.rec.Print(&mySchema);
-		// input_args->out_pipe->Insert(&temp.rec);
-		count++;
+// 	}
+// 	int count = 0;
+// 	int count3=0;
+// 	int count2=0;
+// 	int count1=0;
+// 	while(recQ.size()!=0){
+// 		if (recQ.size()==3){
+// 			count3++;
+// 		}
+// 		if (recQ.size()==2){
+// 			count2++;
+// 		}
+// 		if (recQ.size()==1){
+// 			count1++;
+// 		}
+// 		//Step 1: Getting the first record(smallest) of the priority queue
+// 		temp = recQ.top();
+// 		run_index = temp.run;
+// 		temp.rec.Print(&mySchema);
+// 		// input_args->out_pipe->Insert(&temp.rec);
+// 		count++;
 
-		//cout << "Smallest record : " << endl;
-		recQ.pop();
+// 		//cout << "Smallest record : " << endl;
+// 		recQ.pop();
 
-		//Now that we have poped a struct out of the priority queue
-		//we need to push one struct in from the same page 
-		//Step 2: Getting the next record from the same page which recently served the record
-		get_first = runPage[run_index].GetFirst(&to_push.rec);
-		//Step 2.0: This is the case where we are checking if the PAGE has any RECORDS
-		//Step 2.1: This is the case where the PAGE does not have any RECORDS
-		if (get_first ==0){
-			//Need to load next page from run_index
-			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
+// 		//Now that we have poped a struct out of the priority queue
+// 		//we need to push one struct in from the same page 
+// 		//Step 2: Getting the next record from the same page which recently served the record
+// 		get_first = runPage[run_index].GetFirst(&to_push.rec);
+// 		//Step 2.0: This is the case where we are checking if the PAGE has any RECORDS
+// 		//Step 2.1: This is the case where the PAGE does not have any RECORDS
+// 		if (get_first ==0){
+// 			//Need to load next page from run_index
+// 			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
 
-			if(currPage[run_index]==runLength-1){
-				currPage[run_index] = -1;
-				continue;
-			}
-			//Step 2.1.2: This is the case where the RUN has a page so getting it and incrementing currPage[run_index] 
-			else
-			{
-				currPage[run_index] = currPage[run_index] + 1;
-				file.file_instance.GetPage(&runPage[run_index], (run_index*runLength)+currPage[run_index]);
-				int temp_getf=0;
-				temp_getf = runPage[run_index].GetFirst(&new_elemnt.rec);
-				new_elemnt.run= run_index;
-				// new_elemnt.rec.Print(&mySchema);
-				recQ.push(new_elemnt);
-			}
+// 			if(currPage[run_index]==runLength-1){
+// 				currPage[run_index] = -1;
+// 				continue;
+// 			}
+// 			//Step 2.1.2: This is the case where the RUN has a page so getting it and incrementing currPage[run_index] 
+// 			else
+// 			{
+// 				currPage[run_index] = currPage[run_index] + 1;
+// 				file.file_instance.GetPage(&runPage[run_index], (run_index*runLength)+currPage[run_index]);
+// 				int temp_getf=0;
+// 				temp_getf = runPage[run_index].GetFirst(&new_elemnt.rec);
+// 				new_elemnt.run= run_index;
+// 				// new_elemnt.rec.Print(&mySchema);
+// 				recQ.push(new_elemnt);
+// 			}
 			
 
-		}
-		//Step 2.2: This is the case where the PAGE has a next RECORD for you
-		else if (get_first ==1)
-		{
-			// The current page still has some records so just getting the first record from that page
-			to_push.run= run_index;
-			// new_elemnt.rec.Print(&mySchema);
-			recQ.push(to_push);
-		}
-	}
+// 		}
+// 		//Step 2.2: This is the case where the PAGE has a next RECORD for you
+// 		else if (get_first ==1)
+// 		{
+// 			// The current page still has some records so just getting the first record from that page
+// 			to_push.run= run_index;
+// 			// new_elemnt.rec.Print(&mySchema);
+// 			recQ.push(to_push);
+// 		}
+// 	}
 	
-	cout<<"Number of records considered "<< count<<endl;
-	cout<<"Number of 3 records considered "<< count3<<endl;
+// 	cout<<"Number of records considered "<< count<<endl;
+// 	cout<<"Number of 3 records considered "<< count3<<endl;
 
-	cout<<"Number of 2 records considered "<< count2<<endl;
-	cout<<"Number of 1 records considered "<< count1<<endl;
-	for(int i =0;i<numRuns;i++){
-		cout<<currPage[i]<<endl;
-	}
-	//temp = recQ.top();
-	file.Close();
+// 	cout<<"Number of 2 records considered "<< count2<<endl;
+// 	cout<<"Number of 1 records considered "<< count1<<endl;
+// 	for(int i =0;i<numRuns;i++){
+// 		cout<<currPage[i]<<endl;
+// 	}
+// 	//temp = recQ.top();
+// 	file.Close();
 
-}
+// }
 
 void test_getLength(){
 	// DBFile dbfile_test;
@@ -411,8 +411,10 @@ void test_DBFile_create(){
 	OrderMaker sortorder(&mySchema);
 	int runlen = 2;
 	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
-	// dbfile.Create("test_phase2.bin",heap,&startup);
-	dbfile.Open("nation.bin");
+	// dbfile.Create("test_phase2.bin",sorted,&startup);
+	
+	int ret = dbfile.Open("test_phase2.bin");
+	cout<<ret<<endl;
 }
 void test_GetPage(){
 	DBFile file;
@@ -420,6 +422,47 @@ void test_GetPage(){
 	Page test;
 	file.instVar->GetPage(&test, 0);
 	cout<<"testing end"<<endl;
+}
+
+void test_sorted_add(){
+	DBFile dbfile_test;
+	Schema mySchema ("catalog", "lineitem");
+	// cout << " DBFile will be created at "<< endl;
+	// dbfile_test.Open ("test_phase2.bin");
+	dbfile_test.Open("test_phase2.bin");
+	Record inprec;
+	int counter = 0;
+	
+	Heap hpfile;
+	hpfile.Open ("lineitem.bin");
+	
+	hpfile.MoveFirst ();
+
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		if(counter == 2000){
+			break;
+		}
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
+	}
+	counter = 0;
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		if(counter == 2000){
+			break;
+		}
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
+	}
+	cout<< "outside loop "<<endl;
+	dbfile_test.instVar->testoutpipe();
+	cout<< "outside loop "<<endl;
+	hpfile.Close ();
+	dbfile_test.Close();
+	
 }
 int main(){
 
@@ -458,7 +501,7 @@ int main(){
 	// check_num_records("lineitem.bin");
 	// pthread_join (thread2, NULL);
 	// test_DBFile_create();
-	test_GetPage();
-	
+	// test_GetPage();
+	test_sorted_add();
 	return 0;
 }

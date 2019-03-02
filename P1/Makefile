@@ -16,8 +16,8 @@ test_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFi
 test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o -lfl -lpthread 
 
-main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o main.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll -lpthread
+main_macos: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_macos.o lex.yy.o main.o
+	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll -lpthread
 
 main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
 	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -lfl -lpthread 
@@ -88,6 +88,7 @@ lex.yy.o: Lexer.l
 	gcc  -c lex.yy.c
 
 clean: 
+	rm -f main
 	rm -f *.o
 	rm -f *.out
 	rm -f y.tab.c
