@@ -559,9 +559,9 @@ int main(){
 	// test_DBFile_create();
 	// test_GetPage();
 	// test_DBFile_create();
-	// test_sorted_add();
+	test_sorted_add();
 	// test_sorted_load();
-	test_sorted_getnext();
+	// test_sorted_getnext();
 
 	return 0;
 }

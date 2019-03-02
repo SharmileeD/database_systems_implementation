@@ -785,7 +785,7 @@ int Sorted::mergePipeAndFile () {
     Heap writeFile;
     writeFile.Create("aux_file.bin",heap,NULL);
     OrderMaker sortorder(&mySchema);
-	int binval = binfile.Open("test_phase2.bin");
+	int binval = binfile.Open(this->file_name);
     binfile.MoveFirst();
     this->input_pipe.ShutDown();
     int fileVal = binfile.GetNext(fileRec);
@@ -824,7 +824,7 @@ int Sorted::mergePipeAndFile () {
 			writeFile.Add(pipeRec);
 	}
     binfile.Close();
-    outFile.Create("test_phase2.bin",heap,NULL);
+    outFile.Create(this->file_name,heap,NULL);
     Record tempRec;
     writeFile.MoveFirst ();
 
@@ -894,4 +894,6 @@ void Sorted:: SetMetaDataFileName(char tblpath []){
     strcpy(this->meta_dpage_name, meta_file_name);
     sprintf (meta_file_name, "%s_type.txt", test);
     strcpy(this->meta_type_name, meta_file_name);
+    strcpy(this->file_name, tblpath);
+    
 }

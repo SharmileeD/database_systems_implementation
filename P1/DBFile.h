@@ -47,6 +47,7 @@ class Heap: public GenericDBFile{
 		char meta_lpage_name[100];
 		char meta_dpage_name[100];
 		char meta_type_name[100];
+		char file_name[100];
 		int record_offset;
 		off_t current_page;
 
@@ -77,6 +78,7 @@ class Sorted: public GenericDBFile{
 		char meta_lpage_name[100];
 		char meta_dpage_name[100];
 		char meta_type_name[100];
+		char file_name[100];
 		int record_offset;
 		off_t current_page;
 		OrderMaker odr_mkr;
