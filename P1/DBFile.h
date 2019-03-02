@@ -37,7 +37,7 @@ class GenericDBFile{
 		virtual void SetValueFromTxt(char file_name[], off_t set_value);
 		virtual void SetMetaDataFileName(char tblpath []);
 		virtual void GetPage(Page *putItHere, off_t whichPage);
-		virtual int testoutpipe (Record &);
+		virtual int mergePipeAndFile ();
 };
 class Heap: public GenericDBFile{
 	public:
@@ -64,7 +64,7 @@ class Heap: public GenericDBFile{
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
 		void GetPage(Page *putItHere, off_t whichPage);
-		int testoutpipe (Record &);
+		int mergePipeAndFile ();
 };
 
 class Sorted: public GenericDBFile{
@@ -98,7 +98,7 @@ class Sorted: public GenericDBFile{
 		off_t GetValueFromTxt(char file_name[]);
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
-		int testoutpipe (Record&);
+		int mergePipeAndFile ();
 };
 class DBFile {
 private:

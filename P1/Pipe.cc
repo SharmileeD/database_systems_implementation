@@ -138,3 +138,9 @@ void Pipe :: resetPipe(){
 	this->lastSlot = 0;
 	this->done = 0;
 }
+int Pipe :: getFirstSlot(){
+	return this->firstSlot;
+}
+int Pipe :: getLastSlot(){
+	return this->lastSlot;
+}

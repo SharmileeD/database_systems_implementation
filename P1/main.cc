@@ -406,13 +406,21 @@ void test_read_write_logic(){
 }
 void test_DBFile_create(){
 	DBFile dbfile;
+	Heap hp;
+	Record tempRec;
 	// dbfile.Create("test_phase2.bin",heap,NULL);
-	Schema mySchema ("catalog", "nation");
+	Schema mySchema ("catalog", "lineitem");
 	OrderMaker sortorder(&mySchema);
 	int runlen = 2;
 	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
 	dbfile.Create("test_phase2.bin",sorted,&startup);
-	
+	// dbfile.Close();
+	hp.Open("test_phase2.bin");
+
+	int va = hp.file_instance.GetLength();
+	int v = dbfile.instVar->GetNext(tempRec);
+	cout<< "length "<<v<<endl;
+	dbfile.Close();
 	// int ret = dbfile.Open("test_phase2.bin");
 	//cout<<ret<<endl;
 }
@@ -427,21 +435,13 @@ void test_GetPage(){
 void test_sorted_add(){
 	DBFile dbfile_test;
 	Schema mySchema ("catalog", "lineitem");
-	OrderMaker sortorder(&mySchema);
-	// rel->get_sort_order (sortorder);
-
-	Heap binfile;
 	// cout << " DBFile will be created at "<< endl;
 	// dbfile_test.Open ("test_phase2.bin");
 	dbfile_test.Open("test_phase2.bin");
 	Record inprec;
 	int counter = 0;
 	
-	Record pipeRec;
-	Record fileRec;
-
-	ComparisonEngine ceng;
-	Heap hpfile, writeFile;
+	Heap hpfile;
 	hpfile.Open ("lineitem.bin");
 	
 	hpfile.MoveFirst ();
@@ -465,105 +465,61 @@ void test_sorted_add(){
 		dbfile_test.Add(inprec);
 		// inprec.Print(&mySchema);
 	}
-	int binval = binfile.Open("lineitem.bin.bigq");
-	binfile.MoveFirst();
-	binfile.GetNext(fileRec);
-	int fileVal = binfile.GetNext(fileRec);
-
 	cout<< "outside loop "<<endl;
-	int pipeVal = dbfile_test.instVar->testoutpipe(pipeRec);
-	pipeRec.Print(&mySchema);
-
-	writeFile.Create("writeFile",heap,NULL);
-	cout <<"Created write file" << endl;
-	
-	
-	
-	while( pipeVal==1 && fileVal==1) {
-		int val = ceng.Compare(&pipeRec, &fileRec, &sortorder);
-		cout<<"File record"<<endl;
-		fileRec.Print(&mySchema);
-		cout<<"Pipe record"<<endl;
-		pipeRec.Print(&mySchema);
-
-		if(val==1) {
-			cout << "Adding file record"<<endl<<endl;
-			writeFile.Add(fileRec);
-			// fileRec.Print(&mySchema);
-			fileVal = binfile.GetNext(fileRec);
+	dbfile_test.instVar->mergePipeAndFile();
+	counter = 0;
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		if(counter == 1000){
+			break;
 		}
-		else if (val == -1) {
-			cout <<"Adding pipeRecord!"<<endl<<endl;
-			
-			// fileRec.Print(&mySchema);
-			writeFile.Add(pipeRec);
-			pipeVal = dbfile_test.instVar->testoutpipe(pipeRec);
-			// pipeRec.Print(&mySchema);
-		}
-		else if (val==0) {
-			cout <<"Tie!!"<<endl<<endl;
-			writeFile.Add(pipeRec);
-			pipeVal = dbfile_test.instVar->testoutpipe(pipeRec);
-			fileVal = binfile.GetNext(fileRec);
-
-		}
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
 	}
-
-	if(pipeVal!=1 && fileVal==1) {
-		cout <<"Pipe exhausted, reading from file.."<<endl;
-		writeFile.Add(fileRec);
-		while(binfile.GetNext(fileRec) == 1)
-		{
-			writeFile.Add(fileRec);
+	counter = 0;
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		if(counter == 1000){
+			break;
 		}
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
 	}
-
-	else if (pipeVal==1 && fileVal != 1) {
-		cout<<"File exhausted, reading from pipe.."<<endl;
-		writeFile.Add(pipeRec);
-		while(dbfile_test.instVar->testoutpipe(pipeRec)==1)
-			writeFile.Add(pipeRec);
-	}
-	
-	// counter = 0;
-	// while (hpfile.GetNext(inprec) == 1) {
-	// 	counter += 1;
-	// 	cout<< "inside populate loop "<< counter<<endl;
-	// 	if(counter == 1000){
-	// 		break;
-	// 	}
-	// 	dbfile_test.Add(inprec);
-	// 	// inprec.Print(&mySchema);
-	// }
-	// counter = 0;
-	// while (hpfile.GetNext(inprec) == 1) {
-	// 	counter += 1;
-	// 	cout<< "inside populate loop "<< counter<<endl;
-	// 	if(counter == 1000){
-	// 		break;
-	// 	}
-	// 	dbfile_test.Add(inprec);
-	// 	// inprec.Print(&mySchema);
-	// }
-	// dbfile_test.instVar->testoutpipe();
+	dbfile_test.instVar->mergePipeAndFile();
 	cout<< "outside loop "<<endl;
 	hpfile.Close ();
-	dbfile_test.Close();
-	writeFile.Close();
-	binfile.Close();
+	// dbfile_test.Close();
 	
 }
 void test_sorted_load(){
 	DBFile dbfile; 
-	Schema mySchema ("catalog", "nation");
+	Schema mySchema ("catalog", "lineitem");
 	OrderMaker sortorder(&mySchema);
 	int runlen = 2;
 	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
-	dbfile.Create("test_phase2.bin",sorted,&startup);
-    dbfile.Load(mySchema, "tables/nation.tbl");
+	dbfile.Create("aux_file.bin",sorted,&startup);
+    dbfile.Load(mySchema, "tables/lineitem.tbl");
+	dbfile.instVar->mergePipeAndFile();
 	dbfile.Close();
 
 }
+void test_sorted_getnext(){
+	DBFile dbfile_test;
+	Schema mySchema ("catalog", "lineitem");
+	// cout << " DBFile will be created at "<< endl;
+	dbfile_test.Open ("test_phase2.bin");
+	// dbfile_test.Open("aux_file.bin");
+	Record inprec;
+	dbfile_test.MoveFirst ();
+
+    while (dbfile_test.GetNext (inprec) == 1) {
+		inprec.Print(&mySchema);
+	}
+}
+
+
 int main(){
 
 	// Schema mySchema ("catalog", "lineitem");
@@ -603,8 +559,9 @@ int main(){
 	// test_DBFile_create();
 	// test_GetPage();
 	// test_DBFile_create();
-	test_sorted_add();
 	// test_sorted_add();
+	// test_sorted_load();
+	test_sorted_getnext();
 
 	return 0;
 }

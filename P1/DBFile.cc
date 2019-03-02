@@ -310,12 +310,12 @@ void GenericDBFile:: SetMetaDataFileName(char tblpath []){
 void GenericDBFile::GetPage(Page *putItHere, off_t whichPage){
     // this->file_instance.GetPage(putItHere, whichPage);
 }
-int GenericDBFile::testoutpipe (Record &){}
+int GenericDBFile::mergePipeAndFile (){}
 Heap::Heap () 
 {
     // this->buffer_page = Page();
 }
-int Heap::testoutpipe (Record &){}
+int Heap::mergePipeAndFile (){}
 
 //Method to Create a DBFile store
 int Heap::Create (const char *f_path, fType f_type, void *startup) {
@@ -461,7 +461,8 @@ void Heap::Add (Record &rec) {
 //Function to get the record in the next position
 int Heap::GetNext (Record &fetchme) {
 	int page_num = 0;
-    if (this->current_page == this->file_instance.GetLength()-1){
+    off_t num_pages = this->file_instance.GetLength();
+    if(num_pages == 0 || this->current_page == num_pages-1){
         return 0;
     }
 
@@ -674,11 +675,27 @@ int Sorted::Open (const char *f_path) {
 
 //Move the record pointer to the first record of the file
 void Sorted::MoveFirst () {
+    if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
+        this->mergePipeAndFile();
+    }
+    // Set Record offset to 0
+    this->record_offset = 0;
+    // Set current page to 0
+    this->current_page = 0;
 
 }
 // Method to Close the DBFile
 // This method flushes the buffer_page to the file on disk
-int Sorted::Close () {}
+int Sorted::Close () {
+    if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
+        // We  have data in the input pipe so call merge and update the file here
+        this->mergePipeAndFile();
+
+    }
+    this->SetValueFromTxt(this->meta_dpage_name, 0);
+	this->file_instance.Close();
+
+}
 
 // Method to Add a record to the DBFile instance. 
 // This essentially adds the record to the page buffer and 
@@ -687,7 +704,7 @@ int Sorted::Close () {}
 void Sorted::Add (Record &rec) {    
     try {
         Record tempRec;
-        Schema mySchema ("catalog", "lienitem");
+        Schema mySchema ("catalog", "lineitem");
         Record ins;
         ins.Copy(&rec);
         if(this->mode == "reading"){
@@ -710,37 +727,171 @@ void Sorted::Add (Record &rec) {
 
 //Function to get the record in the next position
 int Sorted::GetNext (Record &fetchme) {
+    if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
+        // We  have data in the input pipe so call merge and create 
+        this->mergePipeAndFile();
+    }
+    int page_num = 0;
+    off_t num_pages = this->file_instance.GetLength();
+    if(num_pages == 0 || this->current_page == num_pages-1){
+        return 0;
+    }
 
+    off_t last_page = 0;
+    int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
+
+    //If this action follows a write(Add) then we move the contents of the buffer to the file
+    if(dirty_page==1){
+        last_page = this->GetValueFromTxt(this->meta_lpage_name);
+        this->file_instance.AddPage(&this->buffer_page, last_page-1);
+        this->buffer_page.EmptyItOut();
+    }
+
+    // 2. Set meta data dirty value to 0
+    this->SetValueFromTxt(this->meta_dpage_name, 0);
+    
+    // 3. Load current_page from file
+    this->file_instance.GetPage(&this->buffer_page, this->current_page);
+    
+    //Here we call the MoveMyRecsPointer to advance the myrecs pointer by one position
+    if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
+        this->record_offset++;
+		return 1;
+    }
+    else{
+        page_num = this->current_page + 1;
+        if (page_num == this->file_instance.GetLength()){
+            //This is where we've reached the last record of last page
+            this->current_page++;
+            return 1;
+        }
+        this->current_page++;
+        this->record_offset = 0;
+        return 1;
+    }
+    return 0;
 }
 
-int Sorted::testoutpipe (Record &rec) {
-    
+int Sorted::mergePipeAndFile () {
     Schema mySchema ("catalog", "lineitem");
     this->input_pipe.ShutDown();
     this->mode = "reading";
+
+    Heap binfile;
+    Heap outFile;
+    Record pipeRec;
+	Record fileRec;
+    ComparisonEngine ceng;
+    Heap writeFile;
+    writeFile.Create("aux_file.bin",heap,NULL);
+    OrderMaker sortorder(&mySchema);
+	int binval = binfile.Open("test_phase2.bin");
+    binfile.MoveFirst();
+    this->input_pipe.ShutDown();
+    int fileVal = binfile.GetNext(fileRec);
+    int pipeVal= this->output_pipe.Remove (&pipeRec);
+    while( pipeVal==1 && fileVal==1) {
+		int val = ceng.Compare(&pipeRec, &fileRec, &sortorder);
+
+		if(val==1) {
+			writeFile.Add(fileRec);
+			fileVal = binfile.GetNext(fileRec);
+		}
+		else if (val == -1) {
+			
+			writeFile.Add(pipeRec);
+			pipeVal = this->output_pipe.Remove (&pipeRec);
+		}
+		else if (val==0) {
+			writeFile.Add(pipeRec);
+			pipeVal = this->output_pipe.Remove (&pipeRec);
+			fileVal = binfile.GetNext(fileRec);
+
+		}
+	}
+
+	if(pipeVal!=1 && fileVal==1) {
+		writeFile.Add(fileRec);
+		while(binfile.GetNext(fileRec) == 1)
+		{
+			writeFile.Add(fileRec);
+		}
+	}
+
+	else if (pipeVal==1 && fileVal != 1) {
+		writeFile.Add(pipeRec);
+		while(this->output_pipe.Remove (&pipeRec)==1)
+			writeFile.Add(pipeRec);
+	}
+    binfile.Close();
+    outFile.Create("test_phase2.bin",heap,NULL);
+    Record tempRec;
+    writeFile.MoveFirst ();
+
+    while (writeFile.GetNext (tempRec) == 1) {
+		outFile.Add(tempRec);
+	}
+    writeFile.Close();
+    outFile.Close();
+	
+    //OLD CODE THAT WORKS JUST FINE 
+    // Record rec;
+    // // Schema mySchema ("catalog", "lineitem");
+    // this->input_pipe.ShutDown();
+    // this->mode = "reading";
     // while (this->output_pipe.Remove (&rec)) {
 	// 	rec.Print(&mySchema);
 	// }
-    int val= this->output_pipe.Remove (&rec);
-    return val;
-
-      
-    
     this->input_pipe.resetPipe();
     this->output_pipe.resetPipe();
+    
+    
 }
 //Function to get the record after the current record which matches the cnf
-int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
+int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+     
+}
 
 // Method to get the value of the metadata stored in the auxiliary text file
 off_t Sorted::GetValueFromTxt(char file_name []){
-
+    FILE * file;
+    off_t target = 0;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "r");
+    fread(&target, sizeof(off_t),1, file);
+    fclose(file);
+    return target;
 }
 // Method to set the value of the metadata stored in the auxiliary text file
 void Sorted::SetValueFromTxt(char file_name [], off_t set_value ){
+    FILE * file;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "w");
+    fwrite(&set_value, sizeof(off_t), 1, file);
+    fclose(file);
 }
 
 // Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
 void Sorted:: SetMetaDataFileName(char tblpath []){
-    
+    char * pch;
+    char meta_file_name[100];
+    pch = strtok (tblpath,"/");
+    char test [100];
+    while (pch != NULL)
+    {
+    if(pch!=NULL){
+        strcpy(test, pch);
+    }
+    pch = strtok (NULL, "/");
+    }
+
+    test[strlen(test)-4] = '\0';
+    sprintf (meta_file_name, "%s_lpage.txt", test);
+    strcpy(this->meta_lpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_dpage.txt", test);
+    strcpy(this->meta_dpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_type.txt", test);
+    strcpy(this->meta_type_name, meta_file_name);
 }
