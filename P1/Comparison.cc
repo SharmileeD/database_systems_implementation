@@ -2,7 +2,6 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
-
 #include "Comparison.h"
 
 
@@ -117,6 +116,36 @@ void OrderMaker :: Print () {
 	}
 }
 
+OrderMaker OrderMaker :: makeQuery (CNF &cnf) {
+	printf("NumAtts = %5d\n", numAtts);
+	int countAttr = 0;
+	int val = 0;
+	int attsArr[MAX_ANDS];
+	Type typeArr[MAX_ANDS];
+	for (int i = 0; i < numAtts; i++)
+	{
+		val = cnf.getAttr(whichAtts[i]);
+		cout << "MAtching attribute: " <<whichAtts[i] << "of type: "<< whichTypes[i]<<"   val:"<<val <<endl << endl;
+		
+		//if match found and all condition satisfied add to the query
+		if(val == 1) {
+			cout << "Matched: " << whichAtts[i] << "  of type: "<< whichTypes[i]<< endl;
+			attsArr[countAttr] = whichAtts[i];
+			typeArr[countAttr] = whichTypes[i];
+			countAttr ++;
+		}
+
+		// if no match found in cnf stop making the query
+		else if (val == -1)
+			break;
+		
+	}
+	OrderMaker result = getOrderMaker(countAttr,attsArr,typeArr);
+	cout << "---->Final query:" << endl;
+	result.Print();
+	return result;
+}
+
 
 string OrderMaker :: returnOrderMaker () {
 	string out;
@@ -134,6 +163,16 @@ string OrderMaker :: returnOrderMaker () {
 	return out;
 }
 
+OrderMaker OrderMaker ::  getOrderMaker(int count, int attsArr[], Type typeArr[]){
+	OrderMaker dummy;
+	dummy.numAtts = count;
+	for (int i =0; i< count; i++) {
+		dummy.whichAtts[i] = attsArr[i];
+		dummy.whichTypes[i] = typeArr[i];
+	}
+	return dummy;
+}
+
 
 int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 
@@ -143,6 +182,7 @@ int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 
 	// loop through all of the disjunctions in the CNF and find those
 	// that are acceptable for use in a sort ordering
+	// cout << "NumANDS" << numAnds << endl;
 	for (int i = 0; i < numAnds; i++) {
 		
 		// if we don't have a disjunction of length one, then it
@@ -196,21 +236,47 @@ int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 
 
 void CNF :: Print () {
-
+	// cout << "*****numAnds:" << numAnds << endl;
 	for (int i = 0; i < numAnds; i++) {
 		
-		cout << "( ";
+		// cout << "( ";
 		for (int j = 0; j < orLens[i]; j++) {
-			orList[i][j].Print ();
-			if (j < orLens[i] - 1)
-				cout << " OR ";
+			cout <<"op1="<< orList[i][j].operand1 << " which1=" << orList[i][j].whichAtt1<< " op2=" <<orList[i][j].operand2 << " whic2=" <<orList[i][j].whichAtt2 << " type=" << orList[i][j].attType<< "  op=" << orList[i][j].op<<endl;
+			// orList[i][j].Print ();
+			// if (j < orLens[i] - 1)
+				// cout << " OR ";
 		}
-		cout << ") ";
-		if (i < numAnds - 1)
-			cout << " AND\n";
-		else
-			cout << "\n";
+		// cout << ") ";
+		// if (i < numAnds - 1)
+		// 	cout << " AND\n";
+		// else
+		// 	cout << "\n";
 	}
+}
+
+int CNF:: getAttr(int attr) {
+	for (int i = 0; i < numAnds; i++) {
+		for (int j = 0; j < orLens[i]; j++)  {
+
+			cout << "op1: " << orList[i][j].operand1<<"  attr: "<<attr<<" which1="<< orList[i][j].whichAtt1 <<" j:"<<j <<"  i="<< i << endl;
+			 //IF the operand is left type, check if the whichatt matches
+			 if(orList[i][j].operand1 == 0 && orList[i][j].whichAtt1 == attr) {
+				 cout << "here" << endl;
+				 //if it matches, check it is the only attribute present in its subexpression
+				 //it is comparing that attribute with a literal value with an equality check
+				 
+				 if(orList[i][j].operand2 == 2 && orList[i][j].op == 2) {
+					 
+					 return 1;
+				 }
+
+				 return 0;
+			 }
+
+			 
+		}
+	}
+	return -1;
 }
 
 // this is a helper routine that writes out another field for the literal record and its schema

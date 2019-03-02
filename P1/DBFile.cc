@@ -310,12 +310,12 @@ void GenericDBFile:: SetMetaDataFileName(char tblpath []){
 void GenericDBFile::GetPage(Page *putItHere, off_t whichPage){
     // this->file_instance.GetPage(putItHere, whichPage);
 }
-void GenericDBFile::testoutpipe (){}
+int GenericDBFile::testoutpipe (Record &){}
 Heap::Heap () 
 {
     // this->buffer_page = Page();
 }
-void Heap::testoutpipe (){}
+int Heap::testoutpipe (Record &){}
 
 //Method to Create a DBFile store
 int Heap::Create (const char *f_path, fType f_type, void *startup) {
@@ -672,7 +672,7 @@ int Sorted::Close () {}
 void Sorted::Add (Record &rec) {    
     try {
         Record tempRec;
-        Schema mySchema ("catalog", "lineitem");
+        Schema mySchema ("catalog", "lienitem");
         Record ins;
         ins.Copy(&rec);
         if(this->mode == "reading"){
@@ -698,14 +698,19 @@ int Sorted::GetNext (Record &fetchme) {
 
 }
 
-void Sorted::testoutpipe () {
-    Record rec;
+int Sorted::testoutpipe (Record &rec) {
+    
     Schema mySchema ("catalog", "lineitem");
     this->input_pipe.ShutDown();
     this->mode = "reading";
-    while (this->output_pipe.Remove (&rec)) {
-		rec.Print(&mySchema);
-	}
+    // while (this->output_pipe.Remove (&rec)) {
+	// 	rec.Print(&mySchema);
+	// }
+    int val= this->output_pipe.Remove (&rec);
+    return val;
+
+      
+    
     this->input_pipe.resetPipe();
     this->output_pipe.resetPipe();
 }

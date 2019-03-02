@@ -38,6 +38,7 @@ public:
 
 
 class Schema;
+class CNF;
 
 // This structure encapsulates a sort order for records
 class OrderMaker {
@@ -62,6 +63,8 @@ public:
 	// print to the screen
 	void Print ();
 	std::string returnOrderMaker();
+	OrderMaker makeQuery(CNF &cnf);
+	OrderMaker getOrderMaker(int, int [], Type []);
 };
 
 class Record;
@@ -74,12 +77,12 @@ class CNF {
 	friend class ComparisonEngine;
 
 	Comparison orList[MAX_ANDS][MAX_ORS];
-	
 	int orLens[MAX_ANDS];
+	
 	int numAnds;
 
 public:
-
+	
 	// this returns an instance of the OrderMaker class that
 	// allows the CNF to be implemented using a sort-based
 	// algorithm such as a sort-merge join.  Returns a 0 if and
@@ -100,6 +103,8 @@ public:
         // a relational selection over a single relation so only one schema is used
         void GrowFromParseTree (struct AndList *parseTree, Schema *mySchema, 
 		Record &literal);
+
+		int getAttr(int attr);
 
 };
 
