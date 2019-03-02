@@ -239,18 +239,18 @@ void CNF :: Print () {
 	// cout << "*****numAnds:" << numAnds << endl;
 	for (int i = 0; i < numAnds; i++) {
 		
-		// cout << "( ";
+		cout << "( ";
 		for (int j = 0; j < orLens[i]; j++) {
-			cout <<"op1="<< orList[i][j].operand1 << " which1=" << orList[i][j].whichAtt1<< " op2=" <<orList[i][j].operand2 << " whic2=" <<orList[i][j].whichAtt2 << " type=" << orList[i][j].attType<< "  op=" << orList[i][j].op<<endl;
-			// orList[i][j].Print ();
-			// if (j < orLens[i] - 1)
-				// cout << " OR ";
+			// cout <<"op1="<< orList[i][j].operand1 << " which1=" << orList[i][j].whichAtt1<< " op2=" <<orList[i][j].operand2 << " whic2=" <<orList[i][j].whichAtt2 << " type=" << orList[i][j].attType<< "  op=" << orList[i][j].op<<endl;
+			 orList[i][j].Print ();
+			 if (j < orLens[i] - 1)
+				cout << " OR ";
 		}
-		// cout << ") ";
-		// if (i < numAnds - 1)
-		// 	cout << " AND\n";
-		// else
-		// 	cout << "\n";
+		cout << ") ";
+		if (i < numAnds - 1)
+			cout << " AND\n";
+		else
+			cout << "\n";
 	}
 }
 
