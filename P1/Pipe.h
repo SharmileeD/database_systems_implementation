@@ -50,6 +50,8 @@ public:
 	void ShutDown ();
 
 	void resetPipe();
+	int getFirstSlot();
+	int getLastSlot();
 
 };
 
