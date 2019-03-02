@@ -553,6 +553,17 @@ void test_sorted_add(){
 	binfile.Close();
 	
 }
+void test_sorted_load(){
+	DBFile dbfile; 
+	Schema mySchema ("catalog", "nation");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+    dbfile.Load(mySchema, "tables/nation.tbl");
+	dbfile.Close();
+
+}
 int main(){
 
 	// Schema mySchema ("catalog", "lineitem");

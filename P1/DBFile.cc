@@ -610,6 +610,7 @@ void Heap:: SetMetaDataFileName(char tblpath []){
 void Heap::GetPage(Page *putItHere, off_t whichPage){
     this->file_instance.GetPage(putItHere, whichPage);
 }
+
 Sorted::Sorted () 
 {
     // this->buffer_page = Page();
@@ -639,7 +640,21 @@ int Sorted::Create (const char *f_path, fType f_type, void *startup) {
 
 // Method to bulk load the DBFile from a text file
 // This method essentially calls the Add method of the DBFile class for each record read from the text file 
-void Sorted::Load (Schema &f_schema, const char *loadpath) {}
+void Sorted::Load (Schema &f_schema, const char *loadpath) {
+    try
+    {
+        FILE *tableFile = fopen (loadpath, "r");
+
+        Record temp;
+        while (temp.SuckNextRecord (&f_schema, tableFile) == 1){
+            this->Add(temp);
+        } 
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
 
 //Method to open a file stored at f_path assuming there exists one and it has data inside
 int Sorted::Open (const char *f_path) {
