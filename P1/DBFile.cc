@@ -676,41 +676,16 @@ void Sorted::Add (Record &rec) {
         Record ins;
         ins.Copy(&rec);
         if(this->mode == "reading"){
-            // DO something
+            // This is where the mode is changing from reading to writing so getting BigQ in place and started filling the inpipe
             BigQ bq (this->input_pipe, this->output_pipe, this->odr_mkr, this->run_length);
             this->mode = "writing";
             this->input_pipe.Insert(&rec);
-            // this->input_pipe.Remove(&tempRec);
-            // tempRec.Print(&mySchema);
-            
-
         }
         if(this->mode == "writing"){
-            // BigQ bq (this->input_pipe, this->output_pipe, this->odr_mkr, this->run_length);
+            // This is where the mode already in writing mode so just adding data to the inpipe
             this->input_pipe.Insert(&ins);
             
         }
-        // off_t last_page_added = 0;
-        // this->SetValueFromTxt(this->meta_dpage_name, 1);
-        // // This if statement checks if the page_buffer is full
-        // if(this->buffer_page.Append(&rec)!=1){
-            
-        //     //if its not the first page we're reading the page out of a txt file so as to maim=ntain persistence 
-        //    if (this->file_instance.GetLength() != 0){
-                
-        //        last_page_added = GetValueFromTxt(this->meta_lpage_name);
-                
-        //    }
-		
-        //     // Here we write the page to file and empty it out and 
-        //     // add record to the new empty page buffer
-        //     int page_num = this->file_instance.GetLength();
-        //     this->file_instance.AddPage(&this->buffer_page, last_page_added);
-        //     last_page_added++;
-        //     this->SetValueFromTxt(this->meta_lpage_name, last_page_added);
-        //     this->buffer_page.EmptyItOut();
-        //     int test = this->buffer_page.Append(&rec);
-        // }
 	    
     }
     catch(exception e){
@@ -727,9 +702,12 @@ void Sorted::testoutpipe () {
     Record rec;
     Schema mySchema ("catalog", "lineitem");
     this->input_pipe.ShutDown();
+    this->mode = "reading";
     while (this->output_pipe.Remove (&rec)) {
 		rec.Print(&mySchema);
 	}
+    this->input_pipe.resetPipe();
+    this->output_pipe.resetPipe();
 }
 //Function to get the record after the current record which matches the cnf
 int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}

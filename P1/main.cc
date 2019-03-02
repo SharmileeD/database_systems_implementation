@@ -441,7 +441,7 @@ void test_sorted_add(){
 	while (hpfile.GetNext(inprec) == 1) {
 		counter += 1;
 		cout<< "inside populate loop "<< counter<<endl;
-		if(counter == 2000){
+		if(counter == 1000){
 			break;
 		}
 		dbfile_test.Add(inprec);
@@ -451,13 +451,34 @@ void test_sorted_add(){
 	while (hpfile.GetNext(inprec) == 1) {
 		counter += 1;
 		cout<< "inside populate loop "<< counter<<endl;
-		if(counter == 2000){
+		if(counter == 1000){
 			break;
 		}
 		dbfile_test.Add(inprec);
 		// inprec.Print(&mySchema);
 	}
 	cout<< "outside loop "<<endl;
+	dbfile_test.instVar->testoutpipe();
+	counter = 0;
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		if(counter == 1000){
+			break;
+		}
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
+	}
+	counter = 0;
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		if(counter == 1000){
+			break;
+		}
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
+	}
 	dbfile_test.instVar->testoutpipe();
 	cout<< "outside loop "<<endl;
 	hpfile.Close ();
@@ -503,5 +524,7 @@ int main(){
 	// test_DBFile_create();
 	// test_GetPage();
 	test_sorted_add();
+	// test_sorted_add();
+
 	return 0;
 }

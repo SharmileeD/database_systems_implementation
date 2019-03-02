@@ -70,8 +70,8 @@ class Heap: public GenericDBFile{
 class Sorted: public GenericDBFile{
 	public:
 		Sorted ();
-		Pipe input_pipe = Pipe(200);
-		Pipe output_pipe = Pipe(200);
+		Pipe input_pipe = Pipe(100);
+		Pipe output_pipe = Pipe(100);
 		Page  buffer_page;
 		File  file_instance;
 		char meta_lpage_name[100];
