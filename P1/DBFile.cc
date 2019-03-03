@@ -142,9 +142,9 @@ int DBFile::Open (const char *f_path) {
                     wch_type_arr[i] = wch_types[i];
                     wch_atts_arr[i] = wch_atts[i];
                 }
-                // srt_obj.odr_mkr = getOrderMaker(wch_atts_arr, wch_type_arr, wch_atts.size());
-                Schema mySchema ("catalog", "lineitem");
-                srt_obj.odr_mkr = OrderMaker(&mySchema);
+                srt_obj.odr_mkr = srt_obj.odr_mkr.getOrderMaker(wch_atts.size(), wch_atts_arr, wch_type_arr);
+                // Schema mySchema ("catalog", "nation");
+                // srt_obj.odr_mkr = OrderMaker(&mySchema);
             this->instVar = &srt_obj;
 
 
