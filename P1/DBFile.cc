@@ -48,6 +48,7 @@ int DBFile::Create (const char *f_path, fType f_type, void *startup) {
             // Write the order maker here
             myfile << "sortorder"<<endl;
             myfile << input_args->myOrder->returnOrderMaker();
+            input_args->myOrder->Print();
             myfile << "runlength"<<endl;
             myfile << input_args->runLength<<endl;
             this->instVar = &srt_obj;
@@ -238,7 +239,9 @@ void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
 void DBFile:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[100];
-    pch = strtok (tblpath,"/");
+    char temp_file_name[100];
+    strcpy(temp_file_name, tblpath);
+    pch = strtok (temp_file_name,"/");
     char test [100];
     while (pch != NULL)
     {
@@ -588,7 +591,9 @@ void Heap::SetValueFromTxt(char file_name [], off_t set_value ){
 void Heap:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[100];
-    pch = strtok (tblpath,"/");
+    char temp_file_name[100];
+    strcpy(temp_file_name, tblpath);
+    pch = strtok (temp_file_name,"/");
     char test [100];
     while (pch != NULL)
     {
@@ -704,16 +709,15 @@ int Sorted::Close () {
 void Sorted::Add (Record &rec) {    
     try {
         Record tempRec;
-        Schema mySchema ("catalog", "lineitem");
         Record ins;
         ins.Copy(&rec);
         if(this->mode == "reading"){
             // This is where the mode is changing from reading to writing so getting BigQ in place and started filling the inpipe
             BigQ bq (this->input_pipe, this->output_pipe, this->odr_mkr, this->run_length);
             this->mode = "writing";
-            this->input_pipe.Insert(&rec);
+            this->input_pipe.Insert(&ins);
         }
-        if(this->mode == "writing"){
+        else if(this->mode == "writing"){
             // This is where the mode already in writing mode so just adding data to the inpipe
             this->input_pipe.Insert(&ins);
             
@@ -773,10 +777,8 @@ int Sorted::GetNext (Record &fetchme) {
 }
 
 int Sorted::mergePipeAndFile () {
-    Schema mySchema ("catalog", "lineitem");
-    this->input_pipe.ShutDown();
     this->mode = "reading";
-
+    this->input_pipe.ShutDown();
     Heap binfile;
     Heap outFile;
     Record pipeRec;
@@ -784,45 +786,59 @@ int Sorted::mergePipeAndFile () {
     ComparisonEngine ceng;
     Heap writeFile;
     writeFile.Create("aux_file.bin",heap,NULL);
-    OrderMaker sortorder(&mySchema);
 	int binval = binfile.Open(this->file_name);
     binfile.MoveFirst();
-    this->input_pipe.ShutDown();
     int fileVal = binfile.GetNext(fileRec);
     int pipeVal= this->output_pipe.Remove (&pipeRec);
+    int count = 0;
     while( pipeVal==1 && fileVal==1) {
-		int val = ceng.Compare(&pipeRec, &fileRec, &sortorder);
-
+		int val = ceng.Compare(&pipeRec, &fileRec, &this->odr_mkr);
+        count++;
 		if(val==1) {
+            // cout << "Val is 1"<<endl;
 			writeFile.Add(fileRec);
 			fileVal = binfile.GetNext(fileRec);
 		}
 		else if (val == -1) {
-			
+			// cout << "Val is -1"<<endl;
 			writeFile.Add(pipeRec);
 			pipeVal = this->output_pipe.Remove (&pipeRec);
 		}
 		else if (val==0) {
+            // cout << "Val is 0"<<endl;
 			writeFile.Add(pipeRec);
 			pipeVal = this->output_pipe.Remove (&pipeRec);
 			fileVal = binfile.GetNext(fileRec);
 
 		}
 	}
-
+    // cout << "Count after Need to merge is"<<count<<endl;
 	if(pipeVal!=1 && fileVal==1) {
-		writeFile.Add(fileRec);
-		while(binfile.GetNext(fileRec) == 1)
-		{
+        // cout << "pipe empty so filling from file"<<endl;
+        count = 0;
+        // writeFile.Add(pipeRec);
+		do
+        {
+            count++;
 			writeFile.Add(fileRec);
-		}
+        } while (binfile.GetNext(fileRec) == 1);
 	}
-
 	else if (pipeVal==1 && fileVal != 1) {
-		writeFile.Add(pipeRec);
-		while(this->output_pipe.Remove (&pipeRec)==1)
-			writeFile.Add(pipeRec);
+        // cout << "File empty so filling from pipe"<<endl;
+        count = 0;
+        // pipeRec.Print(&mySchema);
+        writeFile.Add(pipeRec);
+        while(this->output_pipe.Remove (&pipeRec)){
+            count++;
+            // pipeRec.Print(&mySchema);
+            writeFile.Add(pipeRec);
+        }
+        // writeFile.Add(pipeRec);
+			
 	}
+    cout << "Count after is File empty is"<<count<<endl;
+    writeFile.Close();
+    writeFile.Open("aux_file.bin");
     binfile.Close();
     outFile.Create(this->file_name,heap,NULL);
     Record tempRec;
@@ -831,17 +847,22 @@ int Sorted::mergePipeAndFile () {
     while (writeFile.GetNext (tempRec) == 1) {
 		outFile.Add(tempRec);
 	}
+
     writeFile.Close();
+    this->file_instance = outFile.file_instance;
     outFile.Close();
-	
-    //OLD CODE THAT WORKS JUST FINE 
-    // Record rec;
-    // // Schema mySchema ("catalog", "lineitem");
+	// Record rec;
+    // // OLD CODE THAT WORKS JUST FINE 
+    // Schema mySchema ("catalog", "customer");
     // this->input_pipe.ShutDown();
     // this->mode = "reading";
-    // while (this->output_pipe.Remove (&rec)) {
+    // int count = 0;
+    
+    // while(this->output_pipe.Remove (&rec)) {
+    //     count++; 
 	// 	rec.Print(&mySchema);
 	// }
+    
     this->input_pipe.resetPipe();
     this->output_pipe.resetPipe();
     
@@ -877,7 +898,9 @@ void Sorted::SetValueFromTxt(char file_name [], off_t set_value ){
 void Sorted:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[100];
-    pch = strtok (tblpath,"/");
+    char temp_file_name[100];
+    strcpy(temp_file_name, tblpath);
+    pch = strtok (temp_file_name,"/");
     char test [100];
     while (pch != NULL)
     {

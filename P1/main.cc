@@ -196,7 +196,7 @@ void test_write(){
 }
 
 void check_num_records(char f_path[]){
-	DBFile dbfile_test;
+	Heap dbfile_test;
 	// cout << " DBFile will be created at "<< endl;
 	dbfile_test.Open (f_path);
 	// dbfile_test.Create("test_phase2.bin",heap,NULL);
@@ -204,7 +204,7 @@ void check_num_records(char f_path[]){
 	int counter = 0;
 	Page test_page;
 	dbfile_test.MoveFirst ();
-	Schema mySchema ("catalog", "lineitem");
+	Schema mySchema ("catalog", "customer");
 
 	while (dbfile_test.GetNext(inprec) == 1) {
 		
@@ -213,7 +213,7 @@ void check_num_records(char f_path[]){
 		if(counter % 5000 ==0){
 			cout<< "inside populate loop "<< counter<<endl;
 		}
-		// inprec.Print(&mySchema);
+		inprec.Print(&mySchema);
 	}
 	cout<< f_path <<endl;
 	cout<< "Number of records is "<< counter <<endl;
@@ -221,7 +221,7 @@ void check_num_records(char f_path[]){
 }
 
 void check_recs(char f_path[]) {
-	DBFile dbfile_test;
+	Heap dbfile_test;
 	// cout << " DBFile will be created at "<< endl;
 	dbfile_test.Open (f_path);
 	// dbfile_test.Create("test_phase2.bin",heap,NULL);
@@ -374,11 +374,14 @@ void test_check_duplicates(){
 
 void test_getLength(){
 	// DBFile dbfile_test;
-	DBFile dbfile;
+	Heap dbfile;
+	Heap dbfile2;
 	// dbfile_test.Create("runs.bin",heap,NULL);
 	// cout<<"Length is "<< dbfile_test.file_instance.GetLength()<<endl;
-	dbfile.Open("runs.bin");
+	dbfile.Open("aux_file.bin");
 	cout<<"Length is "<< dbfile.file_instance.GetLength()<<endl;
+	dbfile2.Open("customer.bin");
+	cout<<"Length is "<< dbfile2.file_instance.GetLength()<<endl;
 }
 
 void test_read_write_logic(){   
@@ -409,7 +412,7 @@ void test_DBFile_create(){
 	Heap hp;
 	Record tempRec;
 	// dbfile.Create("test_phase2.bin",heap,NULL);
-	Schema mySchema ("catalog", "lineitem");
+	Schema mySchema ("catalog", "customer");
 	OrderMaker sortorder(&mySchema);
 	int runlen = 2;
 	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
@@ -434,7 +437,7 @@ void test_GetPage(){
 
 void test_sorted_add(){
 	DBFile dbfile_test;
-	Schema mySchema ("catalog", "lineitem");
+	Schema mySchema ("catalog", "customer");
 	// cout << " DBFile will be created at "<< endl;
 	// dbfile_test.Open ("test_phase2.bin");
 	dbfile_test.Open("test_phase2.bin");
@@ -442,52 +445,50 @@ void test_sorted_add(){
 	int counter = 0;
 	
 	Heap hpfile;
-	hpfile.Open ("lineitem.bin");
+	hpfile.Open ("customer.bin");
 	
 	hpfile.MoveFirst ();
 
 	while (hpfile.GetNext(inprec) == 1) {
 		counter += 1;
 		cout<< "inside populate loop "<< counter<<endl;
-		if(counter == 1000){
-			break;
-		}
+		
 		dbfile_test.Add(inprec);
 		// inprec.Print(&mySchema);
 	}
 	counter = 0;
-	while (hpfile.GetNext(inprec) == 1) {
-		counter += 1;
-		cout<< "inside populate loop "<< counter<<endl;
-		if(counter == 1000){
-			break;
-		}
-		dbfile_test.Add(inprec);
-		// inprec.Print(&mySchema);
-	}
+	// while (hpfile.GetNext(inprec) == 1) {
+	// 	counter += 1;
+	// 	cout<< "inside populate loop "<< counter<<endl;
+	// 	if(counter == 1000){
+	// 		break;
+	// 	}
+	// 	dbfile_test.Add(inprec);
+	// 	// inprec.Print(&mySchema);
+	// }
 	cout<< "outside loop "<<endl;
 	dbfile_test.instVar->mergePipeAndFile();
-	counter = 0;
-	while (hpfile.GetNext(inprec) == 1) {
-		counter += 1;
-		cout<< "inside populate loop "<< counter<<endl;
-		if(counter == 1000){
-			break;
-		}
-		dbfile_test.Add(inprec);
-		// inprec.Print(&mySchema);
-	}
-	counter = 0;
-	while (hpfile.GetNext(inprec) == 1) {
-		counter += 1;
-		cout<< "inside populate loop "<< counter<<endl;
-		if(counter == 1000){
-			break;
-		}
-		dbfile_test.Add(inprec);
-		// inprec.Print(&mySchema);
-	}
-	dbfile_test.instVar->mergePipeAndFile();
+	// counter = 0;
+	// while (hpfile.GetNext(inprec) == 1) {
+	// 	counter += 1;
+	// 	cout<< "inside populate loop "<< counter<<endl;
+	// 	if(counter == 1000){
+	// 		break;
+	// 	}
+	// 	dbfile_test.Add(inprec);
+	// 	// inprec.Print(&mySchema);
+	// }
+	// counter = 0;
+	// while (hpfile.GetNext(inprec) == 1) {
+	// 	counter += 1;
+	// 	cout<< "inside populate loop "<< counter<<endl;
+	// 	if(counter == 1000){
+	// 		break;
+	// 	}
+	// 	dbfile_test.Add(inprec);
+	// 	// inprec.Print(&mySchema);
+	// }
+	// dbfile_test.instVar->mergePipeAndFile();
 	cout<< "outside loop "<<endl;
 	hpfile.Close ();
 	// dbfile_test.Close();
@@ -550,16 +551,18 @@ int main(){
 	// test_check_duplicates();
 	// test_write();
 	// test_getLength();
-	// check_recs("runs.bin");
+	// check_recs("aux_file.bin");
 	// check_recs("lineitem.bin");
+	// test_DBFile_create();
+	// test_sorted_add();
 	// test_getLength();
-	// check_num_records("runs.bin");
-	// check_num_records("lineitem.bin");
+	// check_num_records("aux_file.bin");
+	check_num_records("runs.bin");
 	// pthread_join (thread2, NULL);
 	// test_DBFile_create();
 	// test_GetPage();
 	// test_DBFile_create();
-	test_sorted_add();
+	// test_sorted_add();
 	// test_sorted_load();
 	// test_sorted_getnext();
 
