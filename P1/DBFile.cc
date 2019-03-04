@@ -836,7 +836,7 @@ int Sorted::mergePipeAndFile () {
         // writeFile.Add(pipeRec);
 			
 	}
-    cout << "Count after is File empty is"<<count<<endl;
+    // cout << "Count after is File empty is"<<count<<endl;
     writeFile.Close();
     writeFile.Open("aux_file.bin");
     binfile.Close();

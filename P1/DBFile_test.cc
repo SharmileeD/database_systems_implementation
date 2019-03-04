@@ -341,6 +341,10 @@ TEST(CreateTestSorted, CreateSuccessSorted) {
     struct {OrderMaker *o; int l;} startup = {&sortorder, runLength};
     int val = dbfile.Create(myfname, sorted, &startup);
     ASSERT_EQ(1, val);
+    remove( "sortedTestFile" );
+	remove( "sortedTestFile_dpage.txt" );
+	remove( "sortedTestFile_lpage.txt" );
+	remove( "sortedTestFile_type.txt" );
     // dbfile.Close();
 }
 
@@ -359,10 +363,67 @@ TEST(OpenTestSorted, OpenSuccessSorted) {
     ASSERT_EQ(1, val);
     val = dbfile.Open(myfname);
     ASSERT_EQ(1, val);
+    remove( "sortedTestFile" );
+	remove( "sortedTestFile_dpage.txt" );
+	remove( "sortedTestFile_lpage.txt" );
+	remove( "sortedTestFile_type.txt" );
     // dbfile.Close();
 }
 
+TEST(AddTestSorted, AddSuccessSorted) { 
+    DBFile dbfile;
+	Heap hp;
+	Record tempRec;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "customer");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	dbfile.Close();
+	dbfile.Open("test_phase2.bin");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		dbfile.Add (temp);
+        count++;
+
+	}
+    cout<<"Test count "<<count<<endl;
+	dbfile.instVar->mergePipeAndFile();
+    dbfile.Close();
+	
+	Heap dbfile_test;
+	// cout << " DBFile will be created at "<< endl;
+	dbfile_test.Open ("test_phase2.bin");
+	// dbfile_test.Create("test_phase2.bin",heap,NULL);
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+		// inprec.Print(&mySchema);
+	}
+	cout<< "Number of records is "<< counter <<endl;
+    ASSERT_EQ(counter, count);
+	dbfile_test.Close();
+	remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
+}
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::GTEST_FLAG(filter) = "AddSuccessSorted*";
     return RUN_ALL_TESTS();
 }
