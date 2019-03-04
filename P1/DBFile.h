@@ -82,6 +82,10 @@ class Sorted: public GenericDBFile{
 		int record_offset;
 		off_t current_page;
 		OrderMaker odr_mkr;
+		bool newQuery;
+		OrderMaker query;
+		int querPg;
+		int queryOffset;
 		int run_length;
 		std::string mode;
 		int buffersize = 100;
@@ -101,6 +105,7 @@ class Sorted: public GenericDBFile{
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
 		int mergePipeAndFile ();
+		int pageBinSearch(int start, int end, OrderMaker query, Record literal);
 };
 class DBFile {
 private:

@@ -124,12 +124,12 @@ OrderMaker OrderMaker :: makeQuery (CNF &cnf) {
 	Type typeArr[MAX_ANDS];
 	for (int i = 0; i < numAtts; i++)
 	{
-		val = cnf.getAttr(whichAtts[i]);
-		cout << "MAtching attribute: " <<whichAtts[i] << "of type: "<< whichTypes[i]<<"   val:"<<val <<endl << endl;
+		val = cnf.getAttr(this->whichAtts[i]);
+		// cout << "MAtching attribute: " <<this->whichAtts[i] << "of type: "<< this->whichTypes[i]<<"   val:"<<val <<endl << endl;
 		
 		//if match found and all condition satisfied add to the query
 		if(val == 1) {
-			cout << "Matched: " << whichAtts[i] << "  of type: "<< whichTypes[i]<< endl;
+			// cout << "Matched: " << whichAtts[i] << "  of type: "<< whichTypes[i]<< endl;
 			attsArr[countAttr] = whichAtts[i];
 			typeArr[countAttr] = whichTypes[i];
 			countAttr ++;
@@ -163,15 +163,24 @@ string OrderMaker :: returnOrderMaker () {
 	return out;
 }
 
-OrderMaker OrderMaker ::  getOrderMaker(int count, int attsArr[], Type typeArr[]){
+OrderMaker OrderMaker :: getOrderMaker(int count, int attsArr[], Type typeArr[]){
 	OrderMaker dummy;
+	// cout << "here!!!!!!!!!!!!!!!!!!   "<<count<<endl;
 	dummy.numAtts = count;
 	for (int i =0; i< count; i++) {
 		dummy.whichAtts[i] = attsArr[i];
 		dummy.whichTypes[i] = typeArr[i];
 	}
 	return dummy;
+	
+	
 }
+
+bool OrderMaker :: isOmEmpty() {
+	if(this->numAtts == 0)
+		return true;
+	return false;
+}	
 
 
 int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
@@ -265,7 +274,7 @@ int CNF:: getAttr(int attr) {
 				 //if it matches, check it is the only attribute present in its subexpression
 				 //it is comparing that attribute with a literal value with an equality check
 				 
-				 if(orList[i][j].operand2 == 2 && orList[i][j].op == 2) {
+				 if(orList[i][j].operand2 == Literal && orList[i][j].op == Equals) {
 					 
 					 return 1;
 				 }

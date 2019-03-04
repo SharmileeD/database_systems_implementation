@@ -65,6 +65,7 @@ public:
 	std::string returnOrderMaker();
 	OrderMaker makeQuery(CNF &cnf);
 	OrderMaker getOrderMaker(int, int [], Type []);
+	bool isOmEmpty();
 };
 
 class Record;

@@ -63,6 +63,19 @@ int Page :: GetFirst (Record *firstOne) {
 	return 1;
 }
 
+int Page :: GetLast (Record *lastOne) {
+	if (!this->myRecs->LeftLength ()) {
+		return 0;
+	}
+	this->myRecs->MoveToFinish ();
+	this->myRecs->Retreat();
+	lastOne->Copy(this->myRecs->Current(0));
+	
+	// Schema mySchema = Schema ("catalog", "orders");
+	// lastOne->Print(&mySchema);
+	
+	
+}
 
 int Page :: Append (Record *addMe) {
 	char *b = addMe->GetBits();

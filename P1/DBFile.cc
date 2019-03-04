@@ -635,6 +635,9 @@ int Sorted::Create (const char *f_path, fType f_type, void *startup) {
         this->run_length = input_args->runLength;
         this->odr_mkr = *input_args->myOrder;
         this->file_instance.Open(0,(char*)f_path);
+        this->newQuery = true;
+        this->querPg = 0;
+        this->queryOffset = 0;
         return 1;
     }
     catch(const std::exception& e)
@@ -650,7 +653,7 @@ void Sorted::Load (Schema &f_schema, const char *loadpath) {
     try
     {
         FILE *tableFile = fopen (loadpath, "r");
-
+        this->newQuery = true;
         Record temp;
         while (temp.SuckNextRecord (&f_schema, tableFile) == 1){
             this->Add(temp);
@@ -668,6 +671,9 @@ int Sorted::Open (const char *f_path) {
     this->SetMetaDataFileName((char *)f_path);
     this->SetValueFromTxt(this->meta_dpage_name, dirty);
     this->mode = "reading";
+    this->newQuery = true;
+    // this->querPg = 0;
+    // this->queryOffset = 0;
     this->file_instance.Open(1,(char*)f_path);
     if (this->file_instance.GetLength()!=0){
         this->file_instance.GetPage(&this->buffer_page,0);
@@ -687,10 +693,14 @@ void Sorted::MoveFirst () {
     this->record_offset = 0;
     // Set current page to 0
     this->current_page = 0;
+    //reset query parameters for GetNext
+    this->newQuery = true;
+    this->querPg = 0;
+    this->queryOffset = 0;
 
 }
 // Method to Close the DBFile
-// This method flushes the buffer_page to the file on disk
+// This method flushes the buffer_page to the file on diskmergePipeAndFile
 int Sorted::Close () {
     if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
         // We  have data in the input pipe so call merge and update the file here
@@ -710,6 +720,9 @@ void Sorted::Add (Record &rec) {
     try {
         Record tempRec;
         Record ins;
+        this->newQuery = true;
+        // this->querPg = 0;
+        // this->queryOffset = 0;
         ins.Copy(&rec);
         if(this->mode == "reading"){
             // This is where the mode is changing from reading to writing so getting BigQ in place and started filling the inpipe
@@ -778,6 +791,7 @@ int Sorted::GetNext (Record &fetchme) {
 
 int Sorted::mergePipeAndFile () {
     this->mode = "reading";
+    this->newQuery = true;
     this->input_pipe.ShutDown();
     Heap binfile;
     Heap outFile;
@@ -868,9 +882,187 @@ int Sorted::mergePipeAndFile () {
     
     
 }
+
+//Method to perform Binary search
+int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal) {
+	// Heap dbfile;
+	// dbfile.Open("orders.bin");
+	
+	Record last;
+	Record first;
+	Page pg;
+
+	int firstval, lastval;
+	int mid = (start + end)/2;
+			
+	ComparisonEngine ceng;
+	Schema mySchema ("catalog", "orders");
+
+		
+	while (start <= end) {
+		mid = (start +  end)/2;
+		this->file_instance.GetPage(&pg, mid);
+		
+		pg.GetFirst(&first);
+
+
+		this->file_instance.GetPage(&pg, mid);
+		if(pg.GetLast(&last)) {
+			// cout << "Last record"<<endl;
+			// last.Print(&mySchema);
+		}
+		else
+		{
+				cout <<"No last record"<<endl;
+		}
+		// literal.Print(&mySchema);
+		lastval = ceng.Compare(&last, &literal, &query);
+		firstval = ceng.Compare(&first, &literal, &query);
+		cout <<"------------------------------------------------------------------------"<<endl;
+		cout << "First record:"<<endl;
+		first.Print(&mySchema);
+		cout <<endl<<endl<<"Second record" <<endl;
+		last.Print(&mySchema);
+		cout << endl <<endl;
+
+		//either its first or last record or anything between them, send the page
+		if(lastval == 0 || firstval ==0 || (lastval > 0 && firstval < 0)) {
+			
+			// dbfile.Close();
+			return mid;
+		}
+
+		//if last record on page is smaller then check second half
+		if(lastval < 0)
+			start = mid+1;
+
+		//if first record on page is bigger then check first half
+		else if (firstval > 0)
+			end = mid-1;		
+
+		cout << "Start= "<<start<<"   end = "<<end<<"  mid="<<mid<<endl;
+	}
+	if(start > end) {
+		// dbfile.Close();
+		return -1;
+	}
+	
+}
+
+
+
 //Function to get the record after the current record which matches the cnf
 int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
      
+    OrderMaker query;
+    //  query = this->odr_mkr.makeQuery(cnf);
+    Schema mySchema ("catalog", "orders");
+    OrderMaker o (&mySchema);
+    ComparisonEngine ceng;
+
+     //If newQuery is true construct new query and do binary search
+     if(this->newQuery==true) {
+        
+        cout << endl<<"--------------------------------------MAking new query :)" <<endl;
+        query = o.makeQuery(cnf);
+        this->querPg =0;
+        this->queryOffset =0;
+       
+    
+        //Perform binary search to find the page from where the record matches the literal on basis of query OrderMAker
+        if(!query.isOmEmpty()) {
+
+            int startpg = this->current_page;
+	        int endpg = this->file_instance.GetLength();
+	        if(endpg>0)
+	    	    endpg = endpg - 2; 
+	        cout << "start = " << startpg <<"  end = "<<endpg <<endl <<endl;     
+            int val = this->pageBinSearch(startpg,endpg,query,literal);
+            cout << "val= "<<val<<endl;
+
+            //Set the current page to the one from where we start reading
+            this->current_page = val;
+        
+            //If the page is not the start page then set record_offset to 0
+            if(val != startpg)
+	    	this->record_offset = 0;
+        }
+        
+        this->newQuery =  false;
+    
+     }
+     else {
+        cout << endl<<"************************************using previous query"<<endl;
+        query = this->query;
+        this->current_page = this->querPg;
+        this->record_offset = this->queryOffset;
+     }
+    
+    // this->query = query;
+    query.Print();
+    cnf.Print();   
+  
+    // Record temp;
+    
+    //If query is empty send the first record of file which is equal to literal.
+    
+    if(query.isOmEmpty()) {
+        cout << "Query is empty!!"<<endl;
+        while(this->GetNext(fetchme)) {
+            int val1 = ceng.Compare(&fetchme,&literal, &cnf);
+            if(val1==1) {
+                cout <<"Found match!!!!!"<<endl;
+		    	fetchme.Print(&mySchema);
+                this->querPg = this->current_page;
+                // this->record_offset++;
+                this->queryOffset = this->record_offset;
+                this->newQuery = false;
+			    return 1;
+	    	}
+        }
+        return 0;
+    }
+    // //If query is not empty
+    // int startpg = this->current_page;
+	// int endpg = this->file_instance.GetLength();
+	// if(endpg>0)
+	// 	endpg = endpg - 2; 
+	// cout << "start = " << startpg <<"  end = "<<endpg <<endl <<endl;
+	
+    // //Perform binary search to find the page from where the record matches the literal on basis of query OrderMAker
+    // int val = this->pageBinSearch(startpg,endpg,query,literal);
+    // cout << "val= "<<val<<endl;
+    
+    // //Set the current page to the one from where we start reading
+    // this->current_page = val;
+
+    // //If the page is not the start page then set record_offset to 0
+    // if(val != startpg)
+	// 	this->record_offset = 0;
+
+    while(this->GetNext(fetchme)) {
+		int qval = ceng.Compare(&fetchme,&literal,&query);
+		//if query evaluates to true then check cnf else return 0
+		// temp.Print(&mySchema);
+		if(qval == 0) {
+		
+			int cval = ceng.Compare(&fetchme,&literal, &cnf);
+			//if cnf evaluates to true then send it to the caller else check next record
+			if(cval==1) {
+				fetchme.Print(&mySchema);
+                this->querPg = this->current_page;
+                this->record_offset++;
+                this->queryOffset = this->record_offset;
+                this->newQuery = false;
+				return 1;
+			}
+			
+		}
+			
+	} 
+    return 0;  
+	//this->Close();
+
 }
 
 // Method to get the value of the metadata stored in the auxiliary text file
