@@ -959,7 +959,7 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
     Schema mySchema ("catalog", "orders");
     OrderMaker o (&mySchema);
     ComparisonEngine ceng;
-
+    int pagenum;
      //If newQuery is true construct new query and do binary search
      if(this->newQuery==true) {
         
@@ -977,14 +977,17 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	        if(endpg>0)
 	    	    endpg = endpg - 2; 
 	        cout << "start = " << startpg <<"  end = "<<endpg <<endl <<endl;     
-            int val = this->pageBinSearch(startpg,endpg,query,literal);
-            cout << "val= "<<val<<endl;
+            int pagenum = this->pageBinSearch(startpg,endpg,query,literal);
+            cout << "pagenum= "<<pagenum<<endl;
 
             //Set the current page to the one from where we start reading
-            this->current_page = val;
+            if(pagenum == -1)
+                return 0;
+            this->current_page = pagenum;
+
         
             //If the page is not the start page then set record_offset to 0
-            if(val != startpg)
+            if(pagenum != startpg)
 	    	this->record_offset = 0;
         }
         
@@ -1005,7 +1008,7 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
     // Record temp;
     
     //If query is empty send the first record of file which is equal to literal.
-    
+
     if(query.isOmEmpty()) {
         cout << "Query is empty!!"<<endl;
         while(this->GetNext(fetchme)) {
