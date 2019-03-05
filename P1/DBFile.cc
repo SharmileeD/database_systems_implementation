@@ -11,6 +11,10 @@
 #include <fstream>
 #include <typeinfo>
 #include <cstring>
+#include <vector>
+#include "BigQ.h"
+#include "Pipe.h"
+
 
 using namespace std;
 
@@ -42,8 +46,11 @@ int DBFile::Create (const char *f_path, fType f_type, void *startup) {
             cout<<"Filetype is sorted"<<endl;
             myfile << "sorted\n";
             // Write the order maker here
-            myfile << input_args->myOrder->returnOrderMaker()<<endl;
-            
+            myfile << "sortorder"<<endl;
+            myfile << input_args->myOrder->returnOrderMaker();
+            input_args->myOrder->Print();
+            myfile << "runlength"<<endl;
+            myfile << input_args->runLength<<endl;
             this->instVar = &srt_obj;
         }
         myfile.close();
@@ -79,21 +86,69 @@ int DBFile::Open (const char *f_path) {
 	try
 	{   off_t dirty = 0;
         ifstream infile; 
-        
+        //Boolean variables to identify the part of file we are reading
+        bool om_started = false;
+        bool rl_started = false;
+
         this->SetMetaDataFileName((char *)f_path);
         this->SetValueFromTxt(this->meta_dpage_name, dirty);
         infile.open(this->meta_type_name);
-        string ftype;
-        getline (infile,ftype);
-        
-        if(ftype == "heap"){
-            cout<<"file type is inside if also " <<ftype<<endl;
-            
+        //Variable to store the line we just read
+        string line;
+        getline (infile,line);
+        if(line == "heap"){            
             this->instVar = &hp_obj;
         }
-        if(ftype == "sorted"){
-            
+        vector<int> wch_atts; 
+        vector<Type> wch_types; 
+        if(line == "sorted"){
+            while ( getline (infile,line) )
+                {
+                    if (line=="sortorder"){
+                        om_started = true;
+                        continue;
+                    }
+                        
+                    
+                    if (line=="runlength"){
+                            om_started = false;
+                            rl_started = true;
+                            continue;
+                        }
+                // cout << line << '\n';
+                    if(om_started){
+                        //write the order maker to two arrays
+                        string token = line.substr(line.find(":")+2);
+                        string att = token.substr(0,token.find(" "));
+                        string ty = token.substr(token.find(" ")+1);
+                        wch_atts.push_back(atoi(att.c_str()));
+                        if(ty == "Int")
+                            wch_types.push_back(Int);
+                        else if(ty == "Double")
+                            wch_types.push_back(Double);
+                        else
+                            wch_types.push_back(String);
+
+                    }
+                    if(rl_started){
+                        srt_obj.run_length = atoi(line.c_str());
+                    }
+
+                }
+                
+                int wch_atts_arr [wch_atts.size()];
+                Type wch_type_arr [wch_types.size()];
+                
+                for(int i =0; i<wch_atts.size();i++){
+                    wch_type_arr[i] = wch_types[i];
+                    wch_atts_arr[i] = wch_atts[i];
+                }
+                srt_obj.odr_mkr = srt_obj.odr_mkr.getOrderMaker(wch_atts.size(), wch_atts_arr, wch_type_arr);
+                // Schema mySchema ("catalog", "nation");
+                // srt_obj.odr_mkr = OrderMaker(&mySchema);
             this->instVar = &srt_obj;
+
+
         }
         int ret_val = this->instVar->Open(f_path);
         
@@ -121,29 +176,6 @@ int DBFile::Close () {
 	try
 	{
         int return_val = this->instVar->Close();
-      // Here before closing the file we will write out the records present in the page buffer if any to the file
-    //    off_t dirty = 0;
-    //     off_t last_page = 0;
-    //     off_t test;
-    //     // Record tempRec;
-    //     dirty = this->GetValueFromTxt(this->meta_dpage_name);
-    //     if (dirty == 1){
-              
-    //         last_page = GetValueFromTxt(this->meta_lpage_name);
-    //         test = this->file_instance.GetLength();
-    //         if (this->file_instance.GetLength() != 0){
-                
-    //            last_page = this->file_instance.GetLength()-1;
-                
-    //        }
-    //         this->file_instance.AddPage(&this->buffer_page, last_page);
-    //         last_page++;
-    //         this->SetValueFromTxt(this->meta_lpage_name, last_page);
-                
-    //     }
-        
-    //     this->SetValueFromTxt(this->meta_dpage_name, 0);
-	// 	this->file_instance.Close();
 		return return_val;		
 	}
 	catch(const std::exception& e) {
@@ -207,7 +239,9 @@ void DBFile::SetValueFromTxt(char file_name [], off_t set_value ){
 void DBFile:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[100];
-    pch = strtok (tblpath,"/");
+    char temp_file_name[100];
+    strcpy(temp_file_name, tblpath);
+    pch = strtok (temp_file_name,"/");
     char test [100];
     while (pch != NULL)
     {
@@ -232,7 +266,7 @@ GenericDBFile::GenericDBFile ()
 }
 
 //Method to Create a DBFile store
-int GenericDBFile::Create (const char *f_path, fType f_type, void *startup) {}
+int GenericDBFile::Create (const char *f_path, fType f_type, void *startup) {return 0;}
 
 // Method to bulk load the DBFile from a text file
 // This method essentially calls the Add method of the DBFile class for each record read from the text file 
@@ -240,8 +274,7 @@ void GenericDBFile::Load (Schema &f_schema, const char *loadpath) {
 }
 
 //Method to open a file stored at f_path assuming there exists one and it has data inside
-int GenericDBFile::Open (const char *f_path) {
-}
+int GenericDBFile::Open (const char *f_path) {return 0;}
 
 //Move the record pointer to the first record of the file
 void GenericDBFile::MoveFirst () {
@@ -249,7 +282,7 @@ void GenericDBFile::MoveFirst () {
 }
 // Method to Close the DBFile
 // This method flushes the buffer_page to the file on disk
-int GenericDBFile::Close () {}
+int GenericDBFile::Close () {return 0;}
 
 // Method to Add a record to the DBFile instance. 
 // This essentially adds the record to the page buffer and 
@@ -259,10 +292,10 @@ void GenericDBFile::Add (Record &rec) {
 }
 
 //Function to get the record in the next position
-int GenericDBFile::GetNext (Record &fetchme) {}
+int GenericDBFile::GetNext (Record &fetchme) {return 0;}
 
 //Function to get the record after the current record which matches the cnf
-int GenericDBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
+int GenericDBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) { return 0;}
 
 // Method to get the value of the metadata stored in the auxiliary text file
 off_t GenericDBFile::GetValueFromTxt(char file_name []){
@@ -280,10 +313,12 @@ void GenericDBFile:: SetMetaDataFileName(char tblpath []){
 void GenericDBFile::GetPage(Page *putItHere, off_t whichPage){
     // this->file_instance.GetPage(putItHere, whichPage);
 }
+int GenericDBFile::mergePipeAndFile (){}
 Heap::Heap () 
 {
     // this->buffer_page = Page();
 }
+int Heap::mergePipeAndFile (){}
 
 //Method to Create a DBFile store
 int Heap::Create (const char *f_path, fType f_type, void *startup) {
@@ -333,6 +368,7 @@ int Heap::Open (const char *f_path) {
             this->current_page = 0;
             this->record_offset = 0;
         }
+        
 		return 1;	
 	}
 	catch(const std::exception& e)
@@ -361,7 +397,7 @@ int Heap::Close () {
         off_t last_page = 0;
         off_t test;
         // Record tempRec;
-        Schema mySchema ("catalog", "lineitem");
+        // Schema mySchema ("catalog", "lineitem");
         dirty = this->GetValueFromTxt(this->meta_dpage_name);
         if (dirty == 1){
               
@@ -428,7 +464,8 @@ void Heap::Add (Record &rec) {
 //Function to get the record in the next position
 int Heap::GetNext (Record &fetchme) {
 	int page_num = 0;
-    if (this->current_page == this->file_instance.GetLength()-1){
+    off_t num_pages = this->file_instance.GetLength();
+    if(num_pages == 0 || this->current_page == num_pages-1){
         return 0;
     }
 
@@ -554,7 +591,9 @@ void Heap::SetValueFromTxt(char file_name [], off_t set_value ){
 void Heap:: SetMetaDataFileName(char tblpath []){
     char * pch;
     char meta_file_name[100];
-    pch = strtok (tblpath,"/");
+    char temp_file_name[100];
+    strcpy(temp_file_name, tblpath);
+    pch = strtok (temp_file_name,"/");
     char test [100];
     while (pch != NULL)
     {
@@ -577,51 +616,506 @@ void Heap:: SetMetaDataFileName(char tblpath []){
 void Heap::GetPage(Page *putItHere, off_t whichPage){
     this->file_instance.GetPage(putItHere, whichPage);
 }
+
 Sorted::Sorted () 
 {
     // this->buffer_page = Page();
 }
 
 //Method to Create a DBFile store
-int Sorted::Create (const char *f_path, fType f_type, void *startup) {}
+int Sorted::Create (const char *f_path, fType f_type, void *startup) {
+ try
+    {
+        struct SortInfo * input_args;
+	    input_args = (struct SortInfo *)startup;
+
+        this->SetMetaDataFileName((char *)f_path);
+        this->SetValueFromTxt(this->meta_lpage_name, 0);
+        this->SetValueFromTxt(this->meta_dpage_name, 1);
+        this->run_length = input_args->runLength;
+        this->odr_mkr = *input_args->myOrder;
+        this->file_instance.Open(0,(char*)f_path);
+        this->newQuery = true;
+        this->querPg = 0;
+        this->queryOffset = 0;
+        return 1;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+        return 0;
+    }      
+}
 
 // Method to bulk load the DBFile from a text file
 // This method essentially calls the Add method of the DBFile class for each record read from the text file 
-void Sorted::Load (Schema &f_schema, const char *loadpath) {}
+void Sorted::Load (Schema &f_schema, const char *loadpath) {
+    try
+    {
+        FILE *tableFile = fopen (loadpath, "r");
+        this->newQuery = true;
+        Record temp;
+        while (temp.SuckNextRecord (&f_schema, tableFile) == 1){
+            this->Add(temp);
+        } 
+
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+}
 
 //Method to open a file stored at f_path assuming there exists one and it has data inside
-int Sorted::Open (const char *f_path) {}
+int Sorted::Open (const char *f_path) {
+    off_t dirty = 0;
+    this->SetMetaDataFileName((char *)f_path);
+    this->SetValueFromTxt(this->meta_dpage_name, dirty);
+    this->mode = "reading";
+    this->newQuery = true;
+    // this->querPg = 0;
+    // this->queryOffset = 0;
+    this->file_instance.Open(1,(char*)f_path);
+    if (this->file_instance.GetLength()!=0){
+        this->file_instance.GetPage(&this->buffer_page,0);
+        this->current_page = 0;
+        this->record_offset = 0;
+    }
+    
+    return 1;	
+}
 
 //Move the record pointer to the first record of the file
 void Sorted::MoveFirst () {
+    if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
+        this->mergePipeAndFile();
+    }
+    // Set Record offset to 0
+    this->record_offset = 0;
+    // Set current page to 0
+    this->current_page = 0;
+    //reset query parameters for GetNext
+    this->newQuery = true;
+    this->querPg = 0;
+    this->queryOffset = 0;
 
 }
 // Method to Close the DBFile
-// This method flushes the buffer_page to the file on disk
-int Sorted::Close () {}
+// This method flushes the buffer_page to the file on diskmergePipeAndFile
+int Sorted::Close () {
+    if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
+        // We  have data in the input pipe so call merge and update the file here
+        this->mergePipeAndFile();
+
+    }
+    this->SetValueFromTxt(this->meta_dpage_name, 0);
+	this->file_instance.Close();
+
+}
 
 // Method to Add a record to the DBFile instance. 
 // This essentially adds the record to the page buffer and 
 // if the page buffer is full it writes the page out to disk 
 // and after emptying the buffer it writes the record to the buffer
 void Sorted::Add (Record &rec) {    
+    try {
+        Record tempRec;
+        Record ins;
+        this->newQuery = true;
+        // this->querPg = 0;
+        // this->queryOffset = 0;
+        ins.Copy(&rec);
+        if(this->mode == "reading"){
+            // This is where the mode is changing from reading to writing so getting BigQ in place and started filling the inpipe
+            BigQ bq (this->input_pipe, this->output_pipe, this->odr_mkr, this->run_length);
+            this->mode = "writing";
+            this->input_pipe.Insert(&ins);
+        }
+        else if(this->mode == "writing"){
+            // This is where the mode already in writing mode so just adding data to the inpipe
+            this->input_pipe.Insert(&ins);
+        }
+	    
+    }
+    catch(exception e){
+       cerr << e.what() <<"Inside Add DBFile" <<'\n';
+    }
 }
 
 //Function to get the record in the next position
-int Sorted::GetNext (Record &fetchme) {}
+int Sorted::GetNext (Record &fetchme) {
+    if(!(this->input_pipe.getFirstSlot()==0 && this->input_pipe.getLastSlot()==0)){
+        // We  have data in the input pipe so call merge and create 
+        this->mergePipeAndFile();
+    }
+    int page_num = 0;
+    off_t num_pages = this->file_instance.GetLength();
+    if(num_pages == 0 || this->current_page == num_pages-1){
+        return 0;
+    }
+
+    off_t last_page = 0;
+    int dirty_page = this->GetValueFromTxt(this->meta_dpage_name);
+
+    //If this action follows a write(Add) then we move the contents of the buffer to the file
+    if(dirty_page==1){
+        last_page = this->GetValueFromTxt(this->meta_lpage_name);
+        this->file_instance.AddPage(&this->buffer_page, last_page-1);
+        this->buffer_page.EmptyItOut();
+    }
+
+    // 2. Set meta data dirty value to 0
+    this->SetValueFromTxt(this->meta_dpage_name, 0);
+    
+    // 3. Load current_page from file
+    this->file_instance.GetPage(&this->buffer_page, this->current_page);
+    
+    //Here we call the MoveMyRecsPointer to advance the myrecs pointer by one position
+    if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
+        this->record_offset++;
+		return 1;
+    }
+    else{
+        page_num = this->current_page + 1;
+        if (page_num == this->file_instance.GetLength()){
+            //This is where we've reached the last record of last page
+            this->current_page++;
+            return 1;
+        }
+        this->current_page++;
+        this->record_offset = 0;
+        return 1;
+    }
+    return 0;
+}
+
+int Sorted::mergePipeAndFile () {
+    this->mode = "reading";
+    this->newQuery = true;
+    this->input_pipe.ShutDown();
+    Heap binfile;
+    Heap outFile;
+    Record pipeRec;
+	Record fileRec;
+    ComparisonEngine ceng;
+    Heap writeFile;
+    writeFile.Create("aux_file.bin",heap,NULL);
+	int binval = binfile.Open(this->file_name);
+    binfile.MoveFirst();
+    int fileVal = binfile.GetNext(fileRec);
+    int pipeVal= this->output_pipe.Remove (&pipeRec);
+    int count = 0;
+    while( pipeVal==1 && fileVal==1) {
+		int val = ceng.Compare(&pipeRec, &fileRec, &this->odr_mkr);
+        count++;
+		if(val==1) {
+            // cout << "Val is 1"<<endl;
+			writeFile.Add(fileRec);
+			fileVal = binfile.GetNext(fileRec);
+		}
+		else if (val == -1) {
+			// cout << "Val is -1"<<endl;
+			writeFile.Add(pipeRec);
+			pipeVal = this->output_pipe.Remove (&pipeRec);
+		}
+		else if (val==0) {
+            // cout << "Val is 0"<<endl;
+			writeFile.Add(pipeRec);
+			pipeVal = this->output_pipe.Remove (&pipeRec);
+			fileVal = binfile.GetNext(fileRec);
+
+		}
+	}
+    // cout << "Count after Need to merge is"<<count<<endl;
+	if(pipeVal!=1 && fileVal==1) {
+        // cout << "pipe empty so filling from file"<<endl;
+        count = 0;
+        // writeFile.Add(pipeRec);
+		do
+        {
+            count++;
+			writeFile.Add(fileRec);
+        } while (binfile.GetNext(fileRec) == 1);
+	}
+	else if (pipeVal==1 && fileVal != 1) {
+        // cout << "File empty so filling from pipe"<<endl;
+        count = 0;
+        // pipeRec.Print(&mySchema);
+        writeFile.Add(pipeRec);
+        while(this->output_pipe.Remove (&pipeRec)){
+            count++;
+            // pipeRec.Print(&mySchema);
+            writeFile.Add(pipeRec);
+        }
+        // writeFile.Add(pipeRec);
+			
+	}
+    // cout << "Count after is File empty is"<<count<<endl;
+    writeFile.Close();
+    writeFile.Open("aux_file.bin");
+    binfile.Close();
+    outFile.Create(this->file_name,heap,NULL);
+    Record tempRec;
+    writeFile.MoveFirst ();
+
+    while (writeFile.GetNext (tempRec) == 1) {
+		outFile.Add(tempRec);
+	}
+
+    writeFile.Close();
+    this->file_instance = outFile.file_instance;
+    outFile.Close();
+	// Record rec;
+    // // OLD CODE THAT WORKS JUST FINE 
+    // Schema mySchema ("catalog", "customer");
+    // this->input_pipe.ShutDown();
+    // this->mode = "reading";
+    // int count = 0;
+    
+    // while(this->output_pipe.Remove (&rec)) {
+    //     count++; 
+	// 	rec.Print(&mySchema);
+	// }
+    
+    this->input_pipe.resetPipe();
+    this->output_pipe.resetPipe();
+    
+    remove("aux_file.bin");
+    remove("aux_file_dpage.txt");
+    remove("aux_file_lpage.txt");
+}
+
+int Sorted :: goSequential(int start, int mid, OrderMaker query, Record literal, OrderMaker litQuery) {
+    Record last;
+	Record first;
+	Page pg;
+    ComparisonEngine ceng;
+    int curr = mid -1;
+    while(curr >= start) {
+        
+        this->file_instance.GetPage(&pg, curr);
+		pg.GetFirst(&first);
+		
+        this->file_instance.GetPage(&pg, curr);
+		pg.GetLast(&last);
+
+        int lastval = ceng.Compare(&last, &query, &literal, &litQuery);
+		int firstval = ceng.Compare(&first, &query, &literal, &litQuery);
+        
+        //if previous page has records lesser than literal
+        if(firstval < 0 && lastval < 0)
+            return mid;
+        //if previos page is the first where the match is found
+        if(firstval < 0 && lastval == 0)
+            return curr;
+        //if previous page also has all matching
+        curr--; 
+    }
+    return start;
+
+}
+
+//Method to perform Binary search
+int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal, OrderMaker litQuery) {
+	
+	
+	Record last;
+	Record first;
+	Page pg;
+
+	int firstval, lastval;
+	int mid = (start + end)/2;
+			
+	ComparisonEngine ceng;
+			
+	while (start <= end) {
+		mid = (start +  end)/2;
+		
+        //fetch first and last record of the page
+        this->file_instance.GetPage(&pg, mid);
+		pg.GetFirst(&first);
+        
+		this->file_instance.GetPage(&pg, mid);
+		pg.GetLast(&last);
+      
+		
+		lastval = ceng.Compare(&last, &query, &literal, &litQuery);
+		firstval = ceng.Compare(&first, &query, &literal, &litQuery);
+		        
+        //if match found with first record go to previous pages to find first match
+        if(firstval ==0 ) {
+            int result = this->goSequential(start, mid, query, literal, litQuery);
+            return result;
+        }
+
+		//either its first or last record or anything between them, send the page
+		if (lastval >= 0 && firstval < 0) {
+			
+			// dbfile.Close();
+			return mid;
+		}
+
+		//if last record on page is smaller then check second half
+		if(lastval < 0)
+			start = mid+1;
+
+		//if first record on page is bigger then check first half
+		else if (firstval > 0)
+			end = mid-1;		
+
+		// cout << "Start= "<<start<<"   end = "<<end<<"  mid="<<mid<<endl;
+	}
+	if(start > end) {
+		
+		return -1;
+	}
+	
+}
+
+
 
 //Function to get the record after the current record which matches the cnf
-int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {}
+int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+     
+    OrderMaker query, litQuery;
+    OrderMaker o = this->odr_mkr.makeQuery(cnf);
+    
+    ComparisonEngine ceng;
+    int pagenum;
+   
+    //If newQuery is true construct new query and do binary search
+     if(this->newQuery==true) {
+              
+        query = o.makeQuery(cnf);
+        litQuery = o.makeLitQuery(cnf);
+
+        this->querPg =0;
+        this->queryOffset =0;
+       
+    
+        //Perform binary search to find the page from where the record matches the literal on basis of query OrderMAker
+        if(!query.isOmEmpty()) {
+
+            int startpg = this->current_page;
+	        int endpg = this->file_instance.GetLength();
+	        if(endpg>0)
+	    	    endpg = endpg - 2; 
+	        
+            //Binary search to get the page where record is first found after the current page
+            int pagenum = this->pageBinSearch(startpg,endpg,query,literal,litQuery);
+            
+            //Set the current page to the one from where we start reading
+            if(pagenum == -1)
+                return 0;
+            this->current_page = pagenum;
+
+        
+            //If the page is not the start page then set record_offset to 0
+            if(pagenum != startpg)
+	    	    this->record_offset = 0;
+        }
+        
+        //Now make the newquery flag to reuse it in consecutive GetNext
+        this->newQuery =  false;
+    
+     }
+     else {
+        //If old query is to be used set the current page and offset and the current query
+        query = this->query;
+        this->current_page = this->querPg;
+        this->record_offset = this->queryOffset;
+     }
+    
+        
+    //If query is empty send the first record of file which is equal to literal.
+    //If no record matches the cnf then return 0
+    if(query.isOmEmpty()) {
+      
+        while(this->GetNext(fetchme)) {
+            
+            int val1 = ceng.Compare(&fetchme,&literal, &cnf);
+            if(val1==1) {
+                
+                this->querPg = this->current_page;
+                this->queryOffset = this->record_offset;
+                this->newQuery = false;
+			    return 1;
+	    	}
+        }
+        return 0;
+    }
+  
+    //Sequentially search from given position to find a record that satisfies query and cnf
+
+    while(this->GetNext(fetchme)) {
+		int qval = ceng.Compare(&fetchme,&literal,&query);
+		//if query evaluates to true then check cnf else return 0
+		
+		if(qval == 0) {
+		
+			int cval = ceng.Compare(&fetchme,&literal, &cnf);
+			//if cnf evaluates to true then send it to the caller else check next record
+			if(cval==1) {
+		
+                this->querPg = this->current_page;
+                this->record_offset++;
+                this->queryOffset = this->record_offset;
+                this->newQuery = false;
+				return 1;
+			}
+			
+		}
+			
+	} 
+    return 0;  
+	
+
+}
 
 // Method to get the value of the metadata stored in the auxiliary text file
 off_t Sorted::GetValueFromTxt(char file_name []){
-
+    FILE * file;
+    off_t target = 0;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "r");
+    fread(&target, sizeof(off_t),1, file);
+    fclose(file);
+    return target;
 }
 // Method to set the value of the metadata stored in the auxiliary text file
 void Sorted::SetValueFromTxt(char file_name [], off_t set_value ){
+    FILE * file;
+    const char * filename_ptr;
+    filename_ptr = file_name;
+    file = fopen(filename_ptr, "w");
+    fwrite(&set_value, sizeof(off_t), 1, file);
+    fclose(file);
 }
 
 // Method to set the meta_lpage_name and meta_dpage_name variables by extracting the name of the Schema file
 void Sorted:: SetMetaDataFileName(char tblpath []){
+    char * pch;
+    char meta_file_name[100];
+    char temp_file_name[100];
+    strcpy(temp_file_name, tblpath);
+    pch = strtok (temp_file_name,"/");
+    char test [100];
+    while (pch != NULL)
+    {
+    if(pch!=NULL){
+        strcpy(test, pch);
+    }
+    pch = strtok (NULL, "/");
+    }
+
+    test[strlen(test)-4] = '\0';
+    sprintf (meta_file_name, "%s_lpage.txt", test);
+    strcpy(this->meta_lpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_dpage.txt", test);
+    strcpy(this->meta_dpage_name, meta_file_name);
+    sprintf (meta_file_name, "%s_type.txt", test);
+    strcpy(this->meta_type_name, meta_file_name);
+    strcpy(this->file_name, tblpath);
     
 }

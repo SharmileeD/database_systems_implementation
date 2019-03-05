@@ -132,3 +132,15 @@ void Pipe :: ShutDown () {
 	pthread_mutex_unlock (&pipeMutex);
 	
 }
+
+void Pipe :: resetPipe(){
+	this->firstSlot = 0;
+	this->lastSlot = 0;
+	this->done = 0;
+}
+int Pipe :: getFirstSlot(){
+	return this->firstSlot;
+}
+int Pipe :: getLastSlot(){
+	return this->lastSlot;
+}

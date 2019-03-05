@@ -13,111 +13,49 @@
 #include <array>
 #include <iostream>
 #include <queue>
-struct worker_data{
-	Pipe *in_pipe;
-	Pipe *out_pipe;
-	OrderMaker *sort_order;
-	int run_length;
-};
+// struct worker_data{
+// 	Pipe *in_pipe;
+// 	Pipe *out_pipe;
+// 	OrderMaker *sort_order;
+// 	int run_length;
+// };
 
-struct worker_data input;
+// struct worker_data input;
 
 struct record_container {
 	Record rec;
 	int run;
 };
 
-struct CompareRecords {
-	bool operator()(record_container r1, record_container r2) {
-		ComparisonEngine ceng;
-		int val = ceng.Compare (&r1.rec, &r2.rec, input.sort_order);
-		if(val != 1)
-			return false;
-		return true;
-	} 
+// struct CompareRecords {
+// 	bool operator()(record_container r1, record_container r2) {
+// 		ComparisonEngine ceng;
+// 		int val = ceng.Compare (&r1.rec, &r2.rec, input.sort_order);
+// 		if(val != 1)
+// 			return false;
+// 		return true;
+// 	} 
 
-};
+// };
+
+// void setup () {
+// 	cout << " \n** IMPORTANT: MAKE SURE THE INFORMATION BELOW IS CORRECT **\n";
+// 	cout << " catalog location: \t" << catalog_path << endl;
+// 	cout << " tpch files dir: \t" << tpch_dir << endl;
+// 	cout << " heap files dir: \t" << dbfile_dir << endl;
+// 	cout << " \n\n";
+
+// 	s = new relation (supplier, new Schema (catalog_path, supplier), dbfile_dir);
+// 	ps = new relation (partsupp, new Schema (catalog_path, partsupp), dbfile_dir);
+// 	p = new relation (part, new Schema (catalog_path, part), dbfile_dir);
+// 	n = new relation (nation, new Schema (catalog_path, nation), dbfile_dir);
+// 	li = new relation (lineitem, new Schema (catalog_path, lineitem), dbfile_dir);
+// 	r = new relation (region, new Schema (catalog_path, region), dbfile_dir);
+// 	o = new relation (orders, new Schema (catalog_path, orders), dbfile_dir);
+// 	c = new relation (customer, new Schema (catalog_path, customer), dbfile_dir);
+// }
+
 void phase2tpmms_test(struct worker_data *input_args, int numRuns);
-void *producer (void *arg) {
-
-	Pipe *myPipe = (Pipe *) arg;
-
-	Record inprec;
-	int counter = 0;
-
-	DBFile dbfile;
-	dbfile.Open (rel->path ());
-	cout << " producer: opened DBFile " << rel->path () << endl;
-	dbfile.MoveFirst ();
-
-	while (dbfile.GetNext (inprec) == 1) {
-		counter += 1;
-		if (counter%100000 == 0) {
-			 cerr << " producer: " << counter << endl;	
-		}
-		myPipe->Insert (&inprec);
-	}
-
-	dbfile.Close ();
-	myPipe->ShutDown ();
-
-	cout << " producer: inserted " << counter << " recs into the pipe\n";
-}
-
-void *consumer (void *arg) {
-	
-	testutil *t = (testutil *) arg;
-	Schema mySchema ("catalog", "lineitem");
-	ComparisonEngine ceng;
-
-	DBFile dbfile;
-	char outfile[100];
-
-	if (t->write) {
-		sprintf (outfile, "%s.bigq", rel->path ());
-		dbfile.Create (outfile, heap, NULL);
-	}
-
-	int err = 0;
-	int i = 0;
-
-	Record rec[2];
-	Record *last = NULL, *prev = NULL;
-
-	while (t->pipe->Remove (&rec[i%2])) {
-		prev = last;
-		last = &rec[i%2];
-
-		if (prev && last) {
-			if (ceng.Compare (prev, last, t->order) == 1) {
-				err++;
-			}
-			if (t->write) {
-				dbfile.Add (*prev);
-			}
-		}
-		if (t->print) {
-			last->Print (&mySchema);
-		}
-		i++;
-	}
-
-	cout << " consumer: removed " << i << " recs from the pipe\n";
-
-	if (t->write) {
-		if (last) {
-			dbfile.Add (*last);
-		}
-		cerr << " consumer: recs removed written out as heap DBFile at " << outfile << endl;
-		dbfile.Close ();
-	}
-	cerr << " consumer: " << (i - err) << " recs out of " << i << " recs in sorted order \n";
-	if (err) {
-		cerr << " consumer: " <<  err << " recs failed sorted order test \n" << endl;
-	}
-}
-
-
 
 void test_phase2(){
 	// This logic writes three page worth of records to a file named test_phase2.bin
@@ -164,11 +102,11 @@ void test_phase2(){
 	// // }
 	// cout<< dbfile2.file_instance.GetLength()<<endl;
 	// dbfile2.Close ();
-	input.run_length = 9;
-	Schema mySchema ("catalog", "lineitem");
-	OrderMaker sortorder(&mySchema);
-	input.sort_order = &sortorder;
-	phase2tpmms_test(&input, 9);
+	// input.run_length = 9;
+	// Schema mySchema ("catalog", "lineitem");
+	// OrderMaker sortorder(&mySchema);
+	// input.sort_order = &sortorder;
+	// phase2tpmms_test(&input, 9);
 
 }	
 
@@ -196,7 +134,7 @@ void test_write(){
 }
 
 void check_num_records(char f_path[]){
-	DBFile dbfile_test;
+	Heap dbfile_test;
 	// cout << " DBFile will be created at "<< endl;
 	dbfile_test.Open (f_path);
 	// dbfile_test.Create("test_phase2.bin",heap,NULL);
@@ -204,7 +142,7 @@ void check_num_records(char f_path[]){
 	int counter = 0;
 	Page test_page;
 	dbfile_test.MoveFirst ();
-	Schema mySchema ("catalog", "lineitem");
+	Schema mySchema ("catalog", "customer");
 
 	while (dbfile_test.GetNext(inprec) == 1) {
 		
@@ -213,7 +151,7 @@ void check_num_records(char f_path[]){
 		if(counter % 5000 ==0){
 			cout<< "inside populate loop "<< counter<<endl;
 		}
-		// inprec.Print(&mySchema);
+		inprec.Print(&mySchema);
 	}
 	cout<< f_path <<endl;
 	cout<< "Number of records is "<< counter <<endl;
@@ -221,7 +159,7 @@ void check_num_records(char f_path[]){
 }
 
 void check_recs(char f_path[]) {
-	DBFile dbfile_test;
+	Heap dbfile_test;
 	// cout << " DBFile will be created at "<< endl;
 	dbfile_test.Open (f_path);
 	// dbfile_test.Create("test_phase2.bin",heap,NULL);
@@ -265,120 +203,17 @@ void test_check_duplicates(){
 
 }
 
-void phase2tpmms_test(struct worker_data *input_args, int numRuns) {
-	
-	Page runPage[numRuns];
-	int currPage[numRuns] = {0};
-	int run_index = 0;
-	int get_first = 0;
-	int load_more = 0;
-	int runLength = input_args->run_length;
-	struct record_container to_push;
-	struct record_container que[numRuns];
-	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
-	struct record_container temp;
-	struct record_container new_elemnt;
-	Schema mySchema ("catalog", "lineitem"); 	
-
-	DBFile file;
-	file.Open("runs.bin");
-	//Get page from every run
-	
-	
-	
-	//First time load the runPage array with the first page of each run
-	for(int i =0 ; i < numRuns;i++) {
-		
-		file.file_instance.GetPage(&runPage[i], i*runLength);
-		runPage[i].GetFirst(&que[i].rec);
-
-		que[i].run = i;
-		// que[i].rec.Print(&mySchema);
-		recQ.push(que[i]);
-
-	}
-	int count = 0;
-	int count3=0;
-	int count2=0;
-	int count1=0;
-	while(recQ.size()!=0){
-		if (recQ.size()==3){
-			count3++;
-		}
-		if (recQ.size()==2){
-			count2++;
-		}
-		if (recQ.size()==1){
-			count1++;
-		}
-		//Step 1: Getting the first record(smallest) of the priority queue
-		temp = recQ.top();
-		run_index = temp.run;
-		temp.rec.Print(&mySchema);
-		// input_args->out_pipe->Insert(&temp.rec);
-		count++;
-
-		//cout << "Smallest record : " << endl;
-		recQ.pop();
-
-		//Now that we have poped a struct out of the priority queue
-		//we need to push one struct in from the same page 
-		//Step 2: Getting the next record from the same page which recently served the record
-		get_first = runPage[run_index].GetFirst(&to_push.rec);
-		//Step 2.0: This is the case where we are checking if the PAGE has any RECORDS
-		//Step 2.1: This is the case where the PAGE does not have any RECORDS
-		if (get_first ==0){
-			//Need to load next page from run_index
-			//Step 2.1.1: This is the case where the RUN is OUT OF PAGES
-
-			if(currPage[run_index]==runLength-1){
-				currPage[run_index] = -1;
-				continue;
-			}
-			//Step 2.1.2: This is the case where the RUN has a page so getting it and incrementing currPage[run_index] 
-			else
-			{
-				currPage[run_index] = currPage[run_index] + 1;
-				file.file_instance.GetPage(&runPage[run_index], (run_index*runLength)+currPage[run_index]);
-				int temp_getf=0;
-				temp_getf = runPage[run_index].GetFirst(&new_elemnt.rec);
-				new_elemnt.run= run_index;
-				// new_elemnt.rec.Print(&mySchema);
-				recQ.push(new_elemnt);
-			}
-			
-
-		}
-		//Step 2.2: This is the case where the PAGE has a next RECORD for you
-		else if (get_first ==1)
-		{
-			// The current page still has some records so just getting the first record from that page
-			to_push.run= run_index;
-			// new_elemnt.rec.Print(&mySchema);
-			recQ.push(to_push);
-		}
-	}
-	
-	cout<<"Number of records considered "<< count<<endl;
-	cout<<"Number of 3 records considered "<< count3<<endl;
-
-	cout<<"Number of 2 records considered "<< count2<<endl;
-	cout<<"Number of 1 records considered "<< count1<<endl;
-	for(int i =0;i<numRuns;i++){
-		cout<<currPage[i]<<endl;
-	}
-	//temp = recQ.top();
-	file.Close();
-
-}
 
 void test_getLength(){
 	// DBFile dbfile_test;
-	DBFile dbfile;
+	Heap dbfile;
+	Heap dbfile2;
 	// dbfile_test.Create("runs.bin",heap,NULL);
 	// cout<<"Length is "<< dbfile_test.file_instance.GetLength()<<endl;
-	dbfile.Open("runs.bin");
+	dbfile.Open("aux_file.bin");
 	cout<<"Length is "<< dbfile.file_instance.GetLength()<<endl;
+	dbfile2.Open("customer.bin");
+	cout<<"Length is "<< dbfile2.file_instance.GetLength()<<endl;
 }
 
 void test_read_write_logic(){   
@@ -406,13 +241,23 @@ void test_read_write_logic(){
 }
 void test_DBFile_create(){
 	DBFile dbfile;
+	Heap hp;
+	Record tempRec;
 	// dbfile.Create("test_phase2.bin",heap,NULL);
-	Schema mySchema ("catalog", "lineitem");
+	Schema mySchema ("catalog", "customer");
 	OrderMaker sortorder(&mySchema);
 	int runlen = 2;
 	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
-	// dbfile.Create("test_phase2.bin",heap,&startup);
-	dbfile.Open("nation.bin");
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	// dbfile.Close();
+	hp.Open("test_phase2.bin");
+
+	int va = hp.file_instance.GetLength();
+	int v = dbfile.instVar->GetNext(tempRec);
+	cout<< "length "<<v<<endl;
+	dbfile.Close();
+	// int ret = dbfile.Open("test_phase2.bin");
+	//cout<<ret<<endl;
 }
 void test_GetPage(){
 	DBFile file;
@@ -421,8 +266,346 @@ void test_GetPage(){
 	file.instVar->GetPage(&test, 0);
 	cout<<"testing end"<<endl;
 }
-int main(){
 
+void test_sorted_add(){
+	DBFile dbfile_test;
+	Schema mySchema ("catalog", "customer");
+	// cout << " DBFile will be created at "<< endl;
+	// dbfile_test.Open ("test_phase2.bin");
+	dbfile_test.Open("test_phase2.bin");
+	Record inprec;
+	int counter = 0;
+	
+	Heap hpfile;
+	hpfile.Open ("customer.bin");
+	
+	hpfile.MoveFirst ();
+
+	while (hpfile.GetNext(inprec) == 1) {
+		counter += 1;
+		cout<< "inside populate loop "<< counter<<endl;
+		
+		dbfile_test.Add(inprec);
+		// inprec.Print(&mySchema);
+	}
+	counter = 0;
+	// while (hpfile.GetNext(inprec) == 1) {
+	// 	counter += 1;
+	// 	cout<< "inside populate loop "<< counter<<endl;
+	// 	if(counter == 1000){
+	// 		break;
+	// 	}
+	// 	dbfile_test.Add(inprec);
+	// 	// inprec.Print(&mySchema);
+	// }
+	cout<< "outside loop "<<endl;
+	dbfile_test.instVar->mergePipeAndFile();
+	// counter = 0;
+	// while (hpfile.GetNext(inprec) == 1) {
+	// 	counter += 1;
+	// 	cout<< "inside populate loop "<< counter<<endl;
+	// 	if(counter == 1000){
+	// 		break;
+	// 	}
+	// 	dbfile_test.Add(inprec);
+	// 	// inprec.Print(&mySchema);
+	// }
+	// counter = 0;
+	// while (hpfile.GetNext(inprec) == 1) {
+	// 	counter += 1;
+	// 	cout<< "inside populate loop "<< counter<<endl;
+	// 	if(counter == 1000){
+	// 		break;
+	// 	}
+	// 	dbfile_test.Add(inprec);
+	// 	// inprec.Print(&mySchema);
+	// }
+	// dbfile_test.instVar->mergePipeAndFile();
+	cout<< "outside loop "<<endl;
+	hpfile.Close ();
+	// dbfile_test.Close();
+	
+}
+void test_sorted_load(){
+	DBFile dbfile; 
+	Schema mySchema ("catalog", "lineitem");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("aux_file.bin",sorted,&startup);
+    dbfile.Load(mySchema, "tables/lineitem.tbl");
+	dbfile.instVar->mergePipeAndFile();
+	dbfile.Close();
+
+}
+void test_sorted_getnext(){
+	DBFile dbfile_test;
+	Schema mySchema ("catalog", "lineitem");
+	// cout << " DBFile will be created at "<< endl;
+	dbfile_test.Open ("test_phase2.bin");
+	// dbfile_test.Open("aux_file.bin");
+	Record inprec;
+	dbfile_test.MoveFirst ();
+
+    while (dbfile_test.GetNext (inprec) == 1) {
+		inprec.Print(&mySchema);
+	}
+}
+
+void testQuery() {
+        Schema lineitem ("catalog", "nation");
+        Heap binfile;
+		// relation *rel_ptr[] = {n, r, c, p, ps, s, o, li};
+        // rel = rel_ptr [0];
+
+		OrderMaker om(&lineitem);
+        rel->get_sort_order (om);
+        Record fileRec1;
+        Record fileRec2;
+        int runlen = 0;
+        ComparisonEngine ceng;
+		
+		//while (runlen < 1) {
+                cout << "\t\n specify runlength:\n\t ";
+                cin >> runlen;
+        //}
+        CNF myComparison;
+        Record literal;
+        myComparison.GrowFromParseTree (final, &lineitem, literal);
+        cout << "Priniting comparison to screen"<<endl;
+        myComparison.Print ();
+        // OrderMaker o1(&lineitem);
+        // cout << "Printing sort_order ORdermaker" << endl;
+        // o1.Print();
+        // OrderMaker query = o1.makeQuery(myComparison);
+		// return query;
+        // int binval = binfile.Open("nation.bin.bigq");
+        // binfile.MoveFirst();
+        // binfile.GetNext(fileRec1);
+        // binfile.GetNext(fileRec2);
+        // int val = ceng.Compare(&fileRec2, &fileRec1, &query);
+        // query.Print();
+
+        // cout <<"Val = "<<val<<endl;
+}
+
+
+void test_query() {
+	DBFile dbfile_test;
+	Schema mySchema ("catalog", "orders");
+	Record temp, literal;
+	CNF cnf;
+
+	dbfile_test.Open ("test_phase2.bin");
+	dbfile_test.GetNext(temp,cnf,literal);
+	dbfile_test.Close();
+}
+
+int pageBinSearch(int start, int end, OrderMaker query, Record literal) {
+	Heap dbfile;
+	dbfile.Open("orders.bin");
+	
+	Record last;
+	Record first;
+	Page pg;
+
+	int firstval, lastval;
+	int mid = (start + end)/2;
+			
+	ComparisonEngine ceng;
+	Schema mySchema ("catalog", "orders");
+
+		
+	while (start <= end) {
+		mid = (start +  end)/2;
+		dbfile.file_instance.GetPage(&pg, mid);
+		
+		pg.GetFirst(&first);
+
+		dbfile.file_instance.GetPage(&pg, mid);
+		if(pg.GetLast(&last)) {
+			// cout << "Last record"<<endl;
+			// last.Print(&mySchema);
+		}
+		else
+		{
+				cout <<"No last record"<<endl;
+		}
+		// literal.Print(&mySchema);
+		lastval = ceng.Compare(&last, &literal, &query);
+		firstval = ceng.Compare(&first, &literal, &query);
+		cout <<"------------------------------------------------------------------------"<<endl;
+		cout << "First record:"<<endl;
+		first.Print(&mySchema);
+		cout <<endl<<endl<<"Second record" <<endl;
+		last.Print(&mySchema);
+		cout << endl <<endl;
+
+		//either its first or last record or anything between them, send the page
+		if(lastval == 0 || firstval ==0 || (lastval > 0 && firstval < 0)) {
+			
+			dbfile.Close();
+			return mid;
+		}
+
+		//if last record on page is smaller then check second half
+		if(lastval < 0)
+			start = mid+1;
+
+		//if first record on page is bigger then check first half
+		else if (firstval > 0)
+			end = mid-1;		
+
+		cout << "Start= "<<start<<"   end = "<<end<<"  mid="<<mid<<endl;
+	}
+	if(start > end) {
+		dbfile.Close();
+		return -1;
+	}
+	
+}
+
+
+void testComp() {
+	Heap dbfile;
+	dbfile.Open("orders.bin");
+	Record literal, temp;
+	int startrec=0, counter=0;
+	CNF cnf;
+	Page buffPage, searchPg;
+	ComparisonEngine ceng;
+	Schema mySchema ("catalog", "orders");
+	dbfile.file_instance.GetPage(&buffPage, 1);
+	bool found = false;
+	vector<Record> recArr; 
+	// Record recArr[10];
+
+	OrderMaker o(&mySchema);
+    rel->get_sort_order (o);
+	
+	cnf.GrowFromParseTree (final, &mySchema, literal);
+	cout <<"CNF print:"<<endl;
+	cnf.Print();
+	
+	OrderMaker query;
+	// OrderMaker query(&mySchema) ;
+	int arr[MAX_ANDS];
+	arr[0] = 2;
+	// arr[1] = 1;
+	// arr[2] = 7;
+	// arr[3] = 3;
+	// arr[4] = 2;
+	// arr[5] = 4;
+	// arr[6] = 5;
+	Type whicharr[MAX_ANDS];
+	whicharr[0] = String;
+	// whicharr[1] = Int;
+	// whicharr[2] = Int;
+	// whicharr[3] = Double;
+	// whicharr[4] = String;
+	// whicharr[5] = String;
+	// whicharr[6] = String;
+	OrderMaker o1(&mySchema);
+	query = o1.makeQuery(cnf);
+	// query = query.getOrderMaker(1,arr,whicharr);
+	cout <<"Query ordermaker"<<endl;
+	query.Print();
+	int startpg = dbfile.current_page;
+	int endpg = dbfile.file_instance.GetLength();
+	if(endpg>0)
+		endpg = endpg - 2; 
+	cout << "start = " << startpg <<"  end = "<<endpg <<endl <<endl;
+	
+	dbfile.Close();
+	int val = pageBinSearch(startpg,endpg,query,literal);
+	cout << "Page value="<<val<<endl;
+
+	dbfile.Open("orders.bin");
+	dbfile.current_page = val;
+	
+	// dbfile.file_instance.GetPage(&buffPage, val);
+
+	//if the page is current_page then go forward by record_offset to access records after the current record
+	// if(val!=startpg){
+	// 	startrec = dbfile.record_offset;
+	// 	while(startrec>0) {
+	// 		buffPage.GetFirst(&temp);
+	// 		startrec--;
+	// 	}
+		
+	// }
+
+	if(val != startpg)
+		dbfile.record_offset = 0;
+	//Sequentially search the given page
+	
+	while(dbfile.GetNext(temp)) {
+		int val = ceng.Compare(&temp,&literal,&query);
+		//if query evaluates to true then check cnf else return 0
+		// temp.Print(&mySchema);
+		if(val == 0) {
+			found =  true;
+			// temp.Print(&mySchema);
+			int val1 = ceng.Compare(&temp,&literal, &cnf);
+			//if cnf evaluates to true then send it to the caller else check next record
+			if(val1==1) {
+				temp.Print(&mySchema);
+				break;
+			}
+			
+		}
+			
+	}
+	// //Now that we found a maching record we seuentially scan for records that satisfy query and cnf in that order
+	//
+	// if(found) {
+	//  		while(buffPage.GetFirst(&temp)) {
+	// 			int val = ceng.Compare(&temp,&literal,&query);
+	// 			if(val==0)
+	// 			{
+	// 				int val1 = ceng.Compare(&temp,&literal, &cnf);
+	// 				if (val1 == 1) {
+	// 					//cnf evaluation is true so return the record tothe caller
+	// 					cout << "Match!"<<endl;
+	// 					temp.Print(&mySchema);
+	// 					// recArr[counter].Copy(&temp);
+	// 					// counter++;
+	// 				}
+	// 					// recArr[counter++] = temp;
+	// 			}
+	//  		}
+	// }
+
+
+	// cout <<endl<<endl<<"Matching records:"<<endl;
+	// for(int i =0; i <counter;i++)
+			// recArr[i].Print(&mySchema);
+
+}
+
+void test_GetLast(){
+	
+	Heap dbfile;
+	dbfile.Open("orders.bin");
+	Page buffPage;
+	Record rec;
+	
+	Schema mySchema ("catalog", "orders");
+	dbfile.file_instance.GetPage(&buffPage, 0);
+	if(buffPage.GetLast(&rec)) {
+		cout << "Last record"<<endl;
+		// rec.Print(&mySchema);
+	}
+	
+	dbfile.Close();
+	
+}
+
+
+int main(){
+	setup();
+	relation *rel_ptr[] = {n, r, c, p, ps, s, o, li};
+	rel = rel_ptr [6];
 	// Schema mySchema ("catalog", "lineitem");
 	// OrderMaker sortorder(&mySchema);
 	// int option = 1;
@@ -451,14 +634,25 @@ int main(){
 	// test_check_duplicates();
 	// test_write();
 	// test_getLength();
-	// check_recs("runs.bin");
+	// check_recs("aux_file.bin");
 	// check_recs("lineitem.bin");
+	// test_DBFile_create();
+	// test_sorted_add();
 	// test_getLength();
+	// check_num_records("aux_file.bin");
 	// check_num_records("runs.bin");
-	// check_num_records("lineitem.bin");
 	// pthread_join (thread2, NULL);
 	// test_DBFile_create();
-	test_GetPage();
+	// test_GetPage();
+	// test_DBFile_create();
+	// test_sorted_add();
+	// test_sorted_load();
+	// test_sorted_getnext();
+
+	// test_query();
+	// testQuery();
+	// test_GetLast();
 	
+	testComp();
 	return 0;
 }

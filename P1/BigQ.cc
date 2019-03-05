@@ -179,8 +179,8 @@ void *sort_tpmms (void *arg) {
 	
 	Page dummy;
  	vector<Record> vec_arr; 
-	while (input_args->in_pipe->Remove(tempRec)) {
-		
+	while (input_args->in_pipe->Remove(tempRec)==1) {
+		// tempRec->Print(&mySchema);
 		writeRun = false;
 		vec_arr.push_back(*tempRec);
 		
@@ -205,7 +205,6 @@ void *sort_tpmms (void *arg) {
 			int app = dummy.Append(tempRec);
 
 		}
- 		
  	}
 	//write last run to file if the page was never emptied into the dbifile
 	if(!writeRun) {

@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 
 
-TEST(CreateTest, CreateSuccess) { 
+TEST(CreateTestHeap, CreateSuccessHeap) { 
     DBFile dbfile;
     char myfname[] = "lee.txt";
     fType heap = heap;
@@ -25,7 +25,7 @@ TEST(CreateTest, CreateSuccess) {
 }
 
 
-TEST(OpenTest, OpenSuccess) { 
+TEST(OpenTestHeap, OpenSuccessHeap) { 
     DBFile dbfile;
     char myfname[] = "lee.txt";
     fType heap = heap;
@@ -37,7 +37,7 @@ TEST(OpenTest, OpenSuccess) {
     dbfile.Close();
 }
 
-TEST(Closetest, CloseSuccess) {
+TEST(ClosetestHeap, CloseSuccessHeap) {
      DBFile dbfile;
      char myfname[] = "lee.txt";
      fType heap = heap;
@@ -51,8 +51,8 @@ TEST(Closetest, CloseSuccess) {
      dbfile.Close();
  }
 
-TEST(Loadtest, PreLoadSuccess) {
-     DBFile dbfile;
+TEST(LoadtestHeap, PreLoadSuccessHeap) {
+     Heap dbfile;
      char myfname[] = "lee.txt";
      fType heap = heap;
      void* ptr;
@@ -65,8 +65,8 @@ TEST(Loadtest, PreLoadSuccess) {
      dbfile.Close();
  }
 
-TEST(Loadtest, PostLoadSuccess) {
-     DBFile dbfile; 
+TEST(LoadtestHeap, PostLoadSuccessHeap) {
+     Heap dbfile; 
      char myfname[] = "lee.txt";
      fType heap = heap;
      void* ptr;
@@ -83,8 +83,8 @@ TEST(Loadtest, PostLoadSuccess) {
  }
 
 
-TEST(AddPagetest, AddPageSuccess) {
-     DBFile dbfile;
+TEST(AddPagetestHeap, AddPageSuccessHeap) {
+     Heap dbfile;
      char myfname[] = "lee.txt";
      fType heap = heap;
      void* ptr;
@@ -107,8 +107,8 @@ TEST(AddPagetest, AddPageSuccess) {
      dbfile.Close(); 
 }
 
-TEST(GetNextTest, GetLast) {
-     DBFile dbfile;
+TEST(GetNextTestHeap, GetLastHeap) {
+     Heap dbfile;
      char myfname[] = "lee.txt";
      fType heap = heap;
      void* ptr;
@@ -129,8 +129,8 @@ TEST(GetNextTest, GetLast) {
 }
 
 
-TEST(GetNextTest, GNSuccess) {
-     DBFile dbfile;
+TEST(GetNextTestHeap, GNSuccessHeap) {
+     Heap dbfile;
      char myfname[] = "lee.txt";
      fType heap = heap;
      void* ptr;
@@ -152,7 +152,7 @@ TEST(GetNextTest, GNSuccess) {
 
 
 TEST(CreateTest, CreateMetaDataFilesTest) { 
-    DBFile dbfile;
+    Heap dbfile;
     char myfname[] = "test.txt";
     fType heap = heap;
     void* ptr;
@@ -169,7 +169,7 @@ TEST(GetValueFromTxtTest, GetValueSuccess) {
     off_t ans = 1;
     off_t result = 1;
 
-    DBFile dbfile;
+    Heap dbfile;
 
     char l_page [] = "test_lpage.txt";
     temp_val = dbfile.GetValueFromTxt(l_page);
@@ -178,24 +178,27 @@ TEST(GetValueFromTxtTest, GetValueSuccess) {
     temp_val = dbfile.GetValueFromTxt(d_page);
     ASSERT_EQ(result, temp_val);
 }
+
 TEST(SetValueFromTxtTest, SetValueSuccess) { 
     off_t temp_val = 98;
     off_t get_val = 0;
-    DBFile dbfile;
+    Heap dbfile;
     char d_page [] = "test_lpage.txt";
     dbfile.SetValueFromTxt(d_page, get_val);
     ASSERT_EQ(get_val, dbfile.GetValueFromTxt(d_page));
 }
 
 TEST(CreateRunTest, checkNumRecs) {
-    DBFile dbfile;
-    DBFile to_test;
+    Heap dbfile;
+    Heap to_test;
     Record inprec;
    
     int count = 0;
     int runcount = 0;
-	dbfile.Open("orders.bin");
+	dbfile.Open("nation.bin");
     to_test.Open("runs.bin");
+    dbfile.MoveFirst();
+    to_test.MoveFirst();
     while (dbfile.GetNext(inprec) == 1) {
         count++;
     }
@@ -211,10 +214,10 @@ TEST(CreateRunTest, checkNumRecs) {
 }
 
 TEST(CreateRunTest, checkNumPages) {
-    DBFile dbfile;
-    DBFile to_test;
+    Heap dbfile;
+    Heap to_test;
     
-	dbfile.Open("orders.bin");
+	dbfile.Open("nation.bin");
     to_test.Open("runs.bin");
     int count = dbfile.file_instance.GetLength();
     int runcount = to_test.file_instance.GetLength();
@@ -226,7 +229,7 @@ TEST(CreateRunTest, checkNumPages) {
 }
 
 TEST(sortRecorsTest, checkRunSort1) {
-    DBFile dbfile;
+    Heap dbfile;
     dbfile.Open("runs.bin");
     Page pg;
     CNF cnf;
@@ -251,60 +254,10 @@ TEST(sortRecorsTest, checkRunSort1) {
     dbfile.Close();
 }
 
-TEST(sortRecorsTest, checkRunSort2) {
-    DBFile dbfile;
-    dbfile.Open("runs.bin");
-    Page pg;
-    CNF cnf;
-    Record r1;
-    Record r2;
 
-    ComparisonEngine ceng;
-    //extern struct AndList *final;
-    
-    Schema mySchema ("catalog", "orders");
-    OrderMaker sortorder(&mySchema);
-    
-    dbfile.file_instance.GetPage(&pg,1);
-    pg.GetFirst(&r1);
-    pg.GetFirst(&r2);
-    
-    //r1.Print(&mySchema);
-    //r2.Print(&mySchema);
-	
-    int val = ceng.Compare (&r1, &r2, &sortorder);
-    ASSERT_EQ(val,-1);
-    dbfile.Close();
-}
-
-TEST(sortRecorsTest, checkRunSort3) {
-    DBFile dbfile;
-    dbfile.Open("runs.bin");
-    Page pg;
-    CNF cnf;
-    Record r1;
-    Record r2;
-
-    ComparisonEngine ceng;
-    //extern struct AndList *final;
-    
-    Schema mySchema ("catalog", "orders");
-    OrderMaker sortorder(&mySchema);
-    
-    dbfile.file_instance.GetPage(&pg,0);
-    pg.GetFirst(&r1);
-    r2.Copy(&r1);
-    
-    //r1.Print(&mySchema);
-    //r2.Print(&mySchema);
-	
-    int val = ceng.Compare (&r1, &r2, &sortorder);
-    ASSERT_EQ(val,0);
-    dbfile.Close();
-}
 
 TEST(mergeSortTest,testRec) {
-    DBFile dbfile;
+    Heap dbfile;
     dbfile.Open("runs.bin");
     Page pg;
     Record arr[10];
@@ -326,7 +279,249 @@ TEST(mergeSortTest,testRec) {
 
 }
 
+TEST(CreateTestSorted, CreateSuccessSorted) { 
+    DBFile dbfile;
+    char myfname[] = "sortedTestFile";
+    // fType sorted = sorted;
+
+    int runLength = 1;
+    Schema mySchema ("catalog", "nation");
+    OrderMaker sortorder(&mySchema);
+    
+    struct {OrderMaker *o; int l;} startup = {&sortorder, runLength};
+    int val = dbfile.Create(myfname, sorted, &startup);
+    ASSERT_EQ(1, val);
+    remove( "sortedTestFile" );
+	remove( "sortedTestFile_dpage.txt" );
+	remove( "sortedTestFile_lpage.txt" );
+	remove( "sortedTestFile_type.txt" );
+    // dbfile.Close();
+}
+
+
+TEST(OpenTestSorted, OpenSuccessSorted) { 
+    DBFile dbfile;
+    char myfname[] = "sortedTestFile";
+    // fType sorted = sorted;
+   
+     int runLength = 1;
+    Schema mySchema ("catalog", "nation");
+    OrderMaker sortorder(&mySchema);
+
+    struct {OrderMaker *o; int l;} startup = {&sortorder, runLength};
+    int val = dbfile.Create(myfname, sorted, &startup);
+    ASSERT_EQ(1, val);
+    val = dbfile.Open(myfname);
+    ASSERT_EQ(1, val);
+    remove( "sortedTestFile" );
+	remove( "sortedTestFile_dpage.txt" );
+	remove( "sortedTestFile_lpage.txt" );
+	remove( "sortedTestFile_type.txt" );
+    // dbfile.Close();
+}
+
+TEST(AddCustomerTestSorted, AddCustomerSuccessSorted) { 
+    DBFile dbfile;
+	Heap hp;
+	Record tempRec;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "customer");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	dbfile.Close();
+	dbfile.Open("test_phase2.bin");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		dbfile.Add (temp);
+        count++;
+
+	}
+	dbfile.instVar->mergePipeAndFile();
+    dbfile.Close();
+	
+	Heap dbfile_test;
+	dbfile_test.Open ("test_phase2.bin");
+
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+	}
+    ASSERT_EQ(counter, count);
+	dbfile_test.Close();
+	remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
+}
+TEST(AddRegionTestSorted, AddRegionSuccessSorted) { 
+    DBFile dbfile;
+	Heap hp;
+	Record tempRec;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "region");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	dbfile.Close();
+	dbfile.Open("test_phase2.bin");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/region.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		dbfile.Add (temp);
+        count++;
+
+	}
+	dbfile.instVar->mergePipeAndFile();
+    dbfile.Close();
+	
+	Heap dbfile_test;
+	dbfile_test.Open ("test_phase2.bin");
+
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+	}
+    ASSERT_EQ(counter, count);
+	dbfile_test.Close();
+	remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
+}
+
+TEST(AddNationTestSorted, AddNationSuccessSorted) { 
+    DBFile dbfile;
+	Heap hp;
+	Record tempRec;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "nation");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	dbfile.Close();
+	dbfile.Open("test_phase2.bin");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		dbfile.Add (temp);
+        count++;
+
+	}
+	dbfile.instVar->mergePipeAndFile();
+    dbfile.Close();
+	
+	Heap dbfile_test;
+	dbfile_test.Open ("test_phase2.bin");
+
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+	}
+    ASSERT_EQ(counter, count);
+	dbfile_test.Close();
+	remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
+}
+TEST(PipeGetFirstSlot, PipeGetFirstSlotSuccess){
+    Schema mySchema ("catalog", "customer");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	Pipe in_pipe = Pipe(100);
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		in_pipe.Insert(&temp);
+        count++;
+		if (count == 50){
+			break;
+		}
+	}
+	cout<<"testing"<<endl;
+    ASSERT_EQ(in_pipe.getFirstSlot(), 0);
+	cout<< in_pipe.getLastSlot()<<endl;
+}
+TEST(PipeGetLastSlot, PipeGetLastSlotSuccess){
+    Schema mySchema ("catalog", "customer");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	Pipe in_pipe = Pipe(100);
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		in_pipe.Insert(&temp);
+        count++;
+		if (count == 50){
+			break;
+		}
+	}
+	cout<<"testing"<<endl;
+    ASSERT_EQ(in_pipe.getLastSlot(), count);
+}
+TEST(PipeReset, PipeResetSuccess){
+    Schema mySchema ("catalog", "customer");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	Pipe in_pipe = Pipe(100);
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		in_pipe.Insert(&temp);
+        count++;
+		if (count == 50){
+			break;
+		}
+	}
+	cout<<"testing"<<endl;
+    in_pipe.resetPipe();
+    ASSERT_EQ(in_pipe.getLastSlot(), 0);
+    ASSERT_EQ(in_pipe.getFirstSlot(), 0);
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
+    // ::testing::GTEST_FLAG(filter) = "AddSuccessSorted*";
     return RUN_ALL_TESTS();
 }
