@@ -387,19 +387,16 @@ TEST(AddTestSorted, AddSuccessSorted) {
 	FILE *tblfile = fopen ("tables/customer.tbl", "r");
     int count =0;
 	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
-		// temp.Print(&mySchema);
 		dbfile.Add (temp);
         count++;
 
 	}
-    cout<<"Test count "<<count<<endl;
 	dbfile.instVar->mergePipeAndFile();
     dbfile.Close();
 	
 	Heap dbfile_test;
-	// cout << " DBFile will be created at "<< endl;
 	dbfile_test.Open ("test_phase2.bin");
-	// dbfile_test.Create("test_phase2.bin",heap,NULL);
+
 	Record inprec;
 	int counter = 0;
 	Page test_page;
@@ -412,15 +409,70 @@ TEST(AddTestSorted, AddSuccessSorted) {
 		if(counter % 5000 ==0){
 			cout<< "inside populate loop "<< counter<<endl;
 		}
-		// inprec.Print(&mySchema);
 	}
-	cout<< "Number of records is "<< counter <<endl;
     ASSERT_EQ(counter, count);
 	dbfile_test.Close();
 	remove( "test_phase2.bin" );
 	remove( "test_phase2_dpage.txt" );
 	remove( "test_phase2_lpage.txt" );
 	remove( "test_phase2_type.txt" );
+}
+TEST(PipeGetFirstSlot, PipeGetFirstSlotSuccess){
+    Schema mySchema ("catalog", "customer");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	Pipe in_pipe = Pipe(100);
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		in_pipe.Insert(&temp);
+        count++;
+		if (count == 50){
+			break;
+		}
+	}
+	cout<<"testing"<<endl;
+    ASSERT_EQ(in_pipe.getFirstSlot(), 0);
+	cout<< in_pipe.getLastSlot()<<endl;
+}
+TEST(PipeGetLastSlot, PipeGetLastSlotSuccess){
+    Schema mySchema ("catalog", "customer");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	Pipe in_pipe = Pipe(100);
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		in_pipe.Insert(&temp);
+        count++;
+		if (count == 50){
+			break;
+		}
+	}
+	cout<<"testing"<<endl;
+    ASSERT_EQ(in_pipe.getLastSlot(), count);
+}
+TEST(PipeReset, PipeResetSuccess){
+    Schema mySchema ("catalog", "customer");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	Pipe in_pipe = Pipe(100);
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		// temp.Print(&mySchema);
+		in_pipe.Insert(&temp);
+        count++;
+		if (count == 50){
+			break;
+		}
+	}
+	cout<<"testing"<<endl;
+    in_pipe.resetPipe();
+    ASSERT_EQ(in_pipe.getLastSlot(), 0);
+    ASSERT_EQ(in_pipe.getFirstSlot(), 0);
 }
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
