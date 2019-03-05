@@ -370,7 +370,7 @@ TEST(OpenTestSorted, OpenSuccessSorted) {
     // dbfile.Close();
 }
 
-TEST(AddTestSorted, AddSuccessSorted) { 
+TEST(AddCustomerTestSorted, AddCustomerSuccessSorted) { 
     DBFile dbfile;
 	Heap hp;
 	Record tempRec;
@@ -385,6 +385,101 @@ TEST(AddTestSorted, AddSuccessSorted) {
 	int res;
 	Record temp;
 	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		dbfile.Add (temp);
+        count++;
+
+	}
+	dbfile.instVar->mergePipeAndFile();
+    dbfile.Close();
+	
+	Heap dbfile_test;
+	dbfile_test.Open ("test_phase2.bin");
+
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+	}
+    ASSERT_EQ(counter, count);
+	dbfile_test.Close();
+	remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
+}
+TEST(AddRegionTestSorted, AddRegionSuccessSorted) { 
+    DBFile dbfile;
+	Heap hp;
+	Record tempRec;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "region");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	dbfile.Close();
+	dbfile.Open("test_phase2.bin");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/region.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		dbfile.Add (temp);
+        count++;
+
+	}
+	dbfile.instVar->mergePipeAndFile();
+    dbfile.Close();
+	
+	Heap dbfile_test;
+	dbfile_test.Open ("test_phase2.bin");
+
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+	}
+    ASSERT_EQ(counter, count);
+	dbfile_test.Close();
+	remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
+}
+
+TEST(AddNationTestSorted, AddNationSuccessSorted) { 
+    DBFile dbfile;
+	Heap hp;
+	Record tempRec;
+	// dbfile.Create("test_phase2.bin",heap,NULL);
+	Schema mySchema ("catalog", "nation");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+	dbfile.Create("test_phase2.bin",sorted,&startup);
+	dbfile.Close();
+	dbfile.Open("test_phase2.bin");
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
     int count =0;
 	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
 		dbfile.Add (temp);
@@ -473,6 +568,44 @@ TEST(PipeReset, PipeResetSuccess){
     in_pipe.resetPipe();
     ASSERT_EQ(in_pipe.getLastSlot(), 0);
     ASSERT_EQ(in_pipe.getFirstSlot(), 0);
+}
+
+TEST(LoadSortedTest, LoadSortedSuccess){
+    DBFile dbfile; 
+    char myfname[] = "test_phase2.bin";
+    fType heap = heap;
+    void* ptr;
+	Schema mySchema ("catalog", "customer");
+	OrderMaker sortorder(&mySchema);
+	int runlen = 2;
+	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
+    int val = dbfile.Create(myfname, sorted, &startup);
+    val = dbfile.Open("test_phase2.bin");
+    int initial_length = dbfile.file_instance.GetLength();
+    dbfile.Load(mySchema, "tables/customer.tbl");
+    int new_length = dbfile.file_instance.GetLength();
+    dbfile.Close();
+    DBFile dbfile_test;
+	dbfile_test.Open ("test_phase2.bin");
+
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+	}
+    ASSERT_EQ(counter, 1500);
+    remove( "test_phase2.bin" );
+	remove( "test_phase2_dpage.txt" );
+	remove( "test_phase2_lpage.txt" );
+	remove( "test_phase2_type.txt" );
 }
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

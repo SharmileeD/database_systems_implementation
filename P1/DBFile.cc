@@ -658,6 +658,7 @@ void Sorted::Load (Schema &f_schema, const char *loadpath) {
         while (temp.SuckNextRecord (&f_schema, tableFile) == 1){
             this->Add(temp);
         } 
+
     }
     catch(const std::exception& e)
     {
@@ -733,7 +734,6 @@ void Sorted::Add (Record &rec) {
         else if(this->mode == "writing"){
             // This is where the mode already in writing mode so just adding data to the inpipe
             this->input_pipe.Insert(&ins);
-            
         }
 	    
     }
@@ -880,7 +880,9 @@ int Sorted::mergePipeAndFile () {
     this->input_pipe.resetPipe();
     this->output_pipe.resetPipe();
     
-    
+    remove("aux_file.bin");
+    remove("aux_file_dpage.txt");
+    remove("aux_file_lpage.txt");
 }
 
 int Sorted :: goSequential(int start, int mid, OrderMaker query, Record literal, OrderMaker litQuery) {
