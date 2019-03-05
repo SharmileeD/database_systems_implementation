@@ -188,146 +188,96 @@ TEST(SetValueFromTxtTest, SetValueSuccess) {
     ASSERT_EQ(get_val, dbfile.GetValueFromTxt(d_page));
 }
 
-// TEST(CreateRunTest, checkNumRecs) {
-//     Heap dbfile;
-//     Heap to_test;
-//     Record inprec;
+TEST(CreateRunTest, checkNumRecs) {
+    Heap dbfile;
+    Heap to_test;
+    Record inprec;
    
-//     int count = 0;
-//     int runcount = 0;
-// 	dbfile.Open("nation.bin");
-//     to_test.Open("runs.bin");
-//     dbfile.MoveFirst();
-//     to_test.MoveFirst();
-//     while (dbfile.GetNext(inprec) == 1) {
-//         count++;
-//     }
+    int count = 0;
+    int runcount = 0;
+	dbfile.Open("nation.bin");
+    to_test.Open("runs.bin");
+    dbfile.MoveFirst();
+    to_test.MoveFirst();
+    while (dbfile.GetNext(inprec) == 1) {
+        count++;
+    }
    
-//     while (to_test.GetNext(inprec) == 1) {
-//         runcount++;
-//     }
-//     dbfile.Close();
-//     to_test.Close();
+    while (to_test.GetNext(inprec) == 1) {
+        runcount++;
+    }
+    dbfile.Close();
+    to_test.Close();
     
-//     ASSERT_EQ(count, runcount);
+    ASSERT_EQ(count, runcount);
 
-// }
+}
 
-// TEST(CreateRunTest, checkNumPages) {
-//     Heap dbfile;
-//     Heap to_test;
+TEST(CreateRunTest, checkNumPages) {
+    Heap dbfile;
+    Heap to_test;
     
-// 	dbfile.Open("nation.bin");
-//     to_test.Open("runs.bin");
-//     int count = dbfile.file_instance.GetLength();
-//     int runcount = to_test.file_instance.GetLength();
-//     dbfile.Close();
-//     to_test.Close();
+	dbfile.Open("nation.bin");
+    to_test.Open("runs.bin");
+    int count = dbfile.file_instance.GetLength();
+    int runcount = to_test.file_instance.GetLength();
+    dbfile.Close();
+    to_test.Close();
     
-//     ASSERT_EQ(count, runcount);
+    ASSERT_EQ(count, runcount);
 
-// }
+}
 
-// TEST(sortRecorsTest, checkRunSort1) {
-//     Heap dbfile;
-//     dbfile.Open("runs.bin");
-//     Page pg;
-//     CNF cnf;
-//     Record r1;
-//     Record r2;
+TEST(sortRecorsTest, checkRunSort1) {
+    Heap dbfile;
+    dbfile.Open("runs.bin");
+    Page pg;
+    CNF cnf;
+    Record r1;
+    Record r2;
 
-//     ComparisonEngine ceng;
-//     //extern struct AndList *final;
+    ComparisonEngine ceng;
+    //extern struct AndList *final;
     
-//     Schema mySchema ("catalog", "orders");
-//     OrderMaker sortorder(&mySchema);
+    Schema mySchema ("catalog", "orders");
+    OrderMaker sortorder(&mySchema);
     
-//     dbfile.file_instance.GetPage(&pg,0);
-//     pg.GetFirst(&r1);
-//     pg.GetFirst(&r2);
+    dbfile.file_instance.GetPage(&pg,0);
+    pg.GetFirst(&r1);
+    pg.GetFirst(&r2);
     
-//     //r1.Print(&mySchema);
-//     //r2.Print(&mySchema);
+    //r1.Print(&mySchema);
+    //r2.Print(&mySchema);
 	
-//     int val = ceng.Compare (&r2, &r1, &sortorder);
-//     ASSERT_EQ(val,1);
-//     dbfile.Close();
-// }
+    int val = ceng.Compare (&r2, &r1, &sortorder);
+    ASSERT_EQ(val,1);
+    dbfile.Close();
+}
 
-// TEST(sortRecorsTest, checkRunSort2) {
-//     Heap dbfile;
-//     dbfile.Open("runs.bin");
-//     Page pg;
-//     CNF cnf;
-//     Record r1;
-//     Record r2;
 
-//     ComparisonEngine ceng;
-//     //extern struct AndList *final;
-    
-//     Schema mySchema ("catalog", "orders");
-//     OrderMaker sortorder(&mySchema);
-    
-//     dbfile.file_instance.GetPage(&pg,1);
-//     pg.GetFirst(&r1);
-//     pg.GetFirst(&r2);
-    
-//     //r1.Print(&mySchema);
-//     //r2.Print(&mySchema);
-	
-//     int val = ceng.Compare (&r1, &r2, &sortorder);
-//     ASSERT_EQ(val,-1);
-//     dbfile.Close();
-// }
 
-// TEST(sortRecorsTest, checkRunSort3) {
-//     Heap dbfile;
-//     dbfile.Open("runs.bin");
-//     Page pg;
-//     CNF cnf;
-//     Record r1;
-//     Record r2;
-
-//     ComparisonEngine ceng;
-//     //extern struct AndList *final;
+TEST(mergeSortTest,testRec) {
+    Heap dbfile;
+    dbfile.Open("runs.bin");
+    Page pg;
+    Record arr[10];
+    ComparisonEngine ceng;
     
-//     Schema mySchema ("catalog", "orders");
-//     OrderMaker sortorder(&mySchema);
-    
-//     dbfile.file_instance.GetPage(&pg,0);
-//     pg.GetFirst(&r1);
-//     r2.Copy(&r1);
-    
-//     //r1.Print(&mySchema);
-//     //r2.Print(&mySchema);
-	
-//     int val = ceng.Compare (&r1, &r2, &sortorder);
-//     ASSERT_EQ(val,0);
-//     dbfile.Close();
-// }
+    dbfile.file_instance.GetPage(&pg,0);
 
-// TEST(mergeSortTest,testRec) {
-//     Heap dbfile;
-//     dbfile.Open("runs.bin");
-//     Page pg;
-//     Record arr[10];
-//     ComparisonEngine ceng;
-    
-//     dbfile.file_instance.GetPage(&pg,0);
+    for(int i =9;i >= 0; i--) {
+        pg.GetFirst(&arr[i]);
+    }
+    Schema mySchema ("catalog", "orders");
+    OrderMaker sortorder(&mySchema);
+    mergeSort(arr,0,9,sortorder);
+    int val;
+    for(int i =0;i < 9; i++) {
+        val = ceng.Compare (&arr[i], &arr[i+1], &sortorder);
+        ASSERT_EQ(val,-1);
+    }
 
-//     for(int i =9;i >= 0; i--) {
-//         pg.GetFirst(&arr[i]);
-//     }
-//     Schema mySchema ("catalog", "orders");
-//     OrderMaker sortorder(&mySchema);
-//     mergeSort(arr,0,9,sortorder);
-//     int val;
-//     for(int i =0;i < 9; i++) {
-//         val = ceng.Compare (&arr[i], &arr[i+1], &sortorder);
-//         ASSERT_EQ(val,-1);
-//     }
-
-// }
+}
 
 TEST(CreateTestSorted, CreateSuccessSorted) { 
     DBFile dbfile;
@@ -570,45 +520,8 @@ TEST(PipeReset, PipeResetSuccess){
     ASSERT_EQ(in_pipe.getFirstSlot(), 0);
 }
 
-TEST(LoadSortedTest, LoadSortedSuccess){
-    DBFile dbfile; 
-    char myfname[] = "test_phase2.bin";
-    fType heap = heap;
-    void* ptr;
-	Schema mySchema ("catalog", "customer");
-	OrderMaker sortorder(&mySchema);
-	int runlen = 2;
-	struct {OrderMaker *o; int l;} startup = {&sortorder, runlen};
-    int val = dbfile.Create(myfname, sorted, &startup);
-    val = dbfile.Open("test_phase2.bin");
-    int initial_length = dbfile.file_instance.GetLength();
-    dbfile.Load(mySchema, "tables/customer.tbl");
-    int new_length = dbfile.file_instance.GetLength();
-    dbfile.Close();
-    DBFile dbfile_test;
-	dbfile_test.Open ("test_phase2.bin");
-
-	Record inprec;
-	int counter = 0;
-	Page test_page;
-	dbfile_test.MoveFirst ();
-
-	while (dbfile_test.GetNext(inprec) == 1) {
-		
-		counter += 1;
-		
-		if(counter % 5000 ==0){
-			cout<< "inside populate loop "<< counter<<endl;
-		}
-	}
-    ASSERT_EQ(counter, 1500);
-    remove( "test_phase2.bin" );
-	remove( "test_phase2_dpage.txt" );
-	remove( "test_phase2_lpage.txt" );
-	remove( "test_phase2_type.txt" );
-}
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
-    ::testing::GTEST_FLAG(filter) = "AddSuccessSorted*";
+    // ::testing::GTEST_FLAG(filter) = "AddSuccessSorted*";
     return RUN_ALL_TESTS();
 }
