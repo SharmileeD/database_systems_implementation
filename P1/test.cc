@@ -103,11 +103,11 @@ void test3 () {
 	CNF cnf; 
 	Record literal;
 	rel->get_cnf (cnf, literal);
-	Schema mySchema("catalog", "orders");
+	
 	DBFile dbfile;
 	dbfile.Open (rel->path());
 	dbfile.MoveFirst ();
-	literal.Print(&mySchema);
+	
 	Record temp;
 
 	int cnt = 0;

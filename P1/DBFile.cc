@@ -138,7 +138,7 @@ int DBFile::Open (const char *f_path) {
                 
                 int wch_atts_arr [wch_atts.size()];
                 Type wch_type_arr [wch_types.size()];
-                cout<<"Printing the arrays"<<endl;
+                
                 for(int i =0; i<wch_atts.size();i++){
                     wch_type_arr[i] = wch_types[i];
                     wch_atts_arr[i] = wch_atts[i];
@@ -397,7 +397,7 @@ int Heap::Close () {
         off_t last_page = 0;
         off_t test;
         // Record tempRec;
-        Schema mySchema ("catalog", "lineitem");
+        // Schema mySchema ("catalog", "lineitem");
         dirty = this->GetValueFromTxt(this->meta_dpage_name);
         if (dirty == 1){
               
@@ -883,10 +883,39 @@ int Sorted::mergePipeAndFile () {
     
 }
 
+int Sorted :: goSequential(int start, int mid, OrderMaker query, Record literal, OrderMaker litQuery) {
+    Record last;
+	Record first;
+	Page pg;
+    ComparisonEngine ceng;
+    int curr = mid -1;
+    while(curr >= start) {
+        
+        this->file_instance.GetPage(&pg, curr);
+		pg.GetFirst(&first);
+		
+        this->file_instance.GetPage(&pg, curr);
+		pg.GetLast(&last);
+
+        int lastval = ceng.Compare(&last, &query, &literal, &litQuery);
+		int firstval = ceng.Compare(&first, &query, &literal, &litQuery);
+        
+        //if previous page has records lesser than literal
+        if(firstval < 0 && lastval < 0)
+            return mid;
+        //if previos page is the first where the match is found
+        if(firstval < 0 && lastval == 0)
+            return curr;
+        //if previous page also has all matching
+        curr--; 
+    }
+    return start;
+
+}
+
 //Method to perform Binary search
-int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal) {
-	// Heap dbfile;
-	// dbfile.Open("orders.bin");
+int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal, OrderMaker litQuery) {
+	
 	
 	Record last;
 	Record first;
@@ -896,37 +925,29 @@ int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal) 
 	int mid = (start + end)/2;
 			
 	ComparisonEngine ceng;
-	Schema mySchema ("catalog", "orders");
-
-		
+			
 	while (start <= end) {
 		mid = (start +  end)/2;
-		this->file_instance.GetPage(&pg, mid);
 		
+        //fetch first and last record of the page
+        this->file_instance.GetPage(&pg, mid);
 		pg.GetFirst(&first);
-
-
+        
 		this->file_instance.GetPage(&pg, mid);
-		if(pg.GetLast(&last)) {
-			// cout << "Last record"<<endl;
-			// last.Print(&mySchema);
-		}
-		else
-		{
-				cout <<"No last record"<<endl;
-		}
-		// literal.Print(&mySchema);
-		lastval = ceng.Compare(&last, &literal, &query);
-		firstval = ceng.Compare(&first, &literal, &query);
-		cout <<"------------------------------------------------------------------------"<<endl;
-		cout << "First record:"<<endl;
-		first.Print(&mySchema);
-		cout <<endl<<endl<<"Second record" <<endl;
-		last.Print(&mySchema);
-		cout << endl <<endl;
+		pg.GetLast(&last);
+      
+		
+		lastval = ceng.Compare(&last, &query, &literal, &litQuery);
+		firstval = ceng.Compare(&first, &query, &literal, &litQuery);
+		        
+        //if match found with first record go to previous pages to find first match
+        if(firstval ==0 ) {
+            int result = this->goSequential(start, mid, query, literal, litQuery);
+            return result;
+        }
 
 		//either its first or last record or anything between them, send the page
-		if(lastval == 0 || firstval ==0 || (lastval > 0 && firstval < 0)) {
+		if (lastval >= 0 && firstval < 0) {
 			
 			// dbfile.Close();
 			return mid;
@@ -940,10 +961,10 @@ int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal) 
 		else if (firstval > 0)
 			end = mid-1;		
 
-		cout << "Start= "<<start<<"   end = "<<end<<"  mid="<<mid<<endl;
+		// cout << "Start= "<<start<<"   end = "<<end<<"  mid="<<mid<<endl;
 	}
 	if(start > end) {
-		// dbfile.Close();
+		
 		return -1;
 	}
 	
@@ -954,17 +975,18 @@ int Sorted::pageBinSearch(int start, int end, OrderMaker query, Record literal) 
 //Function to get the record after the current record which matches the cnf
 int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
      
-    OrderMaker query;
-    //  query = this->odr_mkr.makeQuery(cnf);
-    Schema mySchema ("catalog", "orders");
-    OrderMaker o (&mySchema);
+    OrderMaker query, litQuery;
+    OrderMaker o = this->odr_mkr.makeQuery(cnf);
+    
     ComparisonEngine ceng;
     int pagenum;
-     //If newQuery is true construct new query and do binary search
+   
+    //If newQuery is true construct new query and do binary search
      if(this->newQuery==true) {
-        
-        cout << endl<<"--------------------------------------MAking new query :)" <<endl;
+              
         query = o.makeQuery(cnf);
+        litQuery = o.makeLitQuery(cnf);
+
         this->querPg =0;
         this->queryOffset =0;
        
@@ -976,10 +998,10 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	        int endpg = this->file_instance.GetLength();
 	        if(endpg>0)
 	    	    endpg = endpg - 2; 
-	        cout << "start = " << startpg <<"  end = "<<endpg <<endl <<endl;     
-            int pagenum = this->pageBinSearch(startpg,endpg,query,literal);
-            cout << "pagenum= "<<pagenum<<endl;
-
+	        
+            //Binary search to get the page where record is first found after the current page
+            int pagenum = this->pageBinSearch(startpg,endpg,query,literal,litQuery);
+            
             //Set the current page to the one from where we start reading
             if(pagenum == -1)
                 return 0;
@@ -988,36 +1010,31 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
         
             //If the page is not the start page then set record_offset to 0
             if(pagenum != startpg)
-	    	this->record_offset = 0;
+	    	    this->record_offset = 0;
         }
         
+        //Now make the newquery flag to reuse it in consecutive GetNext
         this->newQuery =  false;
     
      }
      else {
-        cout << endl<<"************************************using previous query"<<endl;
+        //If old query is to be used set the current page and offset and the current query
         query = this->query;
         this->current_page = this->querPg;
         this->record_offset = this->queryOffset;
      }
     
-    // this->query = query;
-    query.Print();
-    cnf.Print();   
-  
-    // Record temp;
-    
+        
     //If query is empty send the first record of file which is equal to literal.
-
+    //If no record matches the cnf then return 0
     if(query.isOmEmpty()) {
-        cout << "Query is empty!!"<<endl;
+      
         while(this->GetNext(fetchme)) {
+            
             int val1 = ceng.Compare(&fetchme,&literal, &cnf);
             if(val1==1) {
-                cout <<"Found match!!!!!"<<endl;
-		    	fetchme.Print(&mySchema);
+                
                 this->querPg = this->current_page;
-                // this->record_offset++;
                 this->queryOffset = this->record_offset;
                 this->newQuery = false;
 			    return 1;
@@ -1025,34 +1042,19 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
         }
         return 0;
     }
-    // //If query is not empty
-    // int startpg = this->current_page;
-	// int endpg = this->file_instance.GetLength();
-	// if(endpg>0)
-	// 	endpg = endpg - 2; 
-	// cout << "start = " << startpg <<"  end = "<<endpg <<endl <<endl;
-	
-    // //Perform binary search to find the page from where the record matches the literal on basis of query OrderMAker
-    // int val = this->pageBinSearch(startpg,endpg,query,literal);
-    // cout << "val= "<<val<<endl;
-    
-    // //Set the current page to the one from where we start reading
-    // this->current_page = val;
-
-    // //If the page is not the start page then set record_offset to 0
-    // if(val != startpg)
-	// 	this->record_offset = 0;
+  
+    //Sequentially search from given position to find a record that satisfies query and cnf
 
     while(this->GetNext(fetchme)) {
 		int qval = ceng.Compare(&fetchme,&literal,&query);
 		//if query evaluates to true then check cnf else return 0
-		// temp.Print(&mySchema);
+		
 		if(qval == 0) {
 		
 			int cval = ceng.Compare(&fetchme,&literal, &cnf);
 			//if cnf evaluates to true then send it to the caller else check next record
 			if(cval==1) {
-				fetchme.Print(&mySchema);
+		
                 this->querPg = this->current_page;
                 this->record_offset++;
                 this->queryOffset = this->record_offset;
@@ -1064,7 +1066,7 @@ int Sorted::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 			
 	} 
     return 0;  
-	//this->Close();
+	
 
 }
 

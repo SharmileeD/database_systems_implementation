@@ -105,7 +105,8 @@ class Sorted: public GenericDBFile{
 		void SetValueFromTxt(char file_name[], off_t set_value);
 		void SetMetaDataFileName(char tblpath []);
 		int mergePipeAndFile ();
-		int pageBinSearch(int start, int end, OrderMaker query, Record literal);
+		int pageBinSearch(int start, int end, OrderMaker query, Record literal, OrderMaker litQuery);
+		int goSequential(int start, int mid, OrderMaker query, Record literal, OrderMaker litQuery);
 };
 class DBFile {
 private:

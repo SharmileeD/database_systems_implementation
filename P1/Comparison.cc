@@ -103,7 +103,7 @@ OrderMaker :: OrderMaker(Schema *schema) {
 
 
 void OrderMaker :: Print () {
-	printf("NumAtts = %5d\n", numAtts);
+	// printf("NumAtts = %5d\n", numAtts);
 	for (int i = 0; i < numAtts; i++)
 	{
 		printf("%3d: %5d ", i, whichAtts[i]);
@@ -117,7 +117,7 @@ void OrderMaker :: Print () {
 }
 
 OrderMaker OrderMaker :: makeQuery (CNF &cnf) {
-	printf("NumAtts = %5d\n", numAtts);
+	
 	int countAttr = 0;
 	int val = 0;
 	int attsArr[MAX_ANDS];
@@ -125,27 +125,49 @@ OrderMaker OrderMaker :: makeQuery (CNF &cnf) {
 	for (int i = 0; i < numAtts; i++)
 	{
 		val = cnf.getAttr(this->whichAtts[i]);
-		// cout << "MAtching attribute: " <<this->whichAtts[i] << "of type: "<< this->whichTypes[i]<<"   val:"<<val <<endl << endl;
-		
+				
 		//if match found and all condition satisfied add to the query
-		if(val == 1) {
-			// cout << "Matched: " << whichAtts[i] << "  of type: "<< whichTypes[i]<< endl;
+		if(val >=0) {
+			
 			attsArr[countAttr] = whichAtts[i];
 			typeArr[countAttr] = whichTypes[i];
 			countAttr ++;
 		}
 
 		// if no match found in cnf stop making the query
-		else if (val == -1)
+		else if (val == -2)
+			break;
+	}
+	OrderMaker result = getOrderMaker(countAttr,attsArr,typeArr);
+	return result;
+}
+
+OrderMaker OrderMaker :: makeLitQuery (CNF &cnf) {
+	
+	int countAttr = 0;
+	int val = 0;
+	int attsArr[MAX_ANDS];
+	Type typeArr[MAX_ANDS];
+	for (int i = 0; i < numAtts; i++)
+	{
+		val = cnf.getAttr(this->whichAtts[i]);
+				
+		//if match found and all condition satisfied add to the query
+		if(val >=0) {
+			
+			attsArr[countAttr] = val;
+			typeArr[countAttr] = whichTypes[i];
+			countAttr ++;
+		}
+
+		// if no match found in cnf stop making the query
+		else if (val == -2)
 			break;
 		
 	}
 	OrderMaker result = getOrderMaker(countAttr,attsArr,typeArr);
-	cout << "---->Final query:" << endl;
-	result.Print();
 	return result;
 }
-
 
 string OrderMaker :: returnOrderMaker () {
 	string out;
@@ -165,7 +187,6 @@ string OrderMaker :: returnOrderMaker () {
 
 OrderMaker OrderMaker :: getOrderMaker(int count, int attsArr[], Type typeArr[]){
 	OrderMaker dummy;
-	// cout << "here!!!!!!!!!!!!!!!!!!   "<<count<<endl;
 	dummy.numAtts = count;
 	for (int i =0; i< count; i++) {
 		dummy.whichAtts[i] = attsArr[i];
@@ -267,25 +288,25 @@ int CNF:: getAttr(int attr) {
 	for (int i = 0; i < numAnds; i++) {
 		for (int j = 0; j < orLens[i]; j++)  {
 
-			cout << "op1: " << orList[i][j].operand1<<"  attr: "<<attr<<" which1="<< orList[i][j].whichAtt1 <<" j:"<<j <<"  i="<< i << endl;
+			// cout << "op1: " << orList[i][j].operand1<<"  attr: "<<attr<<" which1="<< orList[i][j].whichAtt1 <<" j:"<<j <<"  i="<< i << endl;
 			 //IF the operand is left type, check if the whichatt matches
 			 if(orList[i][j].operand1 == 0 && orList[i][j].whichAtt1 == attr) {
-				 cout << "here" << endl;
+				//  cout << "here" << endl;
 				 //if it matches, check it is the only attribute present in its subexpression
 				 //it is comparing that attribute with a literal value with an equality check
 				 
 				 if(orList[i][j].operand2 == Literal && orList[i][j].op == Equals) {
 					 
-					 return 1;
+					 return orList[i][j].whichAtt2;
 				 }
 
-				 return 0;
+				 return -1;
 			 }
 
 			 
 		}
 	}
-	return -1;
+	return -2;
 }
 
 // this is a helper routine that writes out another field for the literal record and its schema
@@ -509,6 +530,7 @@ void CNF :: GrowFromParseTree (struct AndList *parseTree, Schema *leftSchema,
 	// and get the record
 	literal.SuckNextRecord (&mySchema, outRecFile);
 
+	
 	// close the record file
 	fclose (outRecFile);
 
@@ -698,12 +720,14 @@ void CNF :: GrowFromParseTree (struct AndList *parseTree, Schema *mySchema,
 
 	// and get the record
 	literal.SuckNextRecord (&outSchema, outRecFile);
+	
+	
 
 	// close the record file
 	fclose (outRecFile);
 
-	remove("sdafdsfFFDSDA");
-	remove("hkljdfgkSDFSDF");
+	// remove("sdafdsfFFDSDA");
+	// remove("hkljdfgkSDFSDF");
 }
 
 

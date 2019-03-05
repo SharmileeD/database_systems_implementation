@@ -64,6 +64,7 @@ public:
 	void Print ();
 	std::string returnOrderMaker();
 	OrderMaker makeQuery(CNF &cnf);
+	OrderMaker makeLitQuery(CNF &cnf);
 	OrderMaker getOrderMaker(int, int [], Type []);
 	bool isOmEmpty();
 };
