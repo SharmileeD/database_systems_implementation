@@ -7,7 +7,7 @@ Sharmilee Desai UFID: 0519-9796
 #Instructions
 1. To run the tests provided with the original zip (on Linux) just run the following commands in sequence 
 make clean
-make test_macos
+make test_mac
 ./test.out
 
 
@@ -18,10 +18,10 @@ make test.out
 
 3. To run gtests on Mac OS run the following commands
 make clean
-make test_macos
+make test_mac
 clang++ -std=c++11 -stdlib=libc++ DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 or 
-just run make gtest_macos
+just run make gtest_mac
 
 4. To run gtests on Linux run the following commands
 make clean
@@ -38,7 +38,7 @@ make clean
 make test_dbfile
 ./test_dbfile.out
 
-6.  To run Project 1 on Macos just run the following commands
+6.  To run Project 1 on macOS just run the following commands
 make clean
 make test_dbfile_mac
 ./test_dbfile.out
@@ -48,9 +48,19 @@ make clean
 make test_bigq
 ./test_bigq.out
 
-8.  To run Project 2 Milestone 1 on Macos just run the following commands
+8.  To run Project 2 Milestone 1 on macOS just run the following commands
 make clean
-make test_bigq_macos
+make test_bigq_mac
+./test_bigq.out
+
+7. To run Project 2 Milestone 2 on Linux just run the following commands
+make clean
+make test_sorted
+./test_bigq.out
+
+8.  To run Project 2 Milestone 2 on macOS just run the following commands
+make clean
+make test_sorted_mac
 ./test_bigq.out
 
 #Overview

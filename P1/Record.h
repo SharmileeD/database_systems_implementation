@@ -28,12 +28,12 @@ friend class ComparisonEngine;
 friend class Page;
 
 private:
-	char *bits;
 	char* GetBits ();
 	void SetBits (char *bits);
 	void CopyBits(char *bits, int b_len);
 
 public:
+	char *bits;
 	Record ();
 	~Record();
 
@@ -50,6 +50,8 @@ public:
 	// that the schema be given; returns a 0 if there is no data left or
 	// if there is an error and returns a 1 otherwise
 	int SuckNextRecord (Schema *mySchema, FILE *textFile);
+
+	int ComposeRecord (Schema *mySchema, const char *src);
 
 	// this projects away various attributes... 
 	// the array attsToKeep should be sorted, and lists all of the attributes
