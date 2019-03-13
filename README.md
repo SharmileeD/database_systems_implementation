@@ -56,12 +56,12 @@ make test_bigq_mac
 7. To run Project 2 Milestone 2 on Linux just run the following commands
 make clean
 make test_sorted
-./test_bigq.out
+./test_sorted.out
 
 8.  To run Project 2 Milestone 2 on macOS just run the following commands
 make clean
 make test_sorted_mac
-./test_bigq.out
+./test_sorted.out
 
 #Overview
 Aim: To implement the DBFile class specifically a heap. 
