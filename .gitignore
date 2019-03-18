@@ -13,3 +13,7 @@ yyfunc.tab.h
 lineitem*
 y.tab.c
 y.tab.h
+part*
+partsupp*
+supplier*
+
