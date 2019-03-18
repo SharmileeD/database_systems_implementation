@@ -1,4 +1,4 @@
-#include "test.h"
+#include "test_p22.h"
 #include "BigQ.h"
 #include <pthread.h>
 void test1 ();
@@ -31,10 +31,10 @@ void test1 () {
 	rel->get_sort_order (o);
 
 	int runlen = 0;
-	//while (runlen < 1) {
+	while (runlen < 1) {
 		cout << "\t\n specify runlength:\n\t ";
 		cin >> runlen;
-	//}
+	}
 	struct {OrderMaker *o; int l;} startup = {&o, runlen};
      o.Print();
 	DBFile dbfile;
@@ -53,13 +53,13 @@ void test1 () {
 	int proc = 1, res = 1, tot = 0;
 	while (proc && res) {
 		int x = 0;
-	//	while (x < 1 || x > 3) {
+		while (x < 1 || x > 3) {
 			cout << "\n select option for : " << rel->path () << endl;
 			cout << " \t 1. add a few (1 to 1k recs)\n";
 			cout << " \t 2. add a lot (1k to 1e+06 recs) \n";
 			cout << " \t 3. run some query \n \t ";
-			// cin >> x;
-	//	}
+			cin >> x;
+		}
 		x = 2;
 		if (x < 3) {
 			proc = add_data (tblfile,lrand48()%(int)pow(1e3,x)+(x-1)*1000, res);
