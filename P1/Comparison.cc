@@ -726,8 +726,8 @@ void CNF :: GrowFromParseTree (struct AndList *parseTree, Schema *mySchema,
 	// close the record file
 	fclose (outRecFile);
 
-	// remove("sdafdsfFFDSDA");
-	// remove("hkljdfgkSDFSDF");
+	remove("sdafdsfFFDSDA");
+	remove("hkljdfgkSDFSDF");
 }
 
 

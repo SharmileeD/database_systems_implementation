@@ -1,2 +1,12 @@
 .DS_Store
 *.o
+*.out
+orders*
+region*
+runs*
+nation*
+customer*
+lex.yy.c
+lineitem*
+y.tab.c
+y.tab.h
