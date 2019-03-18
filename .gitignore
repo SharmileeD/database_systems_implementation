@@ -7,6 +7,9 @@ runs*
 nation*
 customer*
 lex.yy.c
+lex.yyfunc.c
+yyfunc.tab.c
+yyfunc.tab.h
 lineitem*
 y.tab.c
 y.tab.h
