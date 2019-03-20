@@ -62,7 +62,7 @@ void test_select_pipe_and_project(){
 	int recs;
 	while (outPipeProject.Remove(tempRec)==1) {
 		recs++;
-		tempRec->Print(&mySchema);
+		// tempRec->Print(&mySchema);
 		// cout<<"getting records from outpipe"<<endl;
 	}	
 	cout<<"Got "<< recs<<" records from outpipe"<<endl;
@@ -71,9 +71,74 @@ void test_select_pipe_and_project(){
 
 }
 
+void test_sum(){
+	Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "partsupp");
+	// fillInputPipe(&inpipe, &mySchema);
+	
+	Sum T;
+		// _s (input pipe)
+		Pipe _out (1);
+		Function func;
+			char *str_sum = "(ps_supplycost)";
+			get_cnf (str_sum, &mySchema, func);
+			func.Print ();
+	T.Use_n_Pages (1);
+
+	Pipe _s_ps (100);
+	T.Run (inpipe, _out, func);
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/partsupp.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		inpipe.Insert(&temp);
+		count++;
+
+	}
+	cout<<"Added "<<count<<" records to inpipe"<<endl;
+	inpipe.ShutDown();
+	T.WaitUntilDone ();
+}
+
+void test_duplicate_removal(){
+	cout<<"test_select_pipe_and_project start"<<endl;
+	Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "nation");
+	
+	// suck up the schema from the file
+	
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+        inpipe.Insert(&temp);
+		count++;
+
+	}
+	Record temp2;
+	FILE *tblfile2 = fopen ("tables/nation.tbl", "r");
+	cout<<"Added "<<count<<" records to inpipe after first while loop"<<endl;
+	while ((res = temp2.SuckNextRecord (&mySchema, tblfile2))) {
+        inpipe.Insert(&temp2);
+		count++;
+
+	}
+	inpipe.ShutDown();
+	cout<<"Added "<<count<<" records to inpipe"<<endl;
+	DuplicateRemoval dr;
+	dr.Run(inpipe, outPipe, mySchema);
+	dr.WaitUntilDone();
+}
 int main(){
 	cout<<"Main start"<<endl;
-	test_select_pipe_and_project();
+	// test_select_pipe_and_project();
+	test_duplicate_removal();
 	cout<<"Main end"<<endl;
 	return 0;
 }
