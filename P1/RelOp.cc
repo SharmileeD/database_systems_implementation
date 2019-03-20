@@ -21,30 +21,33 @@ void* selectHelper(void *args) {
 	Schema mySchema ("catalog","partsupp");
 	struct selectStruct * input_args;
 	input_args = (struct selectStruct *)args;
-	Record * temprec;
+	Record temprec;
 	
 	cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
-
-	// while(input_args->inFile->GetNext(*temprec, *input_args->selop, *input_args->literal) == 1) {
-		// temprec->Print(&mySchema);
-		// input_args->outpipe->Insert(temprec);
-	// }
+	input_args->inFile->instVar->MoveFirst();
+	// input_args->inFile->instVar->GetNext(temprec);
+	input_args->selop->Print();
+	// input_args->literal->Print(&mySchema);
+	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
+		temprec.Print(&mySchema);
+		input_args->outpipe->Insert(&temprec);
+	}
 	
 
 }
 
+struct selectStruct selectInput;
 void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal) {
 	
 	// cout << "Here!!!!!!"<<endl;
 	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
-	
-	selectStruct input;
-	input.inFile = &inFile;
-	input.outpipe = &outPipe;
-	input.selop = &selOp;
-	input.literal = &literal;
+		
+	selectInput.inFile = &inFile;
+	selectInput.outpipe = &outPipe;
+	selectInput.selop = &selOp;
+	selectInput.literal = &literal;
 
     int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
 	if (det){
@@ -53,9 +56,9 @@ void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, selectHelper, (void*) &input);
+	pthread_create (&worker, &attr, selectHelper, (void*) &selectInput);
 
-	input.outpipe->ShutDown();
+	selectInput.outpipe->ShutDown();
 
 	//get one record at a time till input pipe is empty
 
@@ -145,9 +148,64 @@ void Project::WaitUntilDone () {
 void Project::Use_n_Pages (int n) { 
 	
 }
+struct joinStruct {
+	Pipe *opL;
+	Pipe *opR;
+	Pipe *op;
+	OrderMaker *left;
+	OrderMaker *right;
+	CNF *selop;
+	Record * literal;
+};
 
-void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal) { }
-void Join::WaitUntilDone () { }
+struct joinStruct joinInput;
+
+void* joinHelper (void * args) {
+
+}
+
+void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal) { 
+	// Use 2 BigQs to store all of the tuples comingfrom the left input pipe, and a second BigQ for the right input pipe
+	// perform a merge in order to join the two input pipes.
+	int pipesz = 100; // buffer sz allowed for each pipe
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	Pipe opL (pipesz);
+	Pipe opR (pipesz);
+
+	OrderMaker left;
+	OrderMaker right;
+
+	selOp.GetSortOrders(left, right);
+	left.Print();
+	right.Print();
+
+	BigQ bqL(inPipeL, opL, left, 1);
+	BigQ bqR(inPipeR, opR, right, 1);
+
+	joinInput.left = &left;
+	joinInput.right = &right;
+	joinInput.literal = &literal;
+	joinInput.opL = &opL;
+	joinInput.opR = &opR;
+	joinInput.op = &outPipe;
+	joinInput.selop = &selOp;
+
+
+	int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting detached"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable"<<endl;
+	}
+	pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
+
+}
+void Join::WaitUntilDone () {
+	pthread_join (worker, NULL);
+ }
+
 void Join::Use_n_Pages (int n) { }
 
 void DuplicateRemoval::Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) { 

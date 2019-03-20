@@ -6,6 +6,8 @@
 #include "Record.h"
 #include "Function.h"
 
+void* selectHelper(void *args);
+
 class RelationalOp {
 	public:
 	// blocks the caller until the particular relational operator 
@@ -50,6 +52,9 @@ class Project : public RelationalOp {
 	void Use_n_Pages (int n);
 };
 class Join : public RelationalOp { 
+	private:
+	pthread_t worker;
+
 	public:
 	void Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal);
 	void WaitUntilDone ();
