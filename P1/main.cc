@@ -15,10 +15,11 @@
 #include <queue>
 #include "RelOp.h"
 
-void test_select_pipe(){
-	cout<<"test_select_pipe start"<<endl;
+void test_select_pipe_and_project(){
+	cout<<"test_select_pipe_and_project start"<<endl;
 	Pipe inpipe(100);
 	Pipe outPipe(100);
+	Pipe outPipeProject(100);
 	Schema mySchema ("catalog", "nation");
 	cout << "Enter in your CNF: ";
   	if (yyparse() != 0) {
@@ -48,13 +49,21 @@ void test_select_pipe(){
 	SelectPipe sp;
 	sp.Run(inpipe, outPipe, myComparison,literal);
 	sp.WaitUntilDone();
+	
+	int keepMe[] = {0,1};
+	int numAttsIn = 4;
+	int numAttsOut = 2;
+	Project p;
+	p.Run(outPipe, outPipeProject, keepMe, numAttsIn, numAttsOut);
+	p.WaitUntilDone();
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
 	int recs;
-	while (outPipe.Remove(tempRec)==1) {
+	while (outPipeProject.Remove(tempRec)==1) {
 		recs++;
-		cout<<"getting records from outpipe"<<endl;
+		tempRec->Print(&mySchema);
+		// cout<<"getting records from outpipe"<<endl;
 	}	
 	cout<<"Got "<< recs<<" records from outpipe"<<endl;
 	cout<<"test_select_pipe end"<<endl;
@@ -64,7 +73,7 @@ void test_select_pipe(){
 
 int main(){
 	cout<<"Main start"<<endl;
-	test_select_pipe();
+	test_select_pipe_and_project();
 	cout<<"Main end"<<endl;
 	return 0;
 }
