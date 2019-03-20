@@ -40,6 +40,7 @@ int buffsz = 100; // pages of memory allowed for operations
 
 SelectFile SF_ps, SF_p, SF_s, SF_o, SF_li, SF_c;
 DBFile dbf_ps, dbf_p, dbf_s, dbf_o, dbf_li, dbf_c;
+// Heap dbf_ps, dbf_p, dbf_s, dbf_o, dbf_li, dbf_c;
 Pipe _ps (pipesz), _p (pipesz), _s (pipesz), _o (pipesz), _li (pipesz), _c (pipesz);
 CNF cnf_ps, cnf_p, cnf_s, cnf_o, cnf_li, cnf_c;
 Record lit_ps, lit_p, lit_s, lit_o, lit_li, lit_c;
@@ -56,6 +57,8 @@ int rAtts = 3;
 
 void init_SF_ps (char *pred_str, int numpgs) {
 	dbf_ps.Open (ps->path());
+	// dbf_ps.Open("partsupp.bin");
+	cout << "----->Length:"<<dbf_ps.instVar->file_instance.GetLength()<< " file :"<<ps->path() <<endl;
 	get_cnf (pred_str, ps->schema (), cnf_ps, lit_ps);
 	SF_ps.Use_n_Pages (numpgs);
 }
@@ -94,7 +97,7 @@ void init_SF_c (char *pred_str, int numpgs) {
 // expected output: 31 records
 void q1 () {
 
-	char *pred_ps = "(ps_supplycost < 1.03)";
+	char *pred_ps = "(ps_supplycost < 10.03)";
 	init_SF_ps (pred_ps, 100);
 
 	SF_ps.Run (dbf_ps, _ps, cnf_ps, lit_ps);
