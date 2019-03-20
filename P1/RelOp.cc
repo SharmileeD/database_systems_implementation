@@ -23,12 +23,11 @@ void* selectHelper(void *args) {
 	input_args = (struct selectStruct *)args;
 	Record * temprec;
 	
-	cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
+	// cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
 
-	// while(input_args->inFile->GetNext(*temprec, *input_args->selop, *input_args->literal) == 1) {
-		// temprec->Print(&mySchema);
-		// input_args->outpipe->Insert(temprec);
-	// }
+	while(input_args->inFile->GetNext(*temprec, *input_args->selop, *input_args->literal) == 1) {
+		input_args->outpipe->Insert(temprec);
+	}
 	
 
 }
@@ -72,6 +71,9 @@ void SelectFile::Use_n_Pages (int runlen) {
 
 }
 
+/**
+    Struct for the SelectPipe worker thread
+*/
 struct select_pipe_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
@@ -80,6 +82,11 @@ struct select_pipe_data{
 };
 
 struct select_pipe_data sp_data;
+/**
+    Function that the worker thread of select_pipe calls when spawned
+    @param arg Pointer to the struct that contains data that the worker needs to use to generate output
+    @return void. 
+*/
 void *select_pipe (void *arg) {
 	cout<<"in: select_pipe"<<endl;
 	struct select_pipe_data * input_args;
@@ -102,13 +109,18 @@ void *select_pipe (void *arg) {
 		}
 
 	}
+	input_args->out_pipe->ShutDown();
 }
-// With a couple of exceptions, operations always get their data from input pipes and put the result of the operation into an output pipe. 
-// When someone wants to use one of the relational operators, they just create an instance of the operator that they want. Then they call the Run operation on the operator that they are using (Run is implemented by each derived class; see below). 
-// The Run operation sets up the operator by causing the operator to create any internal data structures (THIS IS WHERE WE USE THE STRUCT)it needs, and then it spawns a thread that is internal to the relational operation and actually does the work.
-// Once the thread has been created and is ready to go, Run returns and the operation does its work in a non-blocking fashion.
-//  After the operation has been started up, the caller can call WaitUntilDone, which will block until the operation finishes and the thread inside of the operation has been destroyed. An operation knows that it finishes when it has finished processing all of the tuples that came through its input pipe (or pipes). Before an operation finishes, it should always shut down its output pipe.
+/**
+    Run function for SelectPipe.
+	Spawns a worker thread and returns back to the caller.
 
+    @param inPipe Pipe from which we pick records from
+	@param outPipe Pipe to which we write records to
+	@param selOp CNF type parameter used to compare incoming records
+	@param literal Record type parameter we need to compare incoming records against
+    @return void. 
+*/
 void SelectPipe::Run (Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) { 
 	sp_data.in_pipe = &inPipe;
 	sp_data.out_pipe = &outPipe;
@@ -124,9 +136,13 @@ void SelectPipe::Run (Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) 
 		cout<<"Thread attr set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, select_pipe, (void*) &sp_data);
-	outPipe.ShutDown();
 
 }
+/**
+    WaitUntilDone function for SelectPipe.
+	Gives the caller a way to block everything else till the selectPipe worker is done
+    @return void. 
+*/
 void SelectPipe::WaitUntilDone () { 
 	cout<<"in: SelectPipe::WaitUntilDone"<<endl;
 	pthread_join (worker, NULL);
@@ -136,11 +152,79 @@ void SelectPipe::Use_n_Pages (int n) {
 }
 
 
+/**
+    Struct for the Project worker thread
+*/
+struct project_data{
+	Pipe *in_pipe;
+	Pipe *out_pipe;
+	int *keepMe;
+	int numAttsInput;
+	int numAttsOutput;
+};
+
+struct project_data proj_data;
+/**
+    Function that the worker thread of select_pipe calls when spawned
+    @param arg Pointer to the struct that contains data that the worker needs to use to generate output
+    @return void. 
+*/
+void *project_data_worker (void *arg) {
+	cout<<"in: project_data_worker"<<endl;
+	struct project_data * input_args;
+	input_args = (struct project_data *)arg;
+	
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	Record pushThis;
+	ComparisonEngine ceng;
+
+	
+	Page dummy;
+	while (input_args->in_pipe->Remove(tempRec)==1) {
+		// Do something with the records
+		cout<<"while loop: project_data_worker inpipe recs"<<endl;
+		tempRec->Project(input_args->keepMe, input_args->numAttsOutput, input_args->numAttsInput);
+		input_args->out_pipe->Insert(tempRec);
+		
+
+	}
+	input_args->out_pipe->ShutDown();
+}
+/**
+    Run function for Project.
+	Spawns a worker thread and returns back to the caller.
+
+    @param inPipe Pipe from which we pick records from
+	@param outPipe Pipe to which we write records to
+	@param keepMe Array of integers indicating the atributes of the record to keep
+	@param numAttsInput The number of attributes in input Schema
+	@param numAttsOutput The number of attributes to output(essentially the size of keepMe int array)
+    @return void. 
+*/
 void Project::Run (Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput, int numAttsOutput) { 
+	proj_data.in_pipe = &inPipe;
+	proj_data.out_pipe = &outPipe;
+	proj_data.keepMe = keepMe;
+	proj_data.numAttsInput = numAttsInput;
+	proj_data.numAttsOutput = numAttsOutput;
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+    int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting joinable"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable"<<endl;
+	}
+	pthread_create (&worker, &attr, project_data_worker, (void*) &proj_data);
 
 }
 void Project::WaitUntilDone () { 
-
+	cout<<"in: SelectPipe::WaitUntilDone"<<endl;
+	pthread_join (worker, NULL);
 }
 void Project::Use_n_Pages (int n) { 
 	
