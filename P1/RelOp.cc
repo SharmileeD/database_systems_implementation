@@ -293,21 +293,180 @@ void Join::WaitUntilDone () {
 
 void Join::Use_n_Pages (int n) { }
 
-void DuplicateRemoval::Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) { 
 
+
+/**
+    Struct for the Project worker thread
+*/
+struct duplicate_removal_data{
+	Pipe *in_pipe;
+	Pipe *out_pipe;
+	Schema *mySchema;
+};
+
+struct duplicate_removal_data dup_rem;
+/**
+    Function that the worker thread of select_pipe calls when spawned
+    @param arg Pointer to the struct that contains data that the worker needs to use to generate output
+    @return void. 
+*/
+void *duplicate_removal_worker (void *arg) {
+	cout<<"in: duplicate_removal_worker"<<endl;
+	struct duplicate_removal_data * input_args;
+	input_args = (struct duplicate_removal_data *)arg;
+	OrderMaker sortorder(input_args->mySchema);
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	Record previous;
+	ComparisonEngine ceng;
+	Pipe biq_out(100);
+	BigQ bq (*input_args->in_pipe, biq_out, sortorder, 1);
+	// 
+	Page dummy;
+	ComparisonEngine cng;
+	int count = 0;
+	int un_recs = 1;
+	int i = 0;
+
+	Record rec[2];
+	Record *last = NULL, *prev = NULL;
+	int op=0;
+	while (biq_out.Remove(tempRec)==1) {
+		
+		if(count ==0){
+			// previous.Copy(tempRec);
+			previous.Copy(tempRec);
+			input_args->out_pipe->Insert(tempRec);
+			count++;
+			continue;
+		}
+		op = cng.Compare(&previous, tempRec, &sortorder);
+		if(cng.Compare(&previous, tempRec, &sortorder)!=0){
+			previous.Copy(tempRec);
+			input_args->out_pipe->Insert(tempRec);
+			un_recs++;
+
+		}
+		else{
+			continue;
+		}
+		count++;
+
+	}
+	cout<<"Unique records "<<un_recs<<endl;
+	input_args->out_pipe->ShutDown();
+}
+/**
+    Run function for Duplicate Removal.
+	Spawns a worker thread and returns back to the caller.
+
+    @param inPipe Pipe from which we pick records from
+	@param outPipe Pipe to which we write records to
+	@param mySchema Schema object which needs to be used to compare records
+    @return void. 
+*/
+void DuplicateRemoval::Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) { 
+	dup_rem.in_pipe = &inPipe;
+	dup_rem.out_pipe = &outPipe;
+	dup_rem.mySchema = &mySchema;
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+    int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting joinable"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable"<<endl;
+	}
+	pthread_create (&worker, &attr, duplicate_removal_worker, (void*) &dup_rem);
 }
 void DuplicateRemoval::WaitUntilDone () { 
-
+	cout<<"in: DuplicateRemoval::WaitUntilDone"<<endl;
+	pthread_join (worker, NULL);
 }
 void DuplicateRemoval::Use_n_Pages (int n) { 
 
 }
 
-void Sum::Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe) { 
+/**
+    Struct for the Project worker thread
+*/
+struct sum_data{
+	Pipe *in_pipe;
+	Pipe *out_pipe;
+	Function *computeMe;
+};
 
+struct sum_data sm_data;
+/**
+    Function that the worker thread of select_pipe calls when spawned
+    @param arg Pointer to the struct that contains data that the worker needs to use to generate output
+    @return void. 
+*/
+void *sum_worker (void *arg) {
+	cout<<"in: sum worker"<<endl;
+	struct sum_data * input_args;
+	input_args = (struct sum_data *)arg;
+	
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	Record pushThis;
+	ComparisonEngine ceng;
+	int intres;
+	int finIntres;
+	double dobres;
+	double finDobres;
+	Page dummy;
+	while (input_args->in_pipe->Remove(tempRec)==1) {
+		// Do something with the records
+		cout<<"while loop: project_data_worker inpipe recs"<<endl;
+		input_args->computeMe->Apply(*tempRec, intres, dobres);
+		finIntres = finIntres + intres;
+		finDobres = finDobres + dobres;
+		// tempRec->Project(input_args->keepMe, input_args->numAttsOutput, input_args->numAttsInput);
+		// input_args->out_pipe->Insert(tempRec);
+
+		
+
+	}
+	cout<<"intres is "<<intres<<endl;
+	cout<<"dobres is "<<dobres<<endl;
+	cout<<"Final intres is "<<finIntres<<endl;
+	cout<<"Final dobres is "<<finDobres<<endl;
+	input_args->out_pipe->ShutDown();
+}
+/**
+    Run function for Sum.
+	Spawns a worker thread and returns back to the caller.
+
+    @param inPipe Pipe from which we pick records from
+	@param outPipe Pipe to which we write records to
+	@param computeMe Function which is used to compute the Sum
+    @return void. 
+*/
+void Sum::Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe) { 
+	sm_data.in_pipe = &inPipe;
+	sm_data.out_pipe = &outPipe;
+	sm_data.computeMe = &computeMe;
+
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+    int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting joinable"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable"<<endl;
+	}
+	pthread_create (&worker, &attr, sum_worker, (void*) &sm_data);
 }
 void Sum::WaitUntilDone () { 
-
+	cout<<"in: Sum::WaitUntilDone"<<endl;
+	pthread_join (worker, NULL);
 }
 void Sum::Use_n_Pages (int n) { 
 

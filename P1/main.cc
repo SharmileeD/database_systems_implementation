@@ -129,6 +129,14 @@ void test_duplicate_removal(){
 		count++;
 
 	}
+	Record temp3;
+	FILE *tblfile3 = fopen ("tables/nation.tbl", "r");
+	cout<<"Added "<<count<<" records to inpipe after first while loop"<<endl;
+	while ((res = temp3.SuckNextRecord (&mySchema, tblfile3))) {
+        inpipe.Insert(&temp3);
+		count++;
+
+	}
 	inpipe.ShutDown();
 	cout<<"Added "<<count<<" records to inpipe"<<endl;
 	DuplicateRemoval dr;
