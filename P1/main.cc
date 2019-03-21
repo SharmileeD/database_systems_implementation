@@ -75,14 +75,14 @@ void test_sum(){
 	Pipe inpipe(100);
 	Pipe outPipe(100);
 	Pipe outPipeProject(100);
-	Schema mySchema ("catalog", "partsupp");
+	Schema mySchema ("catalog", "nation");
 	// fillInputPipe(&inpipe, &mySchema);
 	
 	Sum T;
 		// _s (input pipe)
 		Pipe _out (1);
 		Function func;
-			char *str_sum = "(ps_supplycost)";
+			char *str_sum = "(n_nationkey)";
 			get_cnf (str_sum, &mySchema, func);
 			func.Print ();
 	T.Use_n_Pages (1);
@@ -91,7 +91,7 @@ void test_sum(){
 	T.Run (inpipe, _out, func);
 	int res;
 	Record temp;
-	FILE *tblfile = fopen ("tables/partsupp.tbl", "r");
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
     int count =0;
 	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
 		inpipe.Insert(&temp);
@@ -101,6 +101,17 @@ void test_sum(){
 	cout<<"Added "<<count<<" records to inpipe"<<endl;
 	inpipe.ShutDown();
 	T.WaitUntilDone ();
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	int recs;
+	while (_out.Remove(tempRec)==1) {
+		recs++;
+		// tempRec->Print(&mySchema);
+		// cout<<"getting records from outpipe"<<endl;
+	}	
+	cout<<"Got "<< recs<<" records from outpipe"<<endl;
+
 }
 
 void test_duplicate_removal(){
@@ -146,7 +157,8 @@ void test_duplicate_removal(){
 int main(){
 	cout<<"Main start"<<endl;
 	// test_select_pipe_and_project();
-	test_duplicate_removal();
+	// test_duplicate_removal();
+	test_sum();
 	cout<<"Main end"<<endl;
 	return 0;
 }

@@ -7,6 +7,9 @@
 #include "File.h"
 #include "pthread.h"
 #include "DBFile.h"
+#include <sstream>
+
+using namespace std;
 
 struct selectStruct {
 	DBFile *inFile;
@@ -188,7 +191,6 @@ void *project_data_worker (void *arg) {
 	Page dummy;
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		// Do something with the records
-		cout<<"while loop: project_data_worker inpipe recs"<<endl;
 		tempRec->Project(input_args->keepMe, input_args->numAttsOutput, input_args->numAttsInput);
 		input_args->out_pipe->Insert(tempRec);
 		
@@ -406,36 +408,46 @@ struct sum_data sm_data;
     @return void. 
 */
 void *sum_worker (void *arg) {
-	cout<<"in: sum worker"<<endl;
 	struct sum_data * input_args;
 	input_args = (struct sum_data *)arg;
-	
+	Attribute DA = {"double", Double};
+	Attribute IA = {"int", Int};
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
-	Record pushThis;
 	ComparisonEngine ceng;
 	int intres;
-	int finIntres;
+	int finIntres = 0;
 	double dobres;
-	double finDobres;
+	double finDobres = 0.0;
 	Page dummy;
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		// Do something with the records
-		cout<<"while loop: project_data_worker inpipe recs"<<endl;
 		input_args->computeMe->Apply(*tempRec, intres, dobres);
 		finIntres = finIntres + intres;
 		finDobres = finDobres + dobres;
-		// tempRec->Project(input_args->keepMe, input_args->numAttsOutput, input_args->numAttsInput);
-		// input_args->out_pipe->Insert(tempRec);
-
 		
 
 	}
-	cout<<"intres is "<<intres<<endl;
-	cout<<"dobres is "<<dobres<<endl;
-	cout<<"Final intres is "<<finIntres<<endl;
-	cout<<"Final dobres is "<<finDobres<<endl;
+	Record sum_rec;
+	
+	
+	if (finIntres!=0 and finDobres == 0.0){
+		Schema sum_sch ("sum_sch", 1, &IA);
+		stringstream ss;
+    	ss << finIntres;
+    	const char* str = ss.str().c_str();
+		sum_rec.ComposeRecord(&sum_sch,str);
+	}
+	if (finIntres==0 and finDobres != 0.0){
+		Schema sum_sch ("sum_sch", 1, &DA);
+		stringstream ss;
+    	ss << finDobres;
+    	const char* str = ss.str().c_str();
+		sum_rec.ComposeRecord(&sum_sch,str);
+	}
+	// sum_rec.Print(&sum_sch);
+	input_args->out_pipe->Insert(&sum_rec);
 	input_args->out_pipe->ShutDown();
 }
 /**
@@ -465,7 +477,6 @@ void Sum::Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe) {
 	pthread_create (&worker, &attr, sum_worker, (void*) &sm_data);
 }
 void Sum::WaitUntilDone () { 
-	cout<<"in: Sum::WaitUntilDone"<<endl;
 	pthread_join (worker, NULL);
 }
 void Sum::Use_n_Pages (int n) { 
