@@ -122,13 +122,15 @@ void test_duplicate_removal(){
 	Schema mySchema ("catalog", "nation");
 	
 	// suck up the schema from the file
-	
+	string rec;
 	int res;
 	Record temp;
 	FILE *tblfile = fopen ("tables/nation.tbl", "r");
     int count =0;
 	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
-        inpipe.Insert(&temp);
+        rec= temp.returnRecord(&mySchema);
+		inpipe.Insert(&temp);
+		cout<< rec<<endl;
 		count++;
 
 	}
@@ -154,11 +156,38 @@ void test_duplicate_removal(){
 	dr.Run(inpipe, outPipe, mySchema);
 	dr.WaitUntilDone();
 }
+void test_write_out(){
+	Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "customer");
+	// fillInputPipe(&inpipe, &mySchema);
+	
+	WriteOut W;
+		// _s (input pipe)
+		
+	FILE *writefile = fopen ("outputfile_new.txt", "w");
+	Pipe _s_ps (100);
+	W.Run (inpipe, writefile, mySchema);
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		inpipe.Insert(&temp);
+		count++;
+
+	}
+	cout<<"Added "<<count<<" records to inpipe"<<endl;
+	inpipe.ShutDown();
+	W.WaitUntilDone ();
+}
 int main(){
 	cout<<"Main start"<<endl;
 	// test_select_pipe_and_project();
 	// test_duplicate_removal();
-	test_sum();
+	test_write_out();
+	// test_sum();
 	cout<<"Main end"<<endl;
 	return 0;
 }

@@ -296,9 +296,8 @@ void Join::WaitUntilDone () {
 void Join::Use_n_Pages (int n) { }
 
 
-
 /**
-    Struct for the Project worker thread
+    Struct for the Duplicate Removal worker thread
 */
 struct duplicate_removal_data{
 	Pipe *in_pipe;
@@ -308,7 +307,7 @@ struct duplicate_removal_data{
 
 struct duplicate_removal_data dup_rem;
 /**
-    Function that the worker thread of select_pipe calls when spawned
+    Function that the worker thread of duplicate_removal calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
     @return void. 
 */
@@ -324,20 +323,14 @@ void *duplicate_removal_worker (void *arg) {
 	ComparisonEngine ceng;
 	Pipe biq_out(100);
 	BigQ bq (*input_args->in_pipe, biq_out, sortorder, 1);
-	// 
-	Page dummy;
 	ComparisonEngine cng;
 	int count = 0;
-	int un_recs = 1;
-	int i = 0;
-
 	Record rec[2];
 	Record *last = NULL, *prev = NULL;
 	int op=0;
 	while (biq_out.Remove(tempRec)==1) {
 		
 		if(count ==0){
-			// previous.Copy(tempRec);
 			previous.Copy(tempRec);
 			input_args->out_pipe->Insert(tempRec);
 			count++;
@@ -347,7 +340,6 @@ void *duplicate_removal_worker (void *arg) {
 		if(cng.Compare(&previous, tempRec, &sortorder)!=0){
 			previous.Copy(tempRec);
 			input_args->out_pipe->Insert(tempRec);
-			un_recs++;
 
 		}
 		else{
@@ -356,7 +348,6 @@ void *duplicate_removal_worker (void *arg) {
 		count++;
 
 	}
-	cout<<"Unique records "<<un_recs<<endl;
 	input_args->out_pipe->ShutDown();
 }
 /**
@@ -493,11 +484,70 @@ void GroupBy::Use_n_Pages (int n) {
 
 }
 
-void WriteOut::Run (Pipe &inPipe, FILE *outFile, Schema &mySchema) { 
+
+/**
+    Struct for the Write Out worker thread
+*/
+struct writeout_data{
+	Pipe *in_pipe;
+	FILE *outFile;
+	Schema *mySchema;
+};
+
+struct writeout_data wo_data;
+/**
+    Function that the worker thread of write_out calls when spawned
+    @param arg Pointer to the struct that contains data that the worker needs to use to generate output
+    @return void. 
+*/
+void *write_out_worker (void *arg) {
+	cout<<"in: project_data_worker"<<endl;
+	struct writeout_data * input_args;
+	input_args = (struct writeout_data *)arg;
 	
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	Record pushThis;
+	ComparisonEngine ceng;
+
+	string rec;
+	Page dummy;
+	const char * c;
+	while (input_args->in_pipe->Remove(tempRec)==1) {
+		rec = tempRec->returnRecord(input_args->mySchema);
+		c= rec.c_str();
+		fprintf(input_args->outFile, c);
+
+	}
+}
+/**
+    Run function for WriteOut.
+	Spawns a worker thread and returns back to the caller.
+
+    @param inPipe Pipe from which we pick records from
+	@param outPipe Pipe to which we write records to
+	@param mySchema Schema object which needs to be used to compare records
+    @return void. 
+*/
+void WriteOut::Run (Pipe &inPipe, FILE *outFile, Schema &mySchema) { 
+	wo_data.in_pipe = &inPipe;
+	wo_data.outFile = outFile;
+	wo_data.mySchema = &mySchema;
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+    int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting joinable"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable"<<endl;
+	}
+	pthread_create (&worker, &attr, write_out_worker, (void*) &wo_data);
 }
 void WriteOut::WaitUntilDone () { 
-
+	pthread_join (worker, NULL);
 }
 void WriteOut::Use_n_Pages (int n) { 
 

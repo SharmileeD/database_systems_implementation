@@ -13,6 +13,7 @@
 #include "File.h"
 #include "Comparison.h"
 #include "ComparisonEngine.h"
+#include <string>
 
 
 
@@ -73,6 +74,9 @@ public:
 
 	//Setter to set the bits of record
 	void SetRecordBits(char *);
+
+	//Return the record in string format
+	std::string returnRecord (Schema *mySchema);
 };
 
 #endif
