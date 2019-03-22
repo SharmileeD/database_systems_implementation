@@ -35,7 +35,7 @@ void* selectHelper(void *args) {
 		temprec.Print(&mySchema);
 		input_args->outpipe->Insert(&temprec);
 	}
-	
+	input_args->outpipe->ShutDown();
 
 }
 
@@ -60,8 +60,6 @@ void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal
 		cout<<"Thread attr set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, selectHelper, (void*) &selectInput);
-
-	selectInput.outpipe->ShutDown();
 
 	//get one record at a time till input pipe is empty
 
@@ -340,7 +338,6 @@ void *duplicate_removal_worker (void *arg) {
 		if(cng.Compare(&previous, tempRec, &sortorder)!=0){
 			previous.Copy(tempRec);
 			input_args->out_pipe->Insert(tempRec);
-
 		}
 		else{
 			continue;
@@ -474,11 +471,71 @@ void Sum::Use_n_Pages (int n) {
 
 }
 
-void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) { 
+/**
+    Struct for the Group By worker thread
+*/
+struct group_by_data{
+	Pipe *in_pipe;
+	Pipe *out_pipe;
+	OrderMaker *groupAtts;
+	Function *computeMe;
+};
 
+struct group_by_data gb_data;
+/**
+    Function that the worker thread of group_by calls when spawned
+    @param arg Pointer to the struct that contains data that the worker needs to use to generate output
+    @return void. 
+*/
+void *group_by (void *arg) {
+	cout<<"in: select_pipe"<<endl;
+	struct group_by_data * input_args;
+	input_args = (struct group_by_data *)arg;
+	
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	Record pushThis;
+	Schema mySchema ("catalog", "orders");
+	ComparisonEngine ceng;
+
+	
+	Page dummy;
+	while (input_args->in_pipe->Remove(tempRec)==1) {
+		// Do something with the records
+		
+
+	}
+	input_args->out_pipe->ShutDown();
+}
+/**
+    Run function for SelectPipe.
+	Spawns a worker thread and returns back to the caller.
+
+    @param inPipe Pipe from which we pick records from
+	@param outPipe Pipe to which we write records to
+	@param selOp CNF type parameter used to compare incoming records
+	@param literal Record type parameter we need to compare incoming records against
+    @return void. 
+*/
+void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) { 
+	gb_data.in_pipe = &inPipe;
+	gb_data.out_pipe = &outPipe;
+	gb_data.groupAtts = &groupAtts;
+	gb_data.computeMe = &computeMe;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+    int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting joinable"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable"<<endl;
+	}
+	pthread_create (&worker, &attr, group_by, (void*) &gb_data);
 }
 void GroupBy::WaitUntilDone () { 
-
+	pthread_join (worker, NULL);
 }
 void GroupBy::Use_n_Pages (int n) { 
 
