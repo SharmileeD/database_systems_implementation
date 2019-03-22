@@ -17,6 +17,7 @@ struct worker_data{
 	Pipe *out_pipe;
 	OrderMaker *sort_order;
 	int run_length;
+	string filename;
 };
 
 struct worker_data input;
@@ -58,7 +59,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	struct record_container new_elemnt;
 
 	Heap file;
-	file.Open("runs.bin");
+	file.Open((input_args->filename+".bin").c_str());
 	//Get page from every run
 	
 	//First time load the runPage array with the first page of each run
@@ -128,11 +129,11 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 }
 
 //Function that creates a sorted run and writes it to a file named runs.bin
-void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
+void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, string filename) {
 	
 	Page temp;
 	off_t page_num;
-	
+	char meta_file_name[100];
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
@@ -142,10 +143,11 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
 		fType fileType = heap;
-		dbfile.Create("runs.bin", fileType, NULL);
+		// sprintf (meta_file_name, "%s_runs.bin", );
+		dbfile.Create((filename+".bin").c_str(), fileType, NULL);
 	}
 	else{
-		dbfile.Open("runs.bin"); 
+		dbfile.Open((filename+".bin").c_str()); 
 	}
 	//The first page is loaded when we call dbfile.Open so we need to empty it out
 	dbfile.buffer_page.EmptyItOut();
@@ -193,7 +195,7 @@ void *sort_tpmms (void *arg) {
 				//Sort the records and write them out to disk
 				numRuns++;
 				vec_arr.pop_back();
-				createRun(vec_arr, *input_args->sort_order, numRuns);
+				createRun(vec_arr, *input_args->sort_order, numRuns, input_args->filename);
 				writeRun = true;
 				pageCount = 0;
 				
@@ -209,7 +211,7 @@ void *sort_tpmms (void *arg) {
 	//write last run to file if the page was never emptied into the dbifile
 	if(!writeRun) {
 			numRuns++;
-			createRun(vec_arr, *input_args->sort_order, numRuns);
+			createRun(vec_arr, *input_args->sort_order, numRuns, input_args->filename);
 			pgCountLastRun = pageCount;
 			pageCount = 0;
 			vec_arr.clear();
@@ -223,6 +225,9 @@ void *sort_tpmms (void *arg) {
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
 	pthread_exit(NULL);
+	remove((input_args->filename+".bin").c_str());
+	remove((input_args->filename+"_lpage.txt").c_str());
+	remove((input_args->filename+"_dpage.txt").c_str());
 	
 }
 void merge(Record arr [], int l, int m, int r, OrderMaker sort_order) { 
@@ -298,6 +303,19 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order) {
     } 
 }
 
+string getRandomString(int n) 
+{ 
+    char alphabet[36] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 
+                          'h', 'i', 'j', 'k', 'l', 'm', 'n',  
+                          'o', 'p', 'q', 'r', 's', 't', 'u', 
+                          'v', 'w', 'x', 'y', 'z','1', '2','3','4','5','6','7','8','9','0'}; 
+  
+    string res = ""; 
+    for (int i = 0; i < n; i++)  
+        res = res + alphabet[rand() % 36]; 
+    
+    return res; 
+} 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	// read data from in pipe sort them into runlen pages
 	cout << "BigQ: Start"<<endl;
@@ -306,6 +324,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input.out_pipe = &out;
 	input.sort_order = &sortorder;
 	input.run_length = runlen;
+	input.filename = getRandomString(10);
     // construct priority queue over sorted runs and dump sorted data 
  	// into the out pipe
 	pthread_t worker;
