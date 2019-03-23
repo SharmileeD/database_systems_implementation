@@ -8,7 +8,7 @@
 #include "pthread.h"
 #include "DBFile.h"
 #include <sstream>
-
+#include <unistd.h>
 using namespace std;
 
 struct selectStruct {
@@ -25,24 +25,23 @@ void* selectHelper(void *args) {
 	struct selectStruct * input_args;
 	input_args = (struct selectStruct *)args;
 	Record temprec;
-	
+	int count = 0;
 	cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
 	input_args->inFile->instVar->MoveFirst();
-	// input_args->inFile->instVar->GetNext(temprec);
-	input_args->selop->Print();
-	// input_args->literal->Print(&mySchema);
+		
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
-		temprec.Print(&mySchema);
+		// count++;
+		// temprec.Print(&mySchema);
 		input_args->outpipe->Insert(&temprec);
+		// cout << "Count = "<<count<<endl;
 	}
+	cout <<"Finished reading: "<<endl;
 	input_args->outpipe->ShutDown();
 
 }
 
 struct selectStruct selectInput;
 void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal) {
-	
-	// cout << "Here!!!!!!"<<endl;
 	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -69,7 +68,9 @@ void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal
 }
 
 void SelectFile::WaitUntilDone () {
+	cout << "In selectfile wait until done...."<<endl;
 	pthread_join (worker, NULL);
+	
 }
 
 void SelectFile::Use_n_Pages (int runlen) {
@@ -234,18 +235,61 @@ void Project::Use_n_Pages (int n) {
 	
 }
 struct joinStruct {
+	Pipe *ipL;
+	Pipe *ipR;
+	Pipe *op;
 	Pipe *opL;
 	Pipe *opR;
-	Pipe *op;
-	OrderMaker *left;
-	OrderMaker *right;
+	OrderMaker left;
+	OrderMaker right;
 	CNF *selop;
 	Record * literal;
 };
 
 struct joinStruct joinInput;
 
+void* callBigQ (void * args) {
+
+	struct joinStruct *input_args;
+	input_args = (struct joinStruct *)args;
+	// BigQ bqL(*input_args->ipL, *input_args->opL, input_args->left, 1);
+	sleep(1);
+	BigQ bqR(*input_args->ipR, *input_args->opR, input_args->right, 1);
+}
+
 void* joinHelper (void * args) {
+	
+	struct joinStruct *input_args;
+	input_args = (struct joinStruct *)args;
+	Record lRec, rRec;
+	ComparisonEngine ceng;
+	
+	Schema mySchemaL ("catalog","supplier");
+	Schema mySchemaR ("catalog","partsupp");
+	int count =0;
+	cout <<"Inside join thread!"<<endl;
+	sleep(1);
+	// while(input_args->opL->Remove(&lRec)==1){
+		// lRec.Print(&mySchemaL);
+		// cout << "from left: "<<count<<endl;
+		// count++;
+	// }
+	input_args->opL->ShutDown();
+	
+	sleep(2);
+
+	while(input_args->opR->Remove(&rRec) == 1) {
+	// 	// rRec.Print(&mySchemaR);
+		count++	;
+		cout << "from right: "<<count<<endl;
+	}
+    input_args->opR->ShutDown();
+	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
+	//lrec, rRec, left.getnumAtts(), right.getnumAtts(), ?, ?, ?
+	// sleep(5);
+	cout <<"**Printing from bigQ"<<endl;
+	cout << "Num records read from pipe="<< count<<endl;
+	input_args->op->ShutDown();
 
 }
 
@@ -253,41 +297,57 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	// Use 2 BigQs to store all of the tuples comingfrom the left input pipe, and a second BigQ for the right input pipe
 	// perform a merge in order to join the two input pipes.
 	int pipesz = 100; // buffer sz allowed for each pipe
+	Pipe opL(100);
+	Pipe opR(100);
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
-	Pipe opL (pipesz);
-	Pipe opR (pipesz);
 
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	
+	pthread_t bigq;
 	OrderMaker left;
 	OrderMaker right;
 
+	if(left.isOmEmpty() || right.isOmEmpty()) {
+		//block nested join
+	}
 	selOp.GetSortOrders(left, right);
 	left.Print();
 	right.Print();
 
-	BigQ bqL(inPipeL, opL, left, 1);
-	BigQ bqR(inPipeR, opR, right, 1);
-
-	joinInput.left = &left;
-	joinInput.right = &right;
+	joinInput.left = left;
+	joinInput.right = right;
 	joinInput.literal = &literal;
-	joinInput.opL = &opL;
-	joinInput.opR = &opR;
+	joinInput.ipL = &inPipeL;
+	joinInput.ipR = &inPipeR;
 	joinInput.op = &outPipe;
 	joinInput.selop = &selOp;
+	joinInput.opL = &opL;
+	joinInput.opR = &opR;
 
-
-	int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
-	if (det){
+	int det1 = pthread_attr_setdetachstate(&attr1,PTHREAD_CREATE_DETACHED);
+	if (det1){
 		cout<<"Some issue with setting detached"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr set to detached in join bigq"<<endl;
 	}
-	pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
 
+	int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+	if (det){
+		cout<<"Some issue with setting joinable"<<endl;
+	}
+	else{
+		cout<<"Thread attr set to joinable in join"<<endl;
+	}
+	pthread_create (&bigq, &attr1, callBigQ, (void*) &joinInput);
+	pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
+	cout << "Called here!!"<<endl;
 }
+
 void Join::WaitUntilDone () {
+	cout << "WaitUntil Done for Join...."<<endl;
 	pthread_join (worker, NULL);
  }
 
