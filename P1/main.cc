@@ -293,6 +293,7 @@ int main(){
 	// test_select_pipe_and_project();
 	// test_duplicate_removal();
 	// test_write_out();
+	test_duplicate_removal();
 	// test_sum();
 	test_join();
 	
