@@ -44,6 +44,7 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order);
 
 void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	
+	cout << "Reached phase 2 for file: "<< input_args->filename<<endl;
 	//Stores a page from each run
 	Page runPage[numRuns];
 	//Stores which page from "run_index" is loaded in runPage
@@ -124,7 +125,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 			recQ.push(to_push);
 		}
 	}
-
+	cout << "Done for file: "<< input_args->filename<<endl;
 	file.Close();
 }
 
@@ -138,7 +139,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, strin
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-
+	cout << "Creating runs for file: "<< filename<<endl;
 	Heap dbfile;
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
@@ -168,7 +169,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, strin
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;	
-	
+	cout << "Start sort tppms for file: "<< input_args->filename<<endl;
 	int pageCount = 0;
 	int numRuns = 0;
 	bool writeRun = false;
@@ -178,14 +179,17 @@ void *sort_tpmms (void *arg) {
 	tempRec = &outrec;
 	Record pushThis;
 
-	
+	// Schema mySchema("catalog","partsupp");
+	// int count = 0;
 	Page dummy;
  	vector<Record> vec_arr; 
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		// tempRec->Print(&mySchema);
+	// count++;
+	// cout << "bigq Count= "<<count<<endl;
 		writeRun = false;
 		vec_arr.push_back(*tempRec);
-		
+			
 		if(dummy.Append(tempRec)!= 1){
 			//If page is full
 			pageCount ++;
@@ -218,7 +222,7 @@ void *sort_tpmms (void *arg) {
 			pgCountLastRun++;
 			
 	}
-	
+	cout << "sort tppms for file: "<< input_args->filename<<endl;
 	phase2tpmms(input_args, numRuns, pgCountLastRun);
 
 	//Done with external sort so shutting down the outpipe
@@ -335,7 +339,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 		cout<<"Some issue with setting detached"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to detached"<<endl;
+		cout<<"BigQ Thread attr set to detached"<<endl;
 	}
 	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
 
