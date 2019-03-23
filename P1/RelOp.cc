@@ -28,14 +28,17 @@ void* selectHelper(void *args) {
 	int count = 0;
 	cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
 	input_args->inFile->instVar->MoveFirst();
-		
+	// input_args->inFile->instVar->GetNext(temprec);
+	input_args->selop->Print();
+	// input_args->literal->Print(&mySchema);
+	int count = 0;
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
-		// count++;
 		// temprec.Print(&mySchema);
+
 		input_args->outpipe->Insert(&temprec);
-		// cout << "Count = "<<count<<endl;
+		count++;
 	}
-	cout <<"Finished reading: "<<endl;
+	cout<<"Select file count "<<count<<endl;
 	input_args->outpipe->ShutDown();
 
 }
@@ -185,15 +188,10 @@ void *project_data_worker (void *arg) {
 	tempRec = &outrec;
 	Record pushThis;
 	ComparisonEngine ceng;
-
-	
-	Page dummy;
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		// Do something with the records
 		tempRec->Project(input_args->keepMe, input_args->numAttsOutput, input_args->numAttsInput);
 		input_args->out_pipe->Insert(tempRec);
-		
-
 	}
 	input_args->out_pipe->ShutDown();
 }
@@ -394,7 +392,7 @@ void *duplicate_removal_worker (void *arg) {
 	int count = 0;
 	Record rec[2];
 	Record *last = NULL, *prev = NULL;
-	int op=0;
+
 	while (biq_out.Remove(tempRec)==1) {
 		
 		if(count ==0){
@@ -403,15 +401,15 @@ void *duplicate_removal_worker (void *arg) {
 			count++;
 			continue;
 		}
-		op = cng.Compare(&previous, tempRec, &sortorder);
 		if(cng.Compare(&previous, tempRec, &sortorder)!=0){
 			previous.Copy(tempRec);
 			input_args->out_pipe->Insert(tempRec);
+			count++;
 		}
 		else{
 			continue;
 		}
-		count++;
+		
 
 	}
 	input_args->out_pipe->ShutDown();
@@ -483,8 +481,6 @@ void *sum_worker (void *arg) {
 		input_args->computeMe->Apply(*tempRec, intres, dobres);
 		finIntres = finIntres + intres;
 		finDobres = finDobres + dobres;
-		
-
 	}
 	Record sum_rec;
 	
@@ -493,15 +489,17 @@ void *sum_worker (void *arg) {
 		Schema sum_sch ("sum_sch", 1, &IA);
 		stringstream ss;
     	ss << finIntres;
-    	const char* str = ss.str().c_str();
+    	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
+		// sum_rec.Print(&sum_sch);
 	}
 	if (finIntres==0 and finDobres != 0.0){
 		Schema sum_sch ("sum_sch", 1, &DA);
 		stringstream ss;
     	ss << finDobres;
-    	const char* str = ss.str().c_str();
+    	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
+		// sum_rec.Print(&sum_sch);
 	}
 	// sum_rec.Print(&sum_sch);
 	input_args->out_pipe->Insert(&sum_rec);
@@ -685,11 +683,13 @@ void *write_out_worker (void *arg) {
 
 	string rec;
 	Page dummy;
+	int count = 0;
 	const char * c;
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		rec = tempRec->returnRecord(input_args->mySchema);
 		c= rec.c_str();
 		fprintf(input_args->outFile, c);
+		count++;
 
 	}
 }
