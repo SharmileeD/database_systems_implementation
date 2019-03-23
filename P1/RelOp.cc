@@ -262,27 +262,30 @@ void* joinHelper (void * args) {
 	struct joinStruct *input_args;
 	input_args = (struct joinStruct *)args;
 	Record lRec, rRec;
-	ComparisonEngine ceng;
-	
+		
 	Schema mySchemaL ("catalog","supplier");
 	Schema mySchemaR ("catalog","partsupp");
+	BigQ bqL(*input_args->ipL, *input_args->opL, input_args->left, 1);
+	sleep(1);
+	// BigQ bqR(*input_args->ipR, *input_args->opR, input_args->right, 1);
+
 	int count =0;
 	cout <<"Inside join thread!"<<endl;
 	sleep(1);
-	// while(input_args->opL->Remove(&lRec)==1){
+	while(input_args->opL->Remove(&lRec)==1){
 		// lRec.Print(&mySchemaL);
-		// cout << "from left: "<<count<<endl;
-		// count++;
-	// }
+		cout << "from left: "<<count<<endl;
+		count++;
+	}
 	input_args->opL->ShutDown();
 	
 	sleep(2);
 
-	while(input_args->opR->Remove(&rRec) == 1) {
-	// 	// rRec.Print(&mySchemaR);
-		count++	;
-		cout << "from right: "<<count<<endl;
-	}
+	// while(input_args->opR->Remove(&rRec) == 1) {
+	// // 	// rRec.Print(&mySchemaR);
+	// 	count++	;
+	// 	cout << "from right: "<<count<<endl;
+	// }
     input_args->opR->ShutDown();
 	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
 	//lrec, rRec, left.getnumAtts(), right.getnumAtts(), ?, ?, ?
@@ -341,7 +344,13 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	else{
 		cout<<"Thread attr set to joinable in join"<<endl;
 	}
-	pthread_create (&bigq, &attr1, callBigQ, (void*) &joinInput);
+	// BigQ bqL(*joinInput.ipL, *joinInput.opL, joinInput.left, 1);
+	// sleep(1);
+	// BigQ bqR(*joinInput.ipR, *joinInput.opR, joinInput.right, 1);
+	// ipL, *input_args->opL, input_args->left, 1);
+	sleep(1);
+	
+	// pthread_create (&bigq, &attr1, callBigQ, (void*) &joinInput);
 	pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
 	cout << "Called here!!"<<endl;
 }
@@ -548,41 +557,84 @@ struct group_by_data gb_data;
     @return void. 
 */
 void *group_by (void *arg) {
-	cout<<"in: select_pipe"<<endl;
+	cout<<"in: group by"<<endl;
 	struct group_by_data * input_args;
 	input_args = (struct group_by_data *)arg;
-	
+	int count = 0;
+	int intres;
+	int finIntres = 0;
+	double dobres;
+	double finDobres = 0.0;
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
 	Record pushThis;
+	Record prev;
 	Schema mySchema ("catalog", "orders");
+	Pipe bq_out(100); 
 	ComparisonEngine ceng;
+	Attribute DA = {"double", Double};
+	Attribute IA = {"int", Int};
 
+	Record sum;
+	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts,1);
 	
-	Page dummy;
-	while (input_args->in_pipe->Remove(tempRec)==1) {
+	while(bq_out.Remove(tempRec)==1) {
+		
+		if(count ==0){
+			prev.Copy(tempRec);
+			input_args->computeMe->Apply(*tempRec, intres, dobres);
+			finIntres = finIntres + intres;
+			finDobres = finDobres + dobres;
+			count++;
+			continue;
+		}
+		//if the records can be grouped add them
+		if(ceng.Compare(&prev, tempRec, input_args->groupAtts)==0) {
+			input_args->computeMe->Apply(*tempRec, intres, dobres);
+			finIntres = finIntres + intres;
+			finDobres = finDobres + dobres;
+			count++;
+		} else {
+		//if cannot be grouped, create record of the current sum and push to the outpipe.	
+			count++;
+			prev.Copy(tempRec);	
+			if (finIntres!=0 and finDobres == 0.0){
+				Schema sum_sch ("sum_sch", 1, &IA);
+				stringstream ss;
+    			ss << finIntres;
+    			const char* str = ss.str().c_str();
+				sum.ComposeRecord(&sum_sch,str);
+			}
+			if (finIntres==0 and finDobres != 0.0){
+				Schema sum_sch ("sum_sch", 1, &DA);
+				stringstream ss;
+    			ss << finDobres;
+    			const char* str = ss.str().c_str();
+				sum.ComposeRecord(&sum_sch,str);
+			}
+			finIntres = 0;
+			finDobres = 0.0;
+			input_args->out_pipe->Insert(&sum);
+		}
+		// cout << "Final group by count ="<<count<<endl; 
+	}
+	
+	// Page dummy;
+	// while (input_args->in_pipe->Remove(tempRec)==1) {
 		// Do something with the records
 		
 
-	}
+	// }
 	input_args->out_pipe->ShutDown();
 }
-/**
-    Run function for SelectPipe.
-	Spawns a worker thread and returns back to the caller.
-
-    @param inPipe Pipe from which we pick records from
-	@param outPipe Pipe to which we write records to
-	@param selOp CNF type parameter used to compare incoming records
-	@param literal Record type parameter we need to compare incoming records against
-    @return void. 
-*/
+/***/
 void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) { 
 	gb_data.in_pipe = &inPipe;
 	gb_data.out_pipe = &outPipe;
 	gb_data.groupAtts = &groupAtts;
 	gb_data.computeMe = &computeMe;
+	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
     int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
@@ -590,8 +642,11 @@ void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function 
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr set to joinable in groupby"<<endl;
 	}
+	
+
+	// ipR, *input_args->opR, input_args->right, 1);
 	pthread_create (&worker, &attr, group_by, (void*) &gb_data);
 }
 void GroupBy::WaitUntilDone () { 

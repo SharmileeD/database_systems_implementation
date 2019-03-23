@@ -12,10 +12,42 @@
 #include "DBFile.h"
 #include "test.h"
 #include <array>
-// #include <iostream>
+#include "Function.h"
 #include <queue>
 #include "RelOp.h"
 using namespace std;
+
+Attribute IA = {"int", Int};
+Attribute SA = {"string", String};
+Attribute DA = {"double", Double};
+
+int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
+	Record rec;
+	cout<< "Inside clear pipe!!"<<endl;
+	int cnt = 0;
+	while (in_pipe.Remove (&rec)) {
+		if (print) {
+			rec.Print (schema);
+		}
+		cnt++;
+	}
+	// rec.Print (schema);
+	return cnt;
+}
+
+int clear_pipe1 (Pipe &in_pipe, Schema *schema, bool print) {
+	Record rec;
+	cout<< "Inside clear pipe!!"<<endl;
+	int cnt = 0;
+	while (in_pipe.Remove (&rec)) {
+		if (print) {
+			rec.Print (schema);
+		}
+		cnt++;
+	}
+	rec.Print (schema);
+	return cnt;
+}
 
 
 void test_select_pipe_and_project(){
@@ -159,6 +191,43 @@ void test_duplicate_removal(){
 	dr.Run(inpipe, outPipe, mySchema);
 	dr.WaitUntilDone();
 }
+
+void test_groupby() {
+	Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "partsupp");
+	char *pred_parts = "(ps_suppkey = ps_suppkey)";
+	Record lit;
+	Record temp;
+	int res;
+	DBFile db;
+	CNF cnf_parts;
+	SelectFile sf;
+
+	db.Open("partsupp.bin");
+    get_cnf (pred_parts, &mySchema, cnf_parts, lit);
+	int count =0;
+	
+	GroupBy G;
+	Pipe _out (1);
+	Function func;
+	char *str_sum = "(ps_supplycost)";
+	get_cnf (str_sum, &mySchema, func);
+
+	OrderMaker grp_order(&mySchema);
+	grp_order.Print();
+	sf.Run(db, inpipe, cnf_parts, lit);
+	// int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
+	
+	G.Run(inpipe,outPipe,grp_order,func);
+	int cnt_parts = clear_pipe(outPipe, &mySchema, false);
+	sf.WaitUntilDone();
+	G.WaitUntilDone();
+
+	// cout<<"Added "<<count<<" records to inpipe"<<endl;
+}
+
 void test_write_out(){
 	Pipe inpipe(100);
 	Pipe outPipe(100);
@@ -186,33 +255,6 @@ void test_write_out(){
 	W.WaitUntilDone ();
 }
 
-int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
-	Record rec;
-	cout<< "Inside clear pipe!!"<<endl;
-	int cnt = 0;
-	while (in_pipe.Remove (&rec)) {
-		if (print) {
-			rec.Print (schema);
-		}
-		cnt++;
-	}
-	rec.Print (schema);
-	return cnt;
-}
-
-int clear_pipe1 (Pipe &in_pipe, Schema *schema, bool print) {
-	Record rec;
-	cout<< "Inside clear pipe!!"<<endl;
-	int cnt = 0;
-	while (in_pipe.Remove (&rec)) {
-		if (print) {
-			rec.Print (schema);
-		}
-		cnt++;
-	}
-	rec.Print (schema);
-	return cnt;
-}
 
 
 void test_join() {
@@ -228,64 +270,36 @@ void test_join() {
 	SelectFile SF_sup, SF_parts;
 	Pipe sup1(100);
 	Pipe parts(100);
-	Pipe opL(100);
-	Pipe opR(100);
 	Pipe op(100);
 	Join J;
 	OrderMaker left;
 	OrderMaker right;
 	Record lRec, rRec;
-
 	CNF cnf_join;
-
-	db2.Open("partsupp.bin");
-	get_cnf (pred_parts, &mySchemaP, cnf_parts, lit_parts);
-	
-	SF_parts.Run (db2, parts, cnf_parts, lit_parts);
-	// int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
-	sleep(1);
 
 	db1.Open("supplier.bin");
 	get_cnf (pred_s, &mySchemaS, cnf_sup, lit_sup);
 	
 	SF_sup.Run (db1, sup1, cnf_sup, lit_sup);
-	
+	// int cnt_sup = clear_pipe1 (sup1, &mySchemaS, false);
+	sleep(2);
+	db2.Open("partsupp.bin");
+	get_cnf (pred_parts, &mySchemaP, cnf_parts, lit_parts);
 	sleep(1);
+	
+	SF_parts.Run (db2, parts, cnf_parts, lit_parts);
+	int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
 	get_cnf ("(s_suppkey = ps_suppkey)", &mySchemaS, &mySchemaP, cnf_join, lit_join);	
-	J.Run (sup1, parts, op, cnf_join, lit_join);
-	cnf_join.GetSortOrders(left,right);
-	
 	sleep(1);
-	
+	J.Run (sup1, parts, op, cnf_join, lit_join);
 	J.WaitUntilDone ();
-	SF_parts.WaitUntilDone();
+	// SF_parts.WaitUntilDone();
 	SF_sup.WaitUntilDone();
 
     db1.Close();
 	db2.Close();
-	// BigQ bqR(parts, opR, right, 1);
-	// BigQ bqL(sup1, opL, left, 1);
-	// int pipeRval = opR.Remove(&rRec);
-	// int pipeLval = opL.Remove(&lRec);
-	// cout <<"**Printing from bigQ"<<endl;
-	// int count =0;
-	// while(pipeLval == 1) {
-	// 	 // rRec.Print(&mySchemaL);
-	// 		pipeLval = opL.Remove(&lRec);
-	// 		count++;
-	// 	// int val = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);
-	// }
-	
-	// while(pipeRval == 1) {
-	// 	count++	;
-	// 	// rRec.Print(&mySchemaR);
-	// 	pipeRval = opR.Remove(&rRec);
-	// 	// int val = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);
-	// }
-	// opR.ShutDown();
-	// opL.ShutDown();
-	// cout << "Records read parts:" << cnt_parts << endl;
-	//  cout << "Records read sup:"<<count<<endl;
+	/// cout << "Records read parts:" << cnt_parts << endl;
+	//  cout << "Records read sup:"<<cnt_sup<<endl;
 }
 
 int main(){
@@ -295,6 +309,7 @@ int main(){
 	// test_write_out();
 	// test_sum();
 	test_join();
+	// test_groupby();
 	
 	cout<<"Main end"<<endl;
 	return 0;
