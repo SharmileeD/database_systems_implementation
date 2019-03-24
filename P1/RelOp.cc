@@ -31,7 +31,6 @@ void* selectHelper(void *args) {
 	// input_args->inFile->instVar->GetNext(temprec);
 	input_args->selop->Print();
 	// input_args->literal->Print(&mySchema);
-	int count = 0;
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
 		// temprec.Print(&mySchema);
 
@@ -246,51 +245,45 @@ struct joinStruct {
 
 struct joinStruct joinInput;
 
-void* callBigQ (void * args) {
-
-	struct joinStruct *input_args;
-	input_args = (struct joinStruct *)args;
-	// BigQ bqL(*input_args->ipL, *input_args->opL, input_args->left, 1);
-	sleep(1);
-	BigQ bqR(*input_args->ipR, *input_args->opR, input_args->right, 1);
-}
-
 void* joinHelper (void * args) {
 	
 	struct joinStruct *input_args;
 	input_args = (struct joinStruct *)args;
-	Record lRec, rRec;
-		
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	Pipe outpLeft(100);
+	Pipe outpRight(100);
 	Schema mySchemaL ("catalog","supplier");
 	Schema mySchemaR ("catalog","partsupp");
-	BigQ bqL(*input_args->ipL, *input_args->opL, input_args->left, 1);
+	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, 1);
 	sleep(1);
-	// BigQ bqR(*input_args->ipR, *input_args->opR, input_args->right, 1);
+	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 1);
 
 	int count =0;
 	cout <<"Inside join thread!"<<endl;
 	sleep(1);
-	while(input_args->opL->Remove(&lRec)==1){
+	while(outpLeft.Remove(tempRec)==1){
 		// lRec.Print(&mySchemaL);
 		cout << "from left: "<<count<<endl;
 		count++;
 	}
-	input_args->opL->ShutDown();
+	// input_args->opL->ShutDown();
 	
 	sleep(2);
-
-	// while(input_args->opR->Remove(&rRec) == 1) {
-	// // 	// rRec.Print(&mySchemaR);
-	// 	count++	;
-	// 	cout << "from right: "<<count<<endl;
-	// }
-    input_args->opR->ShutDown();
+	
+	while(outpRight.Remove(tempRec) == 1) {
+	// 	// rRec.Print(&mySchemaR);
+		count++	;
+		cout << "from right: "<<count<<endl;
+	}
+    // input_args->opR->ShutDown();
 	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
 	//lrec, rRec, left.getnumAtts(), right.getnumAtts(), ?, ?, ?
 	// sleep(5);
 	cout <<"**Printing from bigQ"<<endl;
 	cout << "Num records read from pipe="<< count<<endl;
-	input_args->op->ShutDown();
+	// input_args->op->ShutDown();
 
 }
 
