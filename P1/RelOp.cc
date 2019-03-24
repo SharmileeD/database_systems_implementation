@@ -243,6 +243,15 @@ struct joinStruct {
 
 struct joinStruct joinInput;
 
+void * nestedBlock(void * args) {
+	
+	struct joinStruct *input_args;
+	input_args = (struct joinStruct *)args;
+	ComparisonEngine ceng;
+	
+
+}
+
 void* joinHelper (void * args) {
 	
 	struct joinStruct *input_args;
@@ -317,29 +326,10 @@ void* joinHelper (void * args) {
 
 	}
 	
-	
-	
-	while(outpLeft.Remove(tempRec)==1){
-		// lRec.Print(&mySchemaL);
-		// cout << "from left: "<<count<<endl;
-		count++;
-	}
-	
-	sleep(2);
-	
-	while(outpRight.Remove(tempRec) == 1) {
-		// tempRec->Print(&mySchemaR);
-		count++	;
-		// cout << "from right: "<<count<<endl;
-	}
-	// input_args->opL->ShutDown();
-    // input_args->opR->ShutDown();
-	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
-	//lrec, rRec, left.getnumAtts(), right.getnumAtts(), ?, ?, ?
-	// sleep(5);
-	cout <<"**Printing from bigQ"<<endl;
-	cout << "Num records read from pipe="<< count<<endl;
 	input_args->op->ShutDown();
+	
+	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
+	
 
 }
 
