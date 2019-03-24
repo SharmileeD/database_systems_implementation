@@ -235,8 +235,6 @@ struct joinStruct {
 	Pipe *ipL;
 	Pipe *ipR;
 	Pipe *op;
-	Pipe *opL;
-	Pipe *opR;
 	OrderMaker left;
 	OrderMaker right;
 	CNF *selop;
@@ -249,6 +247,7 @@ void* joinHelper (void * args) {
 	
 	struct joinStruct *input_args;
 	input_args = (struct joinStruct *)args;
+	Record lRec, rRec;
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
@@ -259,91 +258,146 @@ void* joinHelper (void * args) {
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, 1);
 	sleep(1);
 	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 1);
-
+	ComparisonEngine ceng;
 	int count =0;
 	cout <<"Inside join thread!"<<endl;
 	sleep(1);
+	int attsToKeep[7] = {0,0,2,3,4};
+	int lval = outpLeft.Remove(&lRec);
+	int rval = outpRight.Remove(&rRec);
+
+	while(lval == 1 && rval == 1) {
+		
+		int cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);
+
+		if(cmp < 0){
+			lval = outpLeft.Remove(&lRec);
+		} 
+		else if(cmp > 0) {
+			rval = outpRight.Remove(&rRec);
+		}
+		else {
+			
+			lRec.Print(&mySchemaL);
+			rRec.Print(&mySchemaR);
+			tempRec->MergeRecords(&lRec, &rRec, 1, 5, attsToKeep , 6, 1);
+			tempRec->Print(&mySchemaR);
+			input_args->op->Insert(tempRec);
+			if(rval == 1)
+				rval = outpRight.Remove(&rRec);
+			cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+			
+			while(rval==1 && cmp == 0) {
+				tempRec->MergeRecords(&lRec, &rRec, 1, 5, attsToKeep , 6, 1);
+				tempRec->Print(&mySchemaR);
+				input_args->op->Insert(tempRec);
+				if(rval = outpRight.Remove(&rRec) == 1)
+					cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+			}
+
+			if(lval = outpLeft.Remove(&lRec) == 1)
+				cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+
+			while(lval==1 && cmp == 0) {
+				tempRec->MergeRecords(&lRec, &rRec, 1, 5, attsToKeep , 6, 1);
+				tempRec->Print(&mySchemaR);
+				input_args->op->Insert(tempRec);
+				if(lval = outpLeft.Remove(&rRec) == 1)
+					cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+			}
+			if(lval ==1  && rval == 1)
+			{
+				lval = outpLeft.Remove(&lRec);
+				rval = outpRight.Remove(&rRec);
+			}
+			
+		}
+
+
+
+	}
+	
+	
+	
 	while(outpLeft.Remove(tempRec)==1){
 		// lRec.Print(&mySchemaL);
-		cout << "from left: "<<count<<endl;
+		// cout << "from left: "<<count<<endl;
 		count++;
 	}
-	// input_args->opL->ShutDown();
 	
 	sleep(2);
 	
 	while(outpRight.Remove(tempRec) == 1) {
-	// 	// rRec.Print(&mySchemaR);
+		// tempRec->Print(&mySchemaR);
 		count++	;
-		cout << "from right: "<<count<<endl;
+		// cout << "from right: "<<count<<endl;
 	}
+	// input_args->opL->ShutDown();
     // input_args->opR->ShutDown();
 	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
 	//lrec, rRec, left.getnumAtts(), right.getnumAtts(), ?, ?, ?
 	// sleep(5);
 	cout <<"**Printing from bigQ"<<endl;
 	cout << "Num records read from pipe="<< count<<endl;
-	// input_args->op->ShutDown();
+	input_args->op->ShutDown();
 
 }
 
 void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal) { 
 	// Use 2 BigQs to store all of the tuples comingfrom the left input pipe, and a second BigQ for the right input pipe
 	// perform a merge in order to join the two input pipes.
-	int pipesz = 100; // buffer sz allowed for each pipe
-	Pipe opL(100);
-	Pipe opR(100);
+	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 
-	pthread_attr_t attr1;
-	pthread_attr_init(&attr1);
-	
-	pthread_t bigq;
 	OrderMaker left;
 	OrderMaker right;
 
-	if(left.isOmEmpty() || right.isOmEmpty()) {
-		//block nested join
-	}
-	selOp.GetSortOrders(left, right);
-	left.Print();
-	right.Print();
+	if(selOp.GetSortOrders(left, right) == 0) {
+			//block nested join
+		joinInput.literal = &literal;
+		joinInput.ipL = &inPipeL;
+		joinInput.ipR = &inPipeR;
+		joinInput.op = &outPipe;
+		joinInput.selop = &selOp;
 
-	joinInput.left = left;
-	joinInput.right = right;
-	joinInput.literal = &literal;
-	joinInput.ipL = &inPipeL;
-	joinInput.ipR = &inPipeR;
-	joinInput.op = &outPipe;
-	joinInput.selop = &selOp;
-	joinInput.opL = &opL;
-	joinInput.opR = &opR;
+		int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+		if (det){
+			cout<<"Some issue with setting joinable"<<endl;
+		}
+		else{
+			cout<<"Thread attr set to joinable in join"<<endl;
+		}
 
-	int det1 = pthread_attr_setdetachstate(&attr1,PTHREAD_CREATE_DETACHED);
-	if (det1){
-		cout<<"Some issue with setting detached"<<endl;
+		// pthread_create (&worker, &attr, nestedBlock, (void*) &joinInput);
+		outPipe.ShutDown();
 	}
-	else{
-		cout<<"Thread attr set to detached in join bigq"<<endl;
-	}
+	else {
+		joinInput.left = left;
+		joinInput.right = right;
+		joinInput.literal = &literal;
+		joinInput.ipL = &inPipeL;
+		joinInput.ipR = &inPipeR;
+		joinInput.op = &outPipe;
+		joinInput.selop = &selOp;
 
-	int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
-	if (det){
-		cout<<"Some issue with setting joinable"<<endl;
+
+		int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+		if (det){
+			cout<<"Some issue with setting joinable"<<endl;
+		}
+		else{
+			cout<<"Thread attr set to joinable in join"<<endl;
+		}
+
+		pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
 	}
-	else{
-		cout<<"Thread attr set to joinable in join"<<endl;
-	}
-	// BigQ bqL(*joinInput.ipL, *joinInput.opL, joinInput.left, 1);
-	// sleep(1);
-	// BigQ bqR(*joinInput.ipR, *joinInput.opR, joinInput.right, 1);
-	// ipL, *input_args->opL, input_args->left, 1);
-	sleep(1);
+	// cout <<"----------------------------------------------------------------------------------------------"<<endl;
+	// selOp.Print();
+	// left.Print();
+	// right.Print();
 	
-	// pthread_create (&bigq, &attr1, callBigQ, (void*) &joinInput);
-	pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
-	cout << "Called here!!"<<endl;
+	// cout << "Called here!!"<<endl;
 }
 
 void Join::WaitUntilDone () {

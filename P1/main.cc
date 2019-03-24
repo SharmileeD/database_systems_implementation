@@ -20,6 +20,15 @@ using namespace std;
 Attribute IA = {"int", Int};
 Attribute SA = {"string", String};
 Attribute DA = {"double", Double};
+int pAtts = 9;
+int psAtts = 5;
+int liAtts = 16;
+int oAtts = 9;
+int sAtts = 7;
+int cAtts = 8;
+int nAtts = 4;
+int rAtts = 3;
+
 
 int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 	Record rec;
@@ -45,7 +54,7 @@ int clear_pipe1 (Pipe &in_pipe, Schema *schema, bool print) {
 		}
 		cnt++;
 	}
-	rec.Print (schema);
+	// rec.Print (schema);
 	return cnt;
 }
 
@@ -285,20 +294,39 @@ void test_join() {
 	sleep(2);
 	db2.Open("partsupp.bin");
 	get_cnf (pred_parts, &mySchemaP, cnf_parts, lit_parts);
-	sleep(1);
+	sleep(2);
 	
 	SF_parts.Run (db2, parts, cnf_parts, lit_parts);
-	int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
+	// int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
 	get_cnf ("(s_suppkey = ps_suppkey)", &mySchemaS, &mySchemaP, cnf_join, lit_join);	
 	sleep(1);
 	J.Run (sup1, parts, op, cnf_join, lit_join);
-	J.WaitUntilDone ();
-	// SF_parts.WaitUntilDone();
+
+	int outAtts = sAtts + psAtts;
+	Attribute ps_supplycost = {"ps_supplycost", Double};
+	Attribute joinatt[] = {IA,SA,SA,IA,SA,DA,SA, IA,IA,IA,ps_supplycost,SA};
+	Schema join_sch ("join_sch", outAtts, joinatt);
+
+	Sum T;
+		// _s (input pipe)
+	Pipe _out (1);
+	Function func;
+	char *str_sum = "(ps_supplycost)";
+	get_cnf (str_sum, &join_sch, func);
+	// func.Print ();
+
+	// T.Run (op, _out, func);
+	int cnt_parts = clear_pipe1 (op, &mySchemaP, false);
+	
+	SF_parts.WaitUntilDone();
 	SF_sup.WaitUntilDone();
 
+	J.WaitUntilDone ();
+	// T.WaitUntilDone();
+	
     db1.Close();
 	db2.Close();
-	/// cout << "Records read parts:" << cnt_parts << endl;
+	 cout << "Records :" << cnt_parts << endl;
 	//  cout << "Records read sup:"<<cnt_sup<<endl;
 }
 
@@ -307,7 +335,7 @@ int main(){
 	// test_select_pipe_and_project();
 	// test_duplicate_removal();
 	// test_write_out();
-	test_duplicate_removal();
+	// test_duplicate_removal();
 	// test_sum();
 	test_join();
 	// test_groupby();
