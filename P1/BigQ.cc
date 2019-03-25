@@ -58,7 +58,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
 	struct record_container temp; 
 	struct record_container new_elemnt;
-
+	int bqcnt = 0;
 	Heap file;
 	file.Open((input_args->filename+".bin").c_str());
 	//Get page from every run
@@ -70,13 +70,15 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		runPage[i].GetFirst(&que[i].rec);
 
 		que[i].run = i;
-		recQ.push(que[i]);
+	   	recQ.push(que[i]);
 
 	}
+	// cout << "recQ.size = "<<recQ.size()<<endl;
 	while(recQ.size()!=0){
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
+		bqcnt++;
 		input_args->out_pipe->Insert(&temp.rec);
 
 		//cout << "Smallest record : " << endl;
@@ -125,7 +127,8 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 			recQ.push(to_push);
 		}
 	}
-	cout << "Done for file: "<< input_args->filename<<endl;
+	
+	cout << "Done for file: "<< bqcnt<<endl;
 	file.Close();
 }
 
@@ -229,9 +232,9 @@ void *sort_tpmms (void *arg) {
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
 	pthread_exit(NULL);
-	remove((input_args->filename+".bin").c_str());
-	remove((input_args->filename+"_lpage.txt").c_str());
-	remove((input_args->filename+"_dpage.txt").c_str());
+	// remove((input_args->filename+".bin").c_str());
+	// remove((input_args->filename+"_lpage.txt").c_str());
+	// remove((input_args->filename+"_dpage.txt").c_str());
 	
 }
 void merge(Record arr [], int l, int m, int r, OrderMaker sort_order) { 

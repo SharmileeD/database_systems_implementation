@@ -509,6 +509,9 @@ int Heap::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
 	bool found = true;
     int page_num = 0;
+
+    Schema mySchema("catalog","partsupp");
+
     if (this->current_page == this->file_instance.GetLength()-1){
         return 0;
     }
@@ -524,7 +527,7 @@ int Heap::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
 	this->SetValueFromTxt(this->meta_dpage_name, 0);
 
     //Looping through the records to find records that match the CNF and return the record that is found
-    while(1){
+        while(1){
         if (this->current_page == this->file_instance.GetLength()-1){
             return 0;
         }
@@ -532,6 +535,9 @@ int Heap::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
         this->file_instance.GetPage(&this->buffer_page, this->current_page);
         if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
             this->record_offset++;
+
+            cout <<"REcord fetched---->"<<endl;
+            fetchme.Print(&mySchema);
             if(comp.Compare(&fetchme, &literal, &cnf)){
                 return 1;
             }

@@ -235,6 +235,16 @@ void Project::WaitUntilDone () {
 void Project::Use_n_Pages (int n) { 
 	
 }
+
+// struct nestedBlockStruct {
+// 	Pipe *ipL;
+// 	Pipe *ipR;
+// 	Pipe *op;
+// 	CNF *selop;
+// 	Record * literal;
+// };
+
+// struct nestedBlockStruct nbStruct;
 struct joinStruct {
 	Pipe *ipL;
 	Pipe *ipR;
@@ -247,6 +257,7 @@ struct joinStruct {
 
 struct joinStruct joinInput;
 
+
 void * nestedBlock(void * args) {
 	cout << "Inside block join"<<endl;
 	struct joinStruct *input_args;
@@ -255,17 +266,23 @@ void * nestedBlock(void * args) {
 	vector<Record> vec_right; //right
 	vector<Record> vec_left; //left
 	int val;
-	int buff_size =10;
+	int buff_size =100;
 	int count = 0;
 	bool moreRec = true;
-	Record temp, prev;
+	Record lRec, rRec;
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
+	int c=0;
 	
+    cout<< "Inside clear pipe!!"<<endl;
+	FILE *writefile = fopen ("nested.txt", "w");
+	string strrec;
+	const char * ch;
+
 	Schema mySchemaL ("catalog","supplier");
 	Schema mySchemaR ("catalog","partsupp");
-	int attsToKeep[7] = {0,0,2,3,4};
+	int attsToKeep[5] = {0,0,2,3,4};
 	//fill the left buffer with 100 left pipe records
 	for(int i = 0; i < buff_size ; i++) {
 		if((val = input_args->ipL->Remove(tempRec))==1) {
@@ -290,12 +307,26 @@ void * nestedBlock(void * args) {
 		// cout<<"Inside do while"<<endl;
 		for(int r = 0; r < vec_right.size(); r++) {
 			for(int l =0; l< vec_left.size(); l++ ) {
-				cout<< "l ="<<l<<"  r="<<r<<endl;
-				if(ceng.Compare(&vec_left[l], &vec_right[r], input_args->selop) == 0) {
+				// cout<< "l ="<<l<<"  r="<<r<<endl;
+				if(ceng.Compare(&vec_left[l], &vec_right[r], input_args->selop)==1) {
 					// vec_left[l].Print(&mySchemaL);
 					// vec_right[r].Print(&mySchemaR);
-				
-					tempRec->MergeRecords(&vec_left[l], &vec_right[r], 1 , 5, attsToKeep, 6, 1);
+					lRec.Copy(&vec_left[l]);
+					rRec.Copy(&vec_right[l]);
+					strrec = vec_left[l].returnRecord(&mySchemaL);
+					ch = strrec.c_str();
+					fprintf(writefile, ch);
+					//--------------------------------
+					strrec = vec_right[r].returnRecord(&mySchemaR);
+					ch = strrec.c_str();
+					fprintf(writefile, ch);
+					//------------------------
+					c++;
+					cout <<"--------------------------------------------------------------final = "<<c<<endl;
+					// vec_left[l].Copy(&lRec);
+					// vec_right[r].Copy(&rRec);
+					// tempRec->MergeRecords(&lRec, &rRec, 1 , 4, attsToKeep, 5, 1);
+					
 					input_args->op->Insert(tempRec);
 
 					// tempRec->Print(&mySchemaR);
@@ -330,6 +361,8 @@ void * nestedBlock(void * args) {
 
 }
 
+
+
 void* joinHelper (void * args) {
 	
 	struct joinStruct *input_args;
@@ -347,14 +380,24 @@ void* joinHelper (void * args) {
 	Schema mySchemaL ("catalog","supplier");
 	Schema mySchemaR ("catalog","partsupp");
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, 1);
-	sleep(1);
-	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 1);
+	sleep(6);
+	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 10);
 	ComparisonEngine ceng;
+	sleep(1);
 	int count =0;
 	cout <<"Inside join thread!"<<endl;
-	sleep(1);
-	int lval = outpLeft.Remove(&lRec);
-	int rval = outpRight.Remove(&rRec);
+
+	int cr = 0, cl = 0;
+	vector<Record> vec_right; //right
+	vector<Record> vec_left; //left
+
+	while(outpLeft.Remove(tempRec)==1) {
+		// tempRec->Print(&mySchemaL);
+		// cl++;
+		// cout <<"left----------->"<<cl<<endl;
+		vec_left.push_back(*tempRec);
+	}
+	
 	int mergedCount=0;
 	int startOfRight = 0;
 	mergedCount = leftCount + rightCount;
@@ -368,62 +411,98 @@ void* joinHelper (void * args) {
 		attsToKeep[i] = idx;
 		idx++;
 	}
-	while(lval == 1 && rval == 1) {
 		
-		int cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);
+	while(outpRight.Remove(tempRec)==1) {
+		// tempRec->Print(&mySchemaR);
+		// cr++;
+		// cout <<"right----------->"<<cr<<endl;
+		vec_right.push_back(*tempRec);
+	}
+	cout << "Final vector size = "<<vec_right.size()<<endl;
 
-		if(cmp < 0){
-			lval = outpLeft.Remove(&lRec);
-		} 
-		else if(cmp > 0) {
-			rval = outpRight.Remove(&rRec);
-		}
+	// int attsToKeep[7] = {0,0,2,3,4};
+	
+	cout<< "Inside clear pipe!!"<<endl;
+	// FILE *writefile = fopen ("sortmerge.txt", "w");
+	// string strrec;
+	// const char * c;
+
+	int l = 0, r =0 ;
+	int prev_l, prev_r;
+	
+	while(l < vec_left.size() && r < vec_right.size()) {
+		
+		int cmp = ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right);
+		
+		if(cmp < 0)
+			l++;
+		else if(cmp > 0)
+			r++;
 		else {
-			
+			//if r and l recs match merge and push
+			lRec.Copy(&vec_left[l]);
+			rRec.Copy(&vec_right[r]);
 			// lRec.Print(&mySchemaL);
 			// rRec.Print(&mySchemaR);
-			tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep , mergedCount, startOfRight);
-			// tempRec->Print(&mySchemaR);
+			tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 			input_args->op->Insert(tempRec);
-			if(rval == 1)
-				rval = outpRight.Remove(&rRec);
-			cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
-			
-			while(rval==1 && cmp == 0) {
-				tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep , mergedCount, startOfRight);
-				// tempRec->Print(&mySchemaR);
-				input_args->op->Insert(tempRec);
-				if(rval = outpRight.Remove(&rRec) == 1)
-					cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+
+			//store current left record pointer
+			prev_l = l;
+
+			//check other l records that match rRec and merge 
+			l++;
+						
+			while(l < vec_left.size()) {
+				//if match found merge and push else break the loop
+				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
+					lRec.Copy(&vec_left[l]);
+					rRec.Copy(&vec_right[r]);
+					// lRec.Print(&mySchemaL);
+					// rRec.Print(&mySchemaR);
+					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
+					input_args->op->Insert(tempRec);
+					l++;
+				}
+				else
+					break;				
 			}
 
-			if(lval = outpLeft.Remove(&lRec) == 1)
-				cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+			//restore the left record pointer
+			l = prev_l;
 
-			while(lval==1 && cmp == 0) {
-				tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep , mergedCount, startOfRight);
-				// tempRec->Print(&mySchemaR);
-				input_args->op->Insert(tempRec);
-				if(lval = outpLeft.Remove(&rRec) == 1)
-					cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
+			//store current right record pointer
+			prev_r = r;
+
+			//check other r records that match the lRec and merge
+			r++;
+
+			while(r < vec_right.size()) {
+				//if match found merge and push else break the loop
+				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
+					lRec.Copy(&vec_left[l]);
+					rRec.Copy(&vec_right[r]);
+					// lRec.Print(&mySchemaL);
+					// rRec.Print(&mySchemaR);
+					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
+					input_args->op->Insert(tempRec);
+					r++;
+				}
+				else
+					break;				
 			}
-			if(lval ==1  && rval == 1)
-			{
-				lval = outpLeft.Remove(&lRec);
-				rval = outpRight.Remove(&rRec);
-			}
-			
-		}
 
+			//restore right record pointer
+			r = prev_r;
+			//increment left and right record pointer
+			l++;
+			r++;	
+		} //else
+	}//while
 
-
-	}
 	
 	input_args->op->ShutDown();
 	
-	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
-	
-
 }
 
 void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal) { 
@@ -454,7 +533,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 		}
 
 		pthread_create (&worker, &attr, nestedBlock, (void*) &joinInput);
-		outPipe.ShutDown();
+		// outPipe.ShutDown();
 	}
 	else {
 		joinInput.left = left;

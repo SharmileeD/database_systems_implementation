@@ -32,12 +32,18 @@ int rAtts = 3;
 
 int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 	Record rec;
-	cout<< "Inside clear pipe!!"<<endl;
+	// cout<< "Inside clear pipe!!"<<endl;
+	// FILE *writefile = fopen ("opclear.txt", "w");
+	string strrec;
 	int cnt = 0;
+	const char * c;
 	while (in_pipe.Remove (&rec)) {
-		if (print) {
-			rec.Print (schema);
-		}
+		// strrec = rec.returnRecord(schema);
+		// c = strrec.c_str();
+		// fprintf(writefile, c);
+		// if (print) {
+			// rec.Print (schema);
+		// }
 		cnt++;
 	}
 	// rec.Print (schema);
@@ -46,12 +52,15 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 
 int clear_pipe1 (Pipe &in_pipe,  bool print) {
 	Record rec;
+	FILE *writefile = fopen ("outputfile_new.txt", "w");
 	cout<< "============================================Inside clear pipe!!"<<endl;
 	int cnt = 0;
+	string strrec;
 	while (in_pipe.Remove (&rec)) {
+		
 		// if (print) {
 			// rec.Print (schema);
-		cout << "Removing record = "<<cnt<<endl;	
+		// cout << "Removing record = "<<cnt<<endl;	
 		// }
 		cnt++;
 	}
@@ -295,6 +304,7 @@ void test_join() {
 	sleep(2);
 	db2.Open("partsupp.bin");
 	get_cnf (pred_parts, &mySchemaP, cnf_parts, lit_parts);
+
 	sleep(2);
 	
 	SF_parts.Run (db2, parts, cnf_parts, lit_parts);
@@ -302,19 +312,19 @@ void test_join() {
 	get_cnf ("(s_suppkey = ps_suppkey)", &mySchemaS, &mySchemaP, cnf_join, lit_join);	
 	sleep(1);
 	J.Run (sup1, parts, op, cnf_join, lit_join);
-	int cnt_parts = clear_pipe1 (op, false);
+	int joincnt = clear_pipe (op, &mySchemaP ,false);
 
-	int outAtts = sAtts + psAtts;
-	Attribute ps_supplycost = {"ps_supplycost", Double};
-	Attribute joinatt[] = {IA,SA,SA,IA,SA,DA,SA, IA,IA,IA,ps_supplycost,SA};
-	Schema join_sch ("join_sch", outAtts, joinatt);
+	// int outAtts = sAtts + psAtts;
+	// Attribute ps_supplycost = {"ps_supplycost", Double};
+	// Attribute joinatt[] = {IA,SA,SA,IA,SA,DA,SA, IA,IA,IA,ps_supplycost,SA};
+	// Schema join_sch ("join_sch", outAtts, joinatt);
 
-	Sum T;
-		// _s (input pipe)
-	Pipe _out (1);
-	Function func;
-	char *str_sum = "(ps_supplycost)";
-	get_cnf (str_sum, &join_sch, func);
+	// Sum T;
+	// 	// _s (input pipe)
+	// Pipe _out (1);
+	// Function func;
+	// char *str_sum = "(ps_supplycost)";
+	// get_cnf (str_sum, &join_sch, func);
 	// func.Print ();
 
 	// T.Run (op, _out, func);
@@ -328,9 +338,35 @@ void test_join() {
 	
     db1.Close();
 	db2.Close();
-	 cout << "Records :" << cnt_parts << endl;
+	 cout << "Records :" << joincnt << endl;
 	//  cout << "Records read sup:"<<cnt_sup<<endl;
 }
+
+void check_num_records(char f_path[]){
+	Heap dbfile_test;
+	// cout << " DBFile will be created at "<< endl;
+	dbfile_test.Open (f_path);
+	// dbfile_test.Create("test_phase2.bin",heap,NULL);
+	Record inprec;
+	int counter = 0;
+	Page test_page;
+	dbfile_test.MoveFirst ();
+	// Schema mySchema ("catalog", "customer");
+
+	while (dbfile_test.GetNext(inprec) == 1) {
+		
+		counter += 1;
+		
+		if(counter % 5000 ==0){
+			cout<< "inside populate loop "<< counter<<endl;
+		}
+		// inprec.Print(&mySchema);
+	}
+	cout<< f_path <<endl;
+	cout<< "Number of records is "<< counter <<endl;
+	dbfile_test.Close();
+}
+
 
 int main(){
 	cout<<"Main start"<<endl;
@@ -341,6 +377,7 @@ int main(){
 	// test_sum();
 	test_join();
 	// test_groupby();
+	// check_num_records("o6ohxwysq3.bin");
 	
 	cout<<"Main end"<<endl;
 	return 0;
