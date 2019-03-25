@@ -42,9 +42,10 @@ void* selectHelper(void *args) {
 
 }
 
-struct selectStruct selectInput;
+
 void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal) {
 	
+	static struct selectStruct selectInput;
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 		
@@ -251,6 +252,10 @@ void* joinHelper (void * args) {
 	Record * tempRec;
 	Record outrec;
 	tempRec = &outrec;
+	int leftCount = 0;
+	int rightCount = 0;
+	leftCount= input_args->selop->leftAttrCount;
+	rightCount= input_args->selop->rightAttrCount;
 	Pipe outpLeft(100);
 	Pipe outpRight(100);
 	Schema mySchemaL ("catalog","supplier");
@@ -262,10 +267,21 @@ void* joinHelper (void * args) {
 	int count =0;
 	cout <<"Inside join thread!"<<endl;
 	sleep(1);
-	int attsToKeep[7] = {0,0,2,3,4};
 	int lval = outpLeft.Remove(&lRec);
 	int rval = outpRight.Remove(&rRec);
-
+	int mergedCount=0;
+	int startOfRight = 0;
+	mergedCount = leftCount + rightCount;
+	int attsToKeep[mergedCount];
+	int idx = 0;
+	for(int i = 0; i < mergedCount; i++){
+		if(i==leftCount){
+			startOfRight = i;
+			idx = 0;
+		}
+		attsToKeep[i] = idx;
+		idx++;
+	}
 	while(lval == 1 && rval == 1) {
 		
 		int cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);
@@ -278,18 +294,18 @@ void* joinHelper (void * args) {
 		}
 		else {
 			
-			lRec.Print(&mySchemaL);
-			rRec.Print(&mySchemaR);
-			tempRec->MergeRecords(&lRec, &rRec, 1, 5, attsToKeep , 6, 1);
-			tempRec->Print(&mySchemaR);
+			// lRec.Print(&mySchemaL);
+			// rRec.Print(&mySchemaR);
+			tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep , mergedCount, startOfRight);
+			// tempRec->Print(&mySchemaR);
 			input_args->op->Insert(tempRec);
 			if(rval == 1)
 				rval = outpRight.Remove(&rRec);
 			cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
 			
 			while(rval==1 && cmp == 0) {
-				tempRec->MergeRecords(&lRec, &rRec, 1, 5, attsToKeep , 6, 1);
-				tempRec->Print(&mySchemaR);
+				tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep , mergedCount, startOfRight);
+				// tempRec->Print(&mySchemaR);
 				input_args->op->Insert(tempRec);
 				if(rval = outpRight.Remove(&rRec) == 1)
 					cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
@@ -299,8 +315,8 @@ void* joinHelper (void * args) {
 				cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
 
 			while(lval==1 && cmp == 0) {
-				tempRec->MergeRecords(&lRec, &rRec, 1, 5, attsToKeep , 6, 1);
-				tempRec->Print(&mySchemaR);
+				tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep , mergedCount, startOfRight);
+				// tempRec->Print(&mySchemaR);
 				input_args->op->Insert(tempRec);
 				if(lval = outpLeft.Remove(&rRec) == 1)
 					cmp = ceng.Compare(&lRec, &input_args->left, &rRec, &input_args->right);	
@@ -538,7 +554,7 @@ void *sum_worker (void *arg) {
     	ss << finIntres;
     	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
-		// sum_rec.Print(&sum_sch);
+		sum_rec.Print(&sum_sch);
 	}
 	if (finIntres==0 and finDobres != 0.0){
 		Schema sum_sch ("sum_sch", 1, &DA);
@@ -546,7 +562,7 @@ void *sum_worker (void *arg) {
     	ss << finDobres;
     	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
-		// sum_rec.Print(&sum_sch);
+		sum_rec.Print(&sum_sch);
 	}
 	// sum_rec.Print(&sum_sch);
 	input_args->out_pipe->Insert(&sum_rec);

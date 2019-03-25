@@ -227,6 +227,7 @@ int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 		}
 
 		// now verify that it operates over atts from both tables
+		// comment this to actually use the order
 		if (!((orList[i][0].operand1 == Left && orList[i][0].operand2 == Right) ||
 		      (orList[i][0].operand2 == Left && orList[i][0].operand1 == Right))) {
 			continue;		
@@ -335,7 +336,9 @@ void AddLitToFile (int &numFieldsInLiteral, FILE *outRecFile, FILE *outSchemaFil
 
 void CNF :: GrowFromParseTree (struct AndList *parseTree, Schema *leftSchema, 
 	Schema *rightSchema, Record &literal) {
-
+	this->leftAttrCount= leftSchema->GetNumAtts();
+	this->rightAttrCount = rightSchema->GetNumAtts();
+	
 	CNF &cnf = *this;
 
 	// as kind of a hack, the literal record is built up insiide of a text file,
