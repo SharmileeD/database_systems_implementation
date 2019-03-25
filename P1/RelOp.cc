@@ -367,10 +367,12 @@ void* joinHelper (void * args) {
 	
 	struct joinStruct *input_args;
 	input_args = (struct joinStruct *)args;
-	Record lRec, rRec;
+	Record  lRec, rRec;
 	Record * tempRec;
-	Record outrec;
+	Record outrec, outrecl, outrecr;
 	tempRec = &outrec;
+	// lRec = &outrecl;
+	// rRec = &outrecr;
 	int leftCount = 0;
 	int rightCount = 0;
 	leftCount= input_args->selop->leftAttrCount;
@@ -381,7 +383,7 @@ void* joinHelper (void * args) {
 	Schema mySchemaR ("catalog","partsupp");
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, 1);
 	sleep(6);
-	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 10);
+	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 1);
 	ComparisonEngine ceng;
 	sleep(1);
 	int count =0;
@@ -418,6 +420,8 @@ void* joinHelper (void * args) {
 		// cout <<"right----------->"<<cr<<endl;
 		vec_right.push_back(*tempRec);
 	}
+
+	
 	cout << "Final vector size = "<<vec_right.size()<<endl;
 
 	// int attsToKeep[7] = {0,0,2,3,4};
@@ -429,6 +433,7 @@ void* joinHelper (void * args) {
 
 	int l = 0, r =0 ;
 	int prev_l, prev_r;
+	int fincnt = 0;
 	
 	while(l < vec_left.size() && r < vec_right.size()) {
 		
@@ -444,6 +449,14 @@ void* joinHelper (void * args) {
 			rRec.Copy(&vec_right[r]);
 			// lRec.Print(&mySchemaL);
 			// rRec.Print(&mySchemaR);
+			fincnt++;
+			cout <<fincnt<<endl;
+			if(fincnt == 7999){
+				cout <<"reached1"<<endl;
+				lRec.Print(&mySchemaL);
+				rRec.Print(&mySchemaR);
+			}
+				
 			tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 			input_args->op->Insert(tempRec);
 
@@ -453,13 +466,20 @@ void* joinHelper (void * args) {
 			//check other l records that match rRec and merge 
 			l++;
 						
-			while(l < vec_left.size()) {
+			while(l < vec_left.size() && r <vec_right.size()) {
 				//if match found merge and push else break the loop
 				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
 					// lRec.Print(&mySchemaL);
 					// rRec.Print(&mySchemaR);
+					fincnt++;
+					cout <<fincnt<<endl;
+					if(fincnt == 7999){
+						cout <<"reached1"<<endl;
+						lRec.Print(&mySchemaL);
+						rRec.Print(&mySchemaR);
+					}
 					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					input_args->op->Insert(tempRec);
 					l++;
@@ -477,13 +497,23 @@ void* joinHelper (void * args) {
 			//check other r records that match the lRec and merge
 			r++;
 
-			while(r < vec_right.size()) {
+			while(r < vec_right.size() && l < vec_left.size() ) {
 				//if match found merge and push else break the loop
 				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
 					// lRec.Print(&mySchemaL);
 					// rRec.Print(&mySchemaR);
+					fincnt++;
+					cout <<fincnt<<endl;
+					if(fincnt == 8000){
+						cout <<"reached1 r="<<r<<endl;
+						lRec.Print(&mySchemaL);
+						
+						rRec.Consume(&vec_right[r]);
+						rRec.Print(&mySchemaR);
+						// vec_right[r].Print(&mySchemaR);
+					}
 					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					input_args->op->Insert(tempRec);
 					r++;
