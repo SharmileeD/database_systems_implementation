@@ -44,14 +44,15 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 	return cnt;
 }
 
-int clear_pipe1 (Pipe &in_pipe, Schema *schema, bool print) {
+int clear_pipe1 (Pipe &in_pipe,  bool print) {
 	Record rec;
-	cout<< "Inside clear pipe!!"<<endl;
+	cout<< "============================================Inside clear pipe!!"<<endl;
 	int cnt = 0;
 	while (in_pipe.Remove (&rec)) {
-		if (print) {
-			rec.Print (schema);
-		}
+		// if (print) {
+			// rec.Print (schema);
+		cout << "Removing record = "<<cnt<<endl;	
+		// }
 		cnt++;
 	}
 	// rec.Print (schema);
@@ -297,10 +298,11 @@ void test_join() {
 	sleep(2);
 	
 	SF_parts.Run (db2, parts, cnf_parts, lit_parts);
-	// int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
+	// int cnt_parts = clear_pipe (parts, &mySchemaP, false);
 	get_cnf ("(s_suppkey = ps_suppkey)", &mySchemaS, &mySchemaP, cnf_join, lit_join);	
 	sleep(1);
 	J.Run (sup1, parts, op, cnf_join, lit_join);
+	int cnt_parts = clear_pipe1 (op, false);
 
 	int outAtts = sAtts + psAtts;
 	Attribute ps_supplycost = {"ps_supplycost", Double};
@@ -316,7 +318,7 @@ void test_join() {
 	// func.Print ();
 
 	// T.Run (op, _out, func);
-	int cnt_parts = clear_pipe1 (op, &mySchemaP, false);
+	
 	
 	SF_parts.WaitUntilDone();
 	SF_sup.WaitUntilDone();
