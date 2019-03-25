@@ -9,6 +9,8 @@
 #include "DBFile.h"
 #include <sstream>
 #include <unistd.h>
+#include <vector>
+#include <array>
 using namespace std;
 
 struct selectStruct {
@@ -244,6 +246,89 @@ struct joinStruct {
 
 struct joinStruct joinInput;
 
+void * nestedBlock(void * args) {
+	cout << "Inside block join"<<endl;
+	struct joinStruct *input_args;
+	input_args = (struct joinStruct *)args;
+	ComparisonEngine ceng;
+	vector<Record> vec_right; //right
+	vector<Record> vec_left; //left
+	int val;
+	int buff_size =10;
+	int count = 0;
+	bool moreRec = true;
+	Record temp, prev;
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	
+	Schema mySchemaL ("catalog","supplier");
+	Schema mySchemaR ("catalog","partsupp");
+	int attsToKeep[7] = {0,0,2,3,4};
+	//fill the left buffer with 100 left pipe records
+	for(int i = 0; i < buff_size ; i++) {
+		if((val = input_args->ipL->Remove(tempRec))==1) {
+			vec_left.push_back(*tempRec);
+			count ++;
+		}
+		else{
+			moreRec = false;
+			break;
+		}
+			
+	}
+	//get the records from right table
+	while(input_args->ipR->Remove(tempRec)==1) {
+		vec_right.push_back(*tempRec);
+	}
+
+	sleep(1);
+	//perform block nested join
+	do {
+		cout << "Here!!"<<endl;
+		// cout<<"Inside do while"<<endl;
+		for(int r = 0; r < vec_right.size(); r++) {
+			for(int l =0; l< vec_left.size(); l++ ) {
+				cout<< "l ="<<l<<"  r="<<r<<endl;
+				if(ceng.Compare(&vec_left[l], &vec_right[r], input_args->selop) == 0) {
+					// vec_left[l].Print(&mySchemaL);
+					// vec_right[r].Print(&mySchemaR);
+				
+					tempRec->MergeRecords(&vec_left[l], &vec_right[r], 1 , 5, attsToKeep, 6, 1);
+					input_args->op->Insert(tempRec);
+
+					// tempRec->Print(&mySchemaR);
+				} //if
+				
+			}//left
+		}//right
+		//clear the left buffer
+		cout << "------befire clear!!"<<endl;
+		vec_left.clear();
+		//refill the left buffer
+		// cout<<"------->Inside do while"<<endl;
+		for(int i = 0; i < buff_size ; i++) {
+			if((val = input_args->ipL->Remove(tempRec))==1) {
+				vec_left.push_back(*tempRec);
+				count ++;
+			}
+			else{
+				moreRec = false;
+				break;
+			}
+			
+		}	
+	} while(moreRec);
+
+	cout <<"Count = "<<count<<endl;
+	
+	input_args->op->ShutDown();
+	//fill page with records from ipR
+	//pick one record of page and compare it with record of ipL, push the record of ipL in vector.
+
+
+}
+
 void* joinHelper (void * args) {
 	
 	struct joinStruct *input_args;
@@ -333,29 +418,10 @@ void* joinHelper (void * args) {
 
 	}
 	
-	
-	
-	while(outpLeft.Remove(tempRec)==1){
-		// lRec.Print(&mySchemaL);
-		// cout << "from left: "<<count<<endl;
-		count++;
-	}
-	
-	sleep(2);
-	
-	while(outpRight.Remove(tempRec) == 1) {
-		// tempRec->Print(&mySchemaR);
-		count++	;
-		// cout << "from right: "<<count<<endl;
-	}
-	// input_args->opL->ShutDown();
-    // input_args->opR->ShutDown();
-	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
-	//lrec, rRec, left.getnumAtts(), right.getnumAtts(), ?, ?, ?
-	// sleep(5);
-	cout <<"**Printing from bigQ"<<endl;
-	cout << "Num records read from pipe="<< count<<endl;
 	input_args->op->ShutDown();
+	
+	// MergeRecords (Record *left, Record *right, int numAttsLeft, int numAttsRight, int *attsToKeep, int numAttsToKeep, int startOfRight) 
+	
 
 }
 
@@ -369,8 +435,9 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	OrderMaker left;
 	OrderMaker right;
 
-	if(selOp.GetSortOrders(left, right) == 0) {
+	if(selOp.GetSortOrders(left, right)==0) {
 			//block nested join
+		cout <<"OrderMAker empty!!"<<endl;
 		joinInput.literal = &literal;
 		joinInput.ipL = &inPipeL;
 		joinInput.ipR = &inPipeR;
@@ -385,7 +452,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 			cout<<"Thread attr set to joinable in join"<<endl;
 		}
 
-		// pthread_create (&worker, &attr, nestedBlock, (void*) &joinInput);
+		pthread_create (&worker, &attr, nestedBlock, (void*) &joinInput);
 		outPipe.ShutDown();
 	}
 	else {
