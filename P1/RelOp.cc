@@ -20,6 +20,7 @@ struct selectStruct {
 	Record * literal;
 };
 
+struct selectStruct selectInput;
 
 void* selectHelper(void *args) {
 	
@@ -47,7 +48,7 @@ void* selectHelper(void *args) {
 
 void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal) {
 	
-	static struct selectStruct selectInput;
+	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 		
