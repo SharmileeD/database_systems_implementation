@@ -9,6 +9,7 @@ Attribute SA = {"string", String};
 Attribute DA = {"double", Double};
 
 int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
+	cout<<"Inside clear pipe"<<endl;
 	Record rec;
 	int cnt = 0;
 	while (in_pipe.Remove (&rec)) {
@@ -207,13 +208,13 @@ void q4 () {
 
 	SF_ps.Run (dbf_ps, _ps, cnf_ps, lit_ps); // 161 recs qualified
 	J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
-	sleep(2);
+	sleep(1);
 	// J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
-	// T.Run (_s_ps, _out, func);
+	T.Run (_s_ps, _out, func);
 
 	SF_ps.WaitUntilDone ();
 	J.WaitUntilDone ();
-	// T.WaitUntilDone ();
+	T.WaitUntilDone ();
 
 	Schema sum_sch ("sum_sch", 1, &DA);
 	int cnt = clear_pipe (_out, &sum_sch, true);
@@ -266,7 +267,7 @@ void q6 () {
 	char *pred_s = "(s_suppkey = s_suppkey)";
 	init_SF_s (pred_s, 100);
 	SF_s.Run (dbf_s, _s, cnf_s, lit_s); // 10k recs qualified
-
+	sleep(1);
 	char *pred_ps = "(ps_suppkey = ps_suppkey)";
 	init_SF_ps (pred_ps, 100);
 
@@ -296,14 +297,18 @@ void q6 () {
 
 	SF_ps.Run (dbf_ps, _ps, cnf_ps, lit_ps); // 161 recs qualified
 	J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
+	sleep(1);
 	G.Run (_s_ps, _out, grp_order, func);
 
 	SF_ps.WaitUntilDone ();
+	cout<<"Moved on to better things"<<endl;
+	
 	J.WaitUntilDone ();
 	G.WaitUntilDone ();
-
 	Schema sum_sch ("sum_sch", 1, &DA);
 	int cnt = clear_pipe (_out, &sum_sch, true);
+	
+	// int cnt = clear_pipe (_out, &sum_sch, true);
 	cout << " query6 returned sum for " << cnt << " groups (expected 25 groups)\n"; 
 }
 

@@ -37,9 +37,9 @@ void* selectHelper(void *args) {
 	// input_args->literal->Print(&mySchema);
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
 		// temprec.Print(&mySchema);
-
 		input_args->outpipe->Insert(&temprec);
 		count++;
+		// cout<<"are you working "<<count<<endl;
 	}
 	// cout<<"Select file count "<<count<<endl;
 	input_args->outpipe->ShutDown();
@@ -77,6 +77,7 @@ void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal
 void SelectFile::WaitUntilDone () {
 	cout << "In selectfile wait until done...."<<endl;
 	pthread_join (worker, NULL);
+	cout << "Done with SF wait"<<endl;
 	
 }
 
@@ -267,15 +268,21 @@ void * nestedBlock(void * args) {
 	vector<Record> vec_right; //right
 	vector<Record> vec_left; //left
 	int val;
-	int buff_size =10;
-	int count = 0;
-	bool moreRec = true;
+	int buff_size 	= 10;
+	int count 		= 0;
+	bool moreRec 	= true;
 	Record lRec, rRec;
 	Record * tempRec;
-	Record outrec;
+	Record outrec, outrecl;
 	tempRec = &outrec;
-	int c=0;
+	Record * mergeRec;
+	mergeRec = &outrecl;
 	
+	int leftCount 	= 0;
+	int rightCount 	= 0;
+	leftCount		= input_args->selop->leftAttrCount;
+	rightCount		= input_args->selop->rightAttrCount;
+
     cout<< "Inside clear pipe!!"<<endl;
 	FILE *writefile = fopen ("nested.txt", "w");
 	string strrec;
@@ -283,7 +290,20 @@ void * nestedBlock(void * args) {
 
 	Schema mySchemaL ("catalog","supplier");
 	Schema mySchemaR ("catalog","partsupp");
-	int attsToKeep[5] = {0,0,2,3,4};
+	int c = 0;
+	int mergedCount=0;
+	int startOfRight = 0;
+	mergedCount = leftCount + rightCount;
+	int attsToKeep[mergedCount];
+	int idx = 0;
+	for(int i = 0; i < mergedCount; i++){
+		if(i==leftCount){
+			startOfRight = i;
+			idx = 0;
+		}
+		attsToKeep[i] = idx;
+		idx++;
+	}
 	//fill the left buffer with 100 left pipe records
 	for(int i = 0; i < buff_size ; i++) {
 		if((val = input_args->ipL->Remove(tempRec))==1) {
@@ -313,7 +333,7 @@ void * nestedBlock(void * args) {
 					// vec_left[l].Print(&mySchemaL);
 					// vec_right[r].Print(&mySchemaR);
 					lRec.Copy(&vec_left[l]);
-					rRec.Copy(&vec_right[l]);
+					rRec.Copy(&vec_right[r]);
 					strrec = vec_left[l].returnRecord(&mySchemaL);
 					ch = strrec.c_str();
 					fprintf(writefile, ch);
@@ -326,9 +346,9 @@ void * nestedBlock(void * args) {
 					cout <<"--------------------------------------------------------------final = "<<c<<endl;
 					// vec_left[l].Copy(&lRec);
 					// vec_right[r].Copy(&rRec);
-					// tempRec->MergeRecords(&lRec, &rRec, 1 , 4, attsToKeep, 5, 1);
+					mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					
-					input_args->op->Insert(tempRec);
+					input_args->op->Insert(mergeRec);
 
 					// tempRec->Print(&mySchemaR);
 				} //if
@@ -336,7 +356,7 @@ void * nestedBlock(void * args) {
 			}//left
 		}//right
 		//clear the left buffer
-		cout << "------befire clear!!"<<endl;
+		cout << "------before clear!!"<<endl;
 		vec_left.clear();
 		//refill the left buffer
 		// cout<<"------->Inside do while"<<endl;
@@ -385,7 +405,7 @@ void* joinHelper (void * args) {
 	Schema mySchemaR ("catalog","partsupp");
 	int leftrl = 1;
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, leftrl);
-	// sleep(1);
+	sleep(1);
 	int rightrl = 1;
 	BigQ bqR(*input_args->ipR, outpRight, input_args->right, rightrl);
 	ComparisonEngine ceng;
@@ -417,7 +437,6 @@ void* joinHelper (void * args) {
 		attsToKeep[i] = idx;
 		idx++;
 	}
-	int attsToKeep1[12] = {0,1,2,3,4,5,6,0,1,2,3,4};	
 	while(outpRight.Remove(tempRec)==1) {
 		// tempRec->Print(&mySchemaR);
 		// cr++;
@@ -540,7 +559,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	OrderMaker left;
 	OrderMaker right;
 
-	if(selOp.GetSortOrders(left, right)!=0) {
+	if(selOp.GetSortOrders(left, right)==0) {
 			//block nested join
 		cout <<"OrderMAker empty!!"<<endl;
 		joinInput.literal = &literal;
@@ -848,7 +867,7 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 			continue;
 		}
@@ -856,7 +875,7 @@ void *group_by (void *arg) {
 		if(ceng.Compare(&prev, tempRec, input_args->groupAtts)==0) {
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			finDobres = finDobres + dobres;
 			count++;
 		} else {
@@ -864,6 +883,7 @@ void *group_by (void *arg) {
 			count++;
 			Record sum_rec;
 			if (finIntres!=0 and finDobres == 0.0){
+				
 				Schema sum_sch("sum_sch",1, &IA);
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsInt);
 				stringstream ss;
@@ -884,6 +904,7 @@ void *group_by (void *arg) {
 			}
 			if (finIntres==0 and finDobres != 0.0){
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsDoub);
+				cout<<"creating new record"<<endl;
 				Schema sum_sch("sum_sch",1, &DA);
 				// cout << "------------------>";
 				// OrderMaker dummy(&sum_sch);
@@ -940,6 +961,7 @@ void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function 
 	pthread_create (&worker, &attr, group_by, (void*) &gb_data);
 }
 void GroupBy::WaitUntilDone () { 
+	cout<<"in: GroupBy::WaitUntilDone "<<endl;
 	pthread_join (worker, NULL);
 }
 void GroupBy::Use_n_Pages (int n) { 
