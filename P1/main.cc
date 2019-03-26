@@ -41,9 +41,9 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 		// strrec = rec.returnRecord(schema);
 		// c = strrec.c_str();
 		// fprintf(writefile, c);
-		// if (print) {
-			// rec.Print (schema);
-		// }
+		if (print) {
+			rec.Print (schema);
+		}
 		cnt++;
 	}
 	// rec.Print (schema);
@@ -312,29 +312,31 @@ void test_join() {
 	get_cnf ("(s_suppkey = ps_suppkey)", &mySchemaS, &mySchemaP, cnf_join, lit_join);	
 	sleep(1);
 	J.Run (sup1, parts, op, cnf_join, lit_join);
-	int joincnt = clear_pipe (op, &mySchemaP ,false);
+	
 
-	// int outAtts = sAtts + psAtts;
-	// Attribute ps_supplycost = {"ps_supplycost", Double};
-	// Attribute joinatt[] = {IA,SA,SA,IA,SA,DA,SA, IA,IA,IA,ps_supplycost,SA};
-	// Schema join_sch ("join_sch", outAtts, joinatt);
-
-	// Sum T;
-	// 	// _s (input pipe)
-	// Pipe _out (1);
-	// Function func;
-	// char *str_sum = "(ps_supplycost)";
-	// get_cnf (str_sum, &join_sch, func);
-	// func.Print ();
-
-	// T.Run (op, _out, func);
+	int outAtts = sAtts + psAtts;
+	Attribute ps_supplycost = {"ps_supplycost", Double};
+	Attribute joinatt[] = {IA,SA,SA,IA,SA,DA,SA, IA,IA,IA,ps_supplycost,SA};
+	Schema join_sch ("join_sch", outAtts, joinatt);
+	
+	Sum T;
+		// _s (input pipe)
+	Pipe _out (1);
+	Function func;
+	char *str_sum = "(ps_supplycost)";
+	get_cnf (str_sum, &join_sch, func);
+	func.Print ();
+	Schema sum_sch ("sum_sch", 1, &DA);
+	
+	T.Run (op, _out, func);
 	
 	
 	SF_parts.WaitUntilDone();
 	SF_sup.WaitUntilDone();
 
 	J.WaitUntilDone ();
-	// T.WaitUntilDone();
+	int joincnt = clear_pipe (_out, &sum_sch ,true);
+	T.WaitUntilDone();
 	
     db1.Close();
 	db2.Close();

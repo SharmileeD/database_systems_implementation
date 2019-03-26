@@ -29,7 +29,7 @@ void* selectHelper(void *args) {
 	input_args = (struct selectStruct *)args;
 	Record temprec;
 	int count = 0;
-	cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
+	// cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
 	input_args->inFile->instVar->MoveFirst();
 	// input_args->inFile->instVar->GetNext(temprec);
 	input_args->selop->Print();
@@ -40,7 +40,7 @@ void* selectHelper(void *args) {
 		input_args->outpipe->Insert(&temprec);
 		count++;
 	}
-	cout<<"Select file count "<<count<<endl;
+	// cout<<"Select file count "<<count<<endl;
 	input_args->outpipe->ShutDown();
 
 }
@@ -371,7 +371,8 @@ void* joinHelper (void * args) {
 	Record * tempRec;
 	Record outrec, outrecl, outrecr;
 	tempRec = &outrec;
-	// lRec = &outrecl;
+	Record * mergeRec;
+	mergeRec = &outrecl;
 	// rRec = &outrecr;
 	int leftCount = 0;
 	int rightCount = 0;
@@ -381,13 +382,15 @@ void* joinHelper (void * args) {
 	Pipe outpRight(100);
 	Schema mySchemaL ("catalog","supplier");
 	Schema mySchemaR ("catalog","partsupp");
-	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, 1);
-	sleep(6);
-	BigQ bqR(*input_args->ipR, outpRight, input_args->right, 1);
+	int leftrl = 1;
+	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, leftrl);
+	// sleep(1);
+	int rightrl = 1;
+	BigQ bqR(*input_args->ipR, outpRight, input_args->right, rightrl);
 	ComparisonEngine ceng;
 	sleep(1);
 	int count =0;
-	cout <<"Inside join thread!"<<endl;
+	// cout <<"Inside join thread!"<<endl;
 
 	int cr = 0, cl = 0;
 	vector<Record> vec_right; //right
@@ -421,12 +424,9 @@ void* joinHelper (void * args) {
 		vec_right.push_back(*tempRec);
 	}
 
-	
-	cout << "Final vector size = "<<vec_right.size()<<endl;
-
 	// int attsToKeep[7] = {0,0,2,3,4};
 	
-	cout<< "Inside clear pipe!!"<<endl;
+
 	// FILE *writefile = fopen ("sortmerge.txt", "w");
 	// string strrec;
 	// const char * c;
@@ -450,15 +450,14 @@ void* joinHelper (void * args) {
 			// lRec.Print(&mySchemaL);
 			// rRec.Print(&mySchemaR);
 			fincnt++;
-			cout <<fincnt<<endl;
-			if(fincnt == 7999){
-				cout <<"reached1"<<endl;
-				lRec.Print(&mySchemaL);
-				rRec.Print(&mySchemaR);
-			}
+			// if(fincnt == 7999){
+			// 	cout <<"reached1"<<endl;
+			// 	lRec.Print(&mySchemaL);
+			// 	rRec.Print(&mySchemaR);
+			// }
 				
-			tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
-			input_args->op->Insert(tempRec);
+			mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
+			input_args->op->Insert(mergeRec);
 
 			//store current left record pointer
 			prev_l = l;
@@ -468,20 +467,20 @@ void* joinHelper (void * args) {
 						
 			while(l < vec_left.size() && r <vec_right.size()) {
 				//if match found merge and push else break the loop
+
 				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
 					// lRec.Print(&mySchemaL);
 					// rRec.Print(&mySchemaR);
 					fincnt++;
-					cout <<fincnt<<endl;
-					if(fincnt == 7999){
-						cout <<"reached1"<<endl;
-						lRec.Print(&mySchemaL);
-						rRec.Print(&mySchemaR);
-					}
-					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
-					input_args->op->Insert(tempRec);
+					// if(fincnt == 7999){
+					// 	cout <<"reached1"<<endl;
+					// 	lRec.Print(&mySchemaL);
+					// 	rRec.Print(&mySchemaR);
+					// }
+					mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
+					input_args->op->Insert(mergeRec);
 					l++;
 				}
 				else
@@ -499,23 +498,18 @@ void* joinHelper (void * args) {
 
 			while(r < vec_right.size() && l < vec_left.size() ) {
 				//if match found merge and push else break the loop
+
+				// vec_right[r].Print(&mySchemaR);
 				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
 					// lRec.Print(&mySchemaL);
 					// rRec.Print(&mySchemaR);
 					fincnt++;
-					cout <<fincnt<<endl;
-					if(fincnt == 8000){
-						cout <<"reached1 r="<<r<<endl;
-						lRec.Print(&mySchemaL);
-						
-						rRec.Consume(&vec_right[r]);
-						rRec.Print(&mySchemaR);
-						// vec_right[r].Print(&mySchemaR);
-					}
-					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
-					input_args->op->Insert(tempRec);
+
+					
+					mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
+					input_args->op->Insert(mergeRec);
 					r++;
 				}
 				else
@@ -559,7 +553,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 			cout<<"Some issue with setting joinable"<<endl;
 		}
 		else{
-			cout<<"Thread attr set to joinable in join"<<endl;
+			cout<<"Thread attr set to joinable"<<endl;
 		}
 
 		pthread_create (&worker, &attr, nestedBlock, (void*) &joinInput);
@@ -580,7 +574,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 			cout<<"Some issue with setting joinable"<<endl;
 		}
 		else{
-			cout<<"Thread attr set to joinable in join"<<endl;
+			cout<<"Thread attr set to joinable"<<endl;
 		}
 
 		pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
@@ -594,7 +588,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 }
 
 void Join::WaitUntilDone () {
-	cout << "WaitUntil Done for Join...."<<endl;
+	// cout << "WaitUntil Done for Join...."<<endl;
 	pthread_join (worker, NULL);
  }
 
@@ -731,7 +725,7 @@ void *sum_worker (void *arg) {
     	ss << finIntres;
     	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
-		sum_rec.Print(&sum_sch);
+		// sum_rec.Print(&sum_sch);
 	}
 	if (finIntres==0 and finDobres != 0.0){
 		Schema sum_sch ("sum_sch", 1, &DA);
@@ -739,7 +733,7 @@ void *sum_worker (void *arg) {
     	ss << finDobres;
     	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
-		sum_rec.Print(&sum_sch);
+		// sum_rec.Print(&sum_sch);
 	}
 	// sum_rec.Print(&sum_sch);
 	input_args->out_pipe->Insert(&sum_rec);

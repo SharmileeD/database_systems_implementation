@@ -11,7 +11,7 @@
 #include <iostream>
 #include <queue>
 
-
+// pthread_mutex_t count_mutex;
 struct worker_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
@@ -41,7 +41,7 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order);
 
 void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	
-	cout << "Reached phase 2 for file: "<< input_args->filename<<endl;
+	// cout << "Reached phase 2 for file: "<< input_args->filename<<endl;
 	//Stores a page from each run
 	Page runPage[numRuns];
 	//Stores which page from "run_index" is loaded in runPage
@@ -134,12 +134,13 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, strin
 	
 	Page temp;
 	off_t page_num;
-	char meta_file_name[100];
+	int mfSize = 100;
+	char meta_file_name[mfSize];
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-	cout << "Creating runs for file: "<< filename<<endl;
+	// cout << "Creating runs for file: "<< filename<<endl;
 	Heap dbfile;
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
@@ -169,7 +170,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, strin
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;	
-	cout << "Start sort tppms for file: "<< input_args->filename<<endl;
+	// cout << "Start sort tppms for file: "<< input_args->filename<<endl;
 	int pageCount = 0;
 	int numRuns = 0;
 	bool writeRun = false;
@@ -222,7 +223,7 @@ void *sort_tpmms (void *arg) {
 			pgCountLastRun++;
 			
 	}
-	cout << "sort tppms for file: "<< input_args->filename<<endl;
+	// cout << "sort tppms for file: "<< input_args->filename<<endl;
 	phase2tpmms(input_args, numRuns, pgCountLastRun);
 
 	//Done with external sort so shutting down the outpipe
@@ -322,6 +323,7 @@ string getRandomString(int n){
 } 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	// read data from in pipe sort them into runlen pages
+	// pthread_mutex_lock( &count_mutex );
 	cout << "BigQ: Start"<<endl;
 	// storing address of the reference of in pipe coming in to the BigQ in the struct in_pipe variable
 	input.in_pipe = &in; 
@@ -342,7 +344,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 		cout<<"BigQ Thread attr set to detached"<<endl;
 	}
 	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
-
+	// pthread_mutex_unlock( &count_mutex );
     // finally shut down the out pipe
 }
 

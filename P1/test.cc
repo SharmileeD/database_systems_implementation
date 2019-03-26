@@ -2,6 +2,7 @@
 #include "BigQ.h"
 #include "RelOp.h"
 #include <pthread.h>
+#include <unistd.h>
 
 Attribute IA = {"int", Int};
 Attribute SA = {"string", String};
@@ -58,7 +59,6 @@ int rAtts = 3;
 void init_SF_ps (char *pred_str, int numpgs) {
 	dbf_ps.Open (ps->path());
 	// dbf_ps.Open("partsupp.bin");
-	cout << "----->Length:"<<dbf_ps.instVar->file_instance.GetLength()<< " file :"<<ps->path() <<endl;
 	get_cnf (pred_str, ps->schema (), cnf_ps, lit_ps);
 	SF_ps.Use_n_Pages (numpgs);
 }
@@ -179,7 +179,7 @@ void q4 () {
 	char *pred_s = "(s_suppkey = s_suppkey)";
 	init_SF_s (pred_s, 100);
 	SF_s.Run (dbf_s, _s, cnf_s, lit_s); // 10k recs qualified
-
+	sleep(1);
 	char *pred_ps = "(ps_suppkey = ps_suppkey)";
 	init_SF_ps (pred_ps, 100);
 

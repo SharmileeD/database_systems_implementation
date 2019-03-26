@@ -536,8 +536,6 @@ int Heap::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
         if(this->buffer_page.MoveMyRecsPointer(this->record_offset, fetchme)){
             this->record_offset++;
 
-            cout <<"REcord fetched---->"<<endl;
-            fetchme.Print(&mySchema);
             if(comp.Compare(&fetchme, &literal, &cnf)){
                 return 1;
             }
