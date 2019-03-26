@@ -19,9 +19,7 @@ struct worker_data{
 	int run_length;
 	string filename;
 };
-
 struct worker_data input;
-
 struct record_container {
 	Record rec;
 	int run;
@@ -37,7 +35,6 @@ struct CompareRecords {
 	} 
 
 };
-
 int pgCountLastRun = 0;
 
 void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
@@ -231,10 +228,11 @@ void *sort_tpmms (void *arg) {
 	//Done with external sort so shutting down the outpipe
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
+	
+	remove((input_args->filename+".bin").c_str());
+	remove((input_args->filename+"_lpage.txt").c_str());
+	remove((input_args->filename+"_dpage.txt").c_str());
 	pthread_exit(NULL);
-	// remove((input_args->filename+".bin").c_str());
-	// remove((input_args->filename+"_lpage.txt").c_str());
-	// remove((input_args->filename+"_dpage.txt").c_str());
 	
 }
 void merge(Record arr [], int l, int m, int r, OrderMaker sort_order) { 
@@ -310,8 +308,7 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order) {
     } 
 }
 
-string getRandomString(int n) 
-{ 
+string getRandomString(int n){ 
     char alphabet[36] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 
                           'h', 'i', 'j', 'k', 'l', 'm', 'n',  
                           'o', 'p', 'q', 'r', 's', 't', 'u', 
