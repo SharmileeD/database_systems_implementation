@@ -10,37 +10,40 @@
 #include <array>
 #include <iostream>
 #include <queue>
+#include <string.h>
 
+using namespace std;
 // pthread_mutex_t count_mutex;
 struct worker_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
 	OrderMaker *sort_order;
 	int run_length;
-	string filename;
+	char * filename;
 };
-struct worker_data input;
+
 struct record_container {
 	Record rec;
 	int run;
 };
 
-struct CompareRecords {
+
+int pgCountLastRun = 0;
+
+void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
+
+void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
+	static OrderMaker *om = input_args->sort_order;
+	struct CompareRecords {
 	bool operator()(record_container r1, record_container r2) {
 		ComparisonEngine ceng;
-		int val = ceng.Compare (&r1.rec, &r2.rec, input.sort_order);
+		int val = ceng.Compare (&r1.rec, &r2.rec, om);
 		if(val != 1)
 			return false;
 		return true;
 	} 
 
 };
-int pgCountLastRun = 0;
-
-void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
-
-void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
-	
 	// cout << "Reached phase 2 for file: "<< input_args->filename<<endl;
 	//Stores a page from each run
 	Page runPage[numRuns];
@@ -57,7 +60,9 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	struct record_container new_elemnt;
 	int bqcnt = 0;
 	Heap file;
-	file.Open((input_args->filename+".bin").c_str());
+	std::string someString(input_args->filename);
+	file.Open((someString+".bin").c_str());
+	// file.Open("runs.bin");
 	//Get page from every run
 	
 	//First time load the runPage array with the first page of each run
@@ -140,16 +145,18 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, strin
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-	// cout << "Creating runs for file: "<< filename<<endl;
+	cout << "Creating runs for file: "<< filename<<endl;
 	Heap dbfile;
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
 		fType fileType = heap;
 		// sprintf (meta_file_name, "%s_runs.bin", );
 		dbfile.Create((filename+".bin").c_str(), fileType, NULL);
+		// dbfile.Create("runs.bin", fileType, NULL);
 	}
 	else{
 		dbfile.Open((filename+".bin").c_str()); 
+		// dbfile.Open(".bin").c_str()); 
 	}
 	//The first page is loaded when we call dbfile.Open so we need to empty it out
 	dbfile.buffer_page.EmptyItOut();
@@ -229,10 +236,11 @@ void *sort_tpmms (void *arg) {
 	//Done with external sort so shutting down the outpipe
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
-	
-	remove((input_args->filename+".bin").c_str());
-	remove((input_args->filename+"_lpage.txt").c_str());
-	remove((input_args->filename+"_dpage.txt").c_str());
+	 
+	std::string someString(input_args->filename);
+	remove((someString+".bin").c_str());
+	remove((someString+"_lpage.txt").c_str());
+	remove((someString+"_dpage.txt").c_str());
 	pthread_exit(NULL);
 	
 }
@@ -309,7 +317,8 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order) {
     } 
 }
 
-string getRandomString(int n){ 
+string getRandomString(int n) 
+{ 
     char alphabet[36] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 
                           'h', 'i', 'j', 'k', 'l', 'm', 'n',  
                           'o', 'p', 'q', 'r', 's', 't', 'u', 
@@ -318,19 +327,23 @@ string getRandomString(int n){
     string res = ""; 
     for (int i = 0; i < n; i++)  
         res = res + alphabet[rand() % 36]; 
-    
     return res; 
+
 } 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	// read data from in pipe sort them into runlen pages
 	// pthread_mutex_lock( &count_mutex );
 	cout << "BigQ: Start"<<endl;
+	struct worker_data *input;
+	input = (worker_data *) malloc(sizeof(worker_data));
 	// storing address of the reference of in pipe coming in to the BigQ in the struct in_pipe variable
-	input.in_pipe = &in; 
-	input.out_pipe = &out;
-	input.sort_order = &sortorder;
-	input.run_length = runlen;
-	input.filename = getRandomString(10);
+	input->in_pipe = &in; 
+	input->out_pipe = &out;
+	input->sort_order = &sortorder;
+	input->run_length = runlen;
+	string namestr = getRandomString(10);
+	char* name = strdup(namestr.c_str());
+	input->filename = name;
     // construct priority queue over sorted runs and dump sorted data 
  	// into the out pipe
 	pthread_t worker;
@@ -343,7 +356,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	else{
 		cout<<"BigQ Thread attr set to detached"<<endl;
 	}
-	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
+	pthread_create (&worker, &attr, sort_tpmms, (void*) input);
 	// pthread_mutex_unlock( &count_mutex );
     // finally shut down the out pipe
 }
