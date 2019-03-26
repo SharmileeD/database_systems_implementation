@@ -875,14 +875,15 @@ void *group_by (void *arg) {
 		if(ceng.Compare(&prev, tempRec, input_args->groupAtts)==0) {
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
-			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			
 			finDobres = finDobres + dobres;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 		} else {
 		//if cannot be grouped, create record of the current sum and push to the outpipe.	
 			count++;
 			Record sum_rec;
-			if (finIntres!=0 and finDobres == 0.0){
+			if (finIntres!=0 && finDobres == 0.0){
 				
 				Schema sum_sch("sum_sch",1, &IA);
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsInt);
@@ -893,6 +894,8 @@ void *group_by (void *arg) {
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
 				sum_rec.Print(&sum_sch);
+
+				finIntres = 0;
 				// string temp = ss.str();
     			// string rec_bits(prev.bits);
 				// const char* str = (temp + rec_bits).c_str();
@@ -902,7 +905,7 @@ void *group_by (void *arg) {
 				// sum.ComposeRecord(&sum_sch,str);
 				// sum.Print(&sum_sch);
 			}
-			if (finIntres==0 and finDobres != 0.0){
+			if (finIntres==0 && finDobres != 0.0){
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsDoub);
 				cout<<"creating new record"<<endl;
 				Schema sum_sch("sum_sch",1, &DA);
@@ -914,6 +917,8 @@ void *group_by (void *arg) {
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
 				sum_rec.Print(&sum_sch);
+				
+				finDobres = 0.0;
 				// string temp = ss.str();
     			// string rec_bits = prev.returnRecord(input_args->computeMe->sch);
 				// // ss << prev.bits;
@@ -927,8 +932,12 @@ void *group_by (void *arg) {
 			}
 			
 			prev.Copy(tempRec);	
-			finIntres = 0;
-			finDobres = 0.0;
+			input_args->computeMe->Apply(*tempRec, intres, dobres);
+			finIntres = finIntres + intres;
+			
+			finDobres = finDobres + dobres;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+
 			input_args->out_pipe->Insert(&sum);
 		}
 		// cout << "Final group by count ="<<count<<endl; 
