@@ -296,18 +296,25 @@ void q6 () {
 	G.Use_n_Pages (1);
 
 	SF_ps.Run (dbf_ps, _ps, cnf_ps, lit_ps); // 161 recs qualified
-	J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
 	// sleep(1);
+	J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
+	// sleep(10);
 	G.Run (_s_ps, _out, grp_order, func);
-
+	
+	// int cnt = clear_pipe (_out, &join_sch, true);
+	Schema sum_sch ("sum_sch", 1, &DA);
+	int cnt = clear_pipe (_out, &sum_sch, true);
+	
 	SF_ps.WaitUntilDone ();
+	SF_s.WaitUntilDone();
 	cout<<"Moved on to better things"<<endl;
 	// int cnt = clear_pipe (_s_ps, &join_sch, true);
 
 	J.WaitUntilDone ();
+	
 	G.WaitUntilDone ();
-	Schema sum_sch ("sum_sch", 1, &DA);
-	int cnt = clear_pipe (_out, &sum_sch, true);
+	
+	
 	
 	// int cnt = clear_pipe (_out, &sum_sch, true);
 	cout << " query6 returned sum for " << cnt << " groups (expected 25 groups)\n"; 

@@ -821,9 +821,9 @@ void *group_by (void *arg) {
 	input_args = (struct group_by_data *)arg;
 	
 	int count = 0;
-	int intres;
+	int intres = 0;
 	int finIntres = 0;
-	double dobres;
+	double dobres = 0.0;
 	double finDobres = 0.0;
 
 	Record *tempRec;
@@ -841,11 +841,16 @@ void *group_by (void *arg) {
 	
 	Pipe bq_out(100);
 	ComparisonEngine ceng;
-	
+	int runLen = 1;
 	Record sum;
-	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts, 1);
+	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts, runLen);
 	// cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
 	input_args->groupAtts->Print();
+	// while(bq_out.Remove(tempRec)==1) {
+	// 	count ++;
+	// 	cout <<"Removing record "<<count<<" from big q" <<endl;
+	// 	input_args->out_pipe->Insert(tempRec);
+	// }
 
 	
 	Attribute *inp = input_args->computeMe->sch->GetAtts();
@@ -876,7 +881,7 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 			continue;
 		}
@@ -884,14 +889,15 @@ void *group_by (void *arg) {
 		if(ceng.Compare(&prev, tempRec, input_args->groupAtts)==0) {
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
-			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			
 			finDobres = finDobres + dobres;
+			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 		} else {
 		//if cannot be grouped, create record of the current sum and push to the outpipe.	
 			count++;
 			Record sum_rec;
-			if (finIntres!=0 and finDobres == 0.0){
+			if (finIntres!=0 && finDobres == 0.0){
 				
 				Schema sum_sch("sum_sch",1, &IA);
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsInt);
@@ -901,7 +907,9 @@ void *group_by (void *arg) {
 				// ss << prev.bits;
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
-				sum_rec.Print(&sum_sch);
+				// sum_rec.Print(&sum_sch);
+
+				finIntres = 0;
 				// string temp = ss.str();
     			// string rec_bits(prev.bits);
 				// const char* str = (temp + rec_bits).c_str();
@@ -911,9 +919,9 @@ void *group_by (void *arg) {
 				// sum.ComposeRecord(&sum_sch,str);
 				// sum.Print(&sum_sch);
 			}
-			if (finIntres==0 and finDobres != 0.0){
+			if (finIntres==0 && finDobres != 0.0){
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsDoub);
-				cout<<"creating new record"<<endl;
+				
 				Schema sum_sch("sum_sch",1, &DA);
 				// cout << "------------------>";
 				// OrderMaker dummy(&sum_sch);
@@ -922,7 +930,9 @@ void *group_by (void *arg) {
     			ss << finDobres;
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
-				sum_rec.Print(&sum_sch);
+				// sum_rec.Print(&sum_sch);
+				// cout << "-------------------->"<<endl;
+				finDobres = 0.0;
 				// string temp = ss.str();
     			// string rec_bits = prev.returnRecord(input_args->computeMe->sch);
 				// // ss << prev.bits;
@@ -936,9 +946,13 @@ void *group_by (void *arg) {
 			}
 			
 			prev.Copy(tempRec);	
-			finIntres = 0;
-			finDobres = 0.0;
-			input_args->out_pipe->Insert(&sum);
+			input_args->computeMe->Apply(*tempRec, intres, dobres);
+			finIntres = finIntres + intres;
+			
+			finDobres = finDobres + dobres;
+			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+
+			input_args->out_pipe->Insert(&sum_rec);
 		}
 		// cout << "Final group by count ="<<count<<endl; 
 	}
