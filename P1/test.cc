@@ -302,14 +302,13 @@ void q6 () {
 	G.Run (_s_ps, _out, grp_order, func);
 	
 	// int cnt = clear_pipe (_out, &join_sch, true);
-	Schema sum_sch ("sum_sch", 1, &DA);
-	int cnt = clear_pipe (_out, &sum_sch, true);
+	
 	
 	SF_ps.WaitUntilDone ();
 	SF_s.WaitUntilDone();
 	cout<<"Moved on to better things"<<endl;
-	// int cnt = clear_pipe (_s_ps, &join_sch, true);
-
+	Schema sum_sch ("sum_sch", 1, &DA);
+	int cnt = clear_pipe (_out, &sum_sch, true);
 	J.WaitUntilDone ();
 	
 	G.WaitUntilDone ();

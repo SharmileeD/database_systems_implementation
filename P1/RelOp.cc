@@ -844,7 +844,7 @@ void *group_by (void *arg) {
 	int runLen = 1;
 	Record sum;
 	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts, runLen);
-	// cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
+	cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
 	input_args->groupAtts->Print();
 	// while(bq_out.Remove(tempRec)==1) {
 	// 	count ++;
@@ -881,7 +881,7 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 			continue;
 		}
@@ -891,7 +891,7 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 		} else {
 		//if cannot be grouped, create record of the current sum and push to the outpipe.	
@@ -931,7 +931,7 @@ void *group_by (void *arg) {
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
 				// sum_rec.Print(&sum_sch);
-				// cout << "-------------------->"<<endl;
+				cout << "-------------------->"<<endl;
 				finDobres = 0.0;
 				// string temp = ss.str();
     			// string rec_bits = prev.returnRecord(input_args->computeMe->sch);
@@ -950,11 +950,11 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 
 			input_args->out_pipe->Insert(&sum_rec);
 		}
-		// cout << "Final group by count ="<<count<<endl; 
+		cout << "Final group by count ="<<count<<endl; 
 	}
 	
 	
