@@ -50,9 +50,10 @@ class OrderMaker {
 
 	int whichAtts[MAX_ANDS];
 	Type whichTypes[MAX_ANDS];
+	
 
 public:
-	
+	Schema *sch;
 	// creates an empty OrdermMaker
 	OrderMaker();
 

@@ -478,8 +478,8 @@ string Record :: returnRecord (Schema *mySchema) {
 	for (int i = 0; i < n; i++) {
 
 		// print the attribute name
-		out.append(atts[i].name);
-		out.append(": ");
+		// out.append(atts[i].name);
+		// out.append(": ");
 		// cout << atts[i].name << ": ";
 
 		// use the i^th slot at the head of the record to get the
@@ -489,7 +489,7 @@ string Record :: returnRecord (Schema *mySchema) {
 		// here we determine the type, which given in the schema;
 		// depending on the type we then print out the contents
 		// cout << "[";
-		out.append("[");
+		// out.append("[");
 
 		// first is integer
 		if (atts[i].myType == Int) {
@@ -510,11 +510,11 @@ string Record :: returnRecord (Schema *mySchema) {
 		} 
 
 		// cout << "]";
-		out.append("]");
+		// out.append("]");
 		// print out a comma as needed to make things pretty
 		if (i != n - 1) {
 			// cout << ", ";
-			out.append(",");
+			out.append("|");
 		}
 	}
 

@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <vector>
 #include <array>
+#include <string>
 using namespace std;
 
 struct selectStruct {
@@ -266,7 +267,7 @@ void * nestedBlock(void * args) {
 	vector<Record> vec_right; //right
 	vector<Record> vec_left; //left
 	int val;
-	int buff_size =100;
+	int buff_size =10;
 	int count = 0;
 	bool moreRec = true;
 	Record lRec, rRec;
@@ -416,7 +417,7 @@ void* joinHelper (void * args) {
 		attsToKeep[i] = idx;
 		idx++;
 	}
-		
+	int attsToKeep1[12] = {0,1,2,3,4,5,6,0,1,2,3,4};	
 	while(outpRight.Remove(tempRec)==1) {
 		// tempRec->Print(&mySchemaR);
 		// cr++;
@@ -539,7 +540,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	OrderMaker left;
 	OrderMaker right;
 
-	if(selOp.GetSortOrders(left, right)==0) {
+	if(selOp.GetSortOrders(left, right)!=0) {
 			//block nested join
 		cout <<"OrderMAker empty!!"<<endl;
 		joinInput.literal = &literal;
@@ -792,32 +793,62 @@ void *group_by (void *arg) {
 	cout<<"in: group by"<<endl;
 	struct group_by_data * input_args;
 	input_args = (struct group_by_data *)arg;
+	
 	int count = 0;
 	int intres;
 	int finIntres = 0;
 	double dobres;
 	double finDobres = 0.0;
-	Record * tempRec;
+
+	Record *tempRec;
 	Record outrec;
 	tempRec = &outrec;
+
+	Attribute IA = {"int", Int};
+	Attribute SA = {"string", String};
+	Attribute DA = {"double", Double};
+
 	Record pushThis;
 	Record prev;
-	Schema mySchema ("catalog", "orders");
-	Pipe bq_out(100); 
-	ComparisonEngine ceng;
-	Attribute DA = {"double", Double};
-	Attribute IA = {"int", Int};
 
+	Schema mySchema ("catalog", "supplier");
+	
+	Pipe bq_out(100);
+	ComparisonEngine ceng;
+	
 	Record sum;
-	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts,1);
+	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts, 1);
+	// cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
+	input_args->groupAtts->Print();
+
+	
+	Attribute *inp = input_args->computeMe->sch->GetAtts();
+	int schemaAtts = input_args->computeMe->sch->GetNumAtts();
+	int newAtts = schemaAtts + 1;
+
+	Attribute* newSchemaAttsInt;
+	newSchemaAttsInt = new Attribute[newAtts]; 
+	newSchemaAttsInt[0] = IA;
+
+	Attribute* newSchemaAttsDoub;
+	newSchemaAttsDoub = new Attribute[newAtts]; 
+	newSchemaAttsDoub[0] = DA;
+
+	for (int it = 1; it < newAtts; it++) {
+		newSchemaAttsDoub[it] = inp[it-1];
+		newSchemaAttsInt[it] = inp[it-1];
+	}
+
 	
 	while(bq_out.Remove(tempRec)==1) {
-		
+		// tempRec->Print(&mySchema);
 		if(count ==0){
 			prev.Copy(tempRec);
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
+			
 			finDobres = finDobres + dobres;
+			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 			continue;
 		}
@@ -825,26 +856,56 @@ void *group_by (void *arg) {
 		if(ceng.Compare(&prev, tempRec, input_args->groupAtts)==0) {
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
+			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			finDobres = finDobres + dobres;
 			count++;
 		} else {
 		//if cannot be grouped, create record of the current sum and push to the outpipe.	
 			count++;
-			prev.Copy(tempRec);	
+			Record sum_rec;
 			if (finIntres!=0 and finDobres == 0.0){
-				Schema sum_sch ("sum_sch", 1, &IA);
+				Schema sum_sch("sum_sch",1, &IA);
+				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsInt);
 				stringstream ss;
     			ss << finIntres;
-    			const char* str = ss.str().c_str();
-				sum.ComposeRecord(&sum_sch,str);
+				// char * intermediateStr = ss.str();
+				// ss << prev.bits;
+				const char* str = (ss.str()+"|").c_str();
+				sum_rec.ComposeRecord(&sum_sch,str);
+				sum_rec.Print(&sum_sch);
+				// string temp = ss.str();
+    			// string rec_bits(prev.bits);
+				// const char* str = (temp + rec_bits).c_str();
+				
+				// string final = (temp + rec_bits).c_str();
+				// cout << "record int= "<<str<<endl;
+				// sum.ComposeRecord(&sum_sch,str);
+				// sum.Print(&sum_sch);
 			}
 			if (finIntres==0 and finDobres != 0.0){
-				Schema sum_sch ("sum_sch", 1, &DA);
+				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsDoub);
+				Schema sum_sch("sum_sch",1, &DA);
+				// cout << "------------------>";
+				// OrderMaker dummy(&sum_sch);
+				// dummy.Print();
 				stringstream ss;
     			ss << finDobres;
-    			const char* str = ss.str().c_str();
-				sum.ComposeRecord(&sum_sch,str);
+				const char* str = (ss.str()+"|").c_str();
+				sum_rec.ComposeRecord(&sum_sch,str);
+				sum_rec.Print(&sum_sch);
+				// string temp = ss.str();
+    			// string rec_bits = prev.returnRecord(input_args->computeMe->sch);
+				// // ss << prev.bits;
+				// string fin = temp + "|" + rec_bits;
+				// const char* str = fin.c_str();
+    			// // const char* str = ss.str().c_str();
+				// cout << "record double= "<<str<<endl;
+				// // <<"  record bits"<<rec_bits <<endl;
+				// sum.ComposeRecord(&sum_sch,str);
+				// // sum.Print(&sum_sch);
 			}
+			
+			prev.Copy(tempRec);	
 			finIntres = 0;
 			finDobres = 0.0;
 			input_args->out_pipe->Insert(&sum);
@@ -852,15 +913,12 @@ void *group_by (void *arg) {
 		// cout << "Final group by count ="<<count<<endl; 
 	}
 	
-	// Page dummy;
-	// while (input_args->in_pipe->Remove(tempRec)==1) {
-		// Do something with the records
-		
-
-	// }
+	
 	input_args->out_pipe->ShutDown();
 }
+
 /***/
+
 void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) { 
 	gb_data.in_pipe = &inPipe;
 	gb_data.out_pipe = &outPipe;

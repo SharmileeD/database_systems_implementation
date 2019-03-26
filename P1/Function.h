@@ -27,7 +27,7 @@ private:
 	int returnsInt;
 
 public:
-
+	Schema *sch;
 	Function ();
 
 	// this grows the specified function from a parse tree and converts

@@ -47,6 +47,7 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 		cnt++;
 	}
 	// rec.Print (schema);
+	cout << "clear pipe count = "<<cnt<<endl;
 	return cnt;
 }
 
@@ -214,32 +215,56 @@ void test_duplicate_removal(){
 void test_groupby() {
 	Pipe inpipe(100);
 	Pipe outPipe(100);
-	Pipe outPipeProject(100);
-	Schema mySchema ("catalog", "partsupp");
-	char *pred_parts = "(ps_suppkey = ps_suppkey)";
-	Record lit;
-	Record temp;
-	int res;
-	DBFile db;
-	CNF cnf_parts;
-	SelectFile sf;
-
-	db.Open("partsupp.bin");
-    get_cnf (pred_parts, &mySchema, cnf_parts, lit);
-	int count =0;
+	// Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "supplier");
+	char *pred_parts = "(s_nationkey = s_nationkey)";
 	
-	GroupBy G;
-	Pipe _out (1);
-	Function func;
-	char *str_sum = "(ps_supplycost)";
-	get_cnf (str_sum, &mySchema, func);
+	// Record temp;
+	// int res;
+	DBFile db;
+	db.Open("supplier.bin");
 
+	CNF cnf_parts;
+	Record lit;
+	SelectFile sf;
+    get_cnf (pred_parts, &mySchema, cnf_parts, lit);
+	// int count =0;
+	// int outAtts = sAtts + psAtts;
+	Attribute s_nationkey = {"s_nationkey", Int};
+	Attribute s_suppkey = {"s_suppkey", Int};
+	// Attribute ps_supplycost = {"ps_supplycost", Double};
+	
+	// Attribute s_nationkey = {"s_nationkey", Int};
+	Attribute myatt[] = {s_nationkey};
+	// Schema mySchema1 ("mySchema1", 1, myatt);
+	char *str = "(s_nationkey = s_nationkey)";
+	CNF cnf_parts2;
+	Record lit2;
+	get_cnf(str, &mySchema, cnf_parts2, lit2);
+
+	OrderMaker dummy;
 	OrderMaker grp_order(&mySchema);
+	cnf_parts2.GetSortOrders(grp_order, dummy);
+
+	GroupBy G;
+	Pipe _out(1);
+	Function func;
+	// char *str_sum = "(ps_supplycost)";
+	char *str_sum = "(s_acctbal + (s_acctbal * 1.05))";
+	get_cnf (str_sum, &mySchema, func);
+     
+	std::cout <<"Function:"<<endl;
+	func.Print();
+
+	// OrderMaker grp_order(&mySchema1);
+	
+	std::cout << "Ordermaker for group by:"<<endl;
 	grp_order.Print();
 	sf.Run(db, inpipe, cnf_parts, lit);
 	// int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
 	
 	G.Run(inpipe,outPipe,grp_order,func);
+
 	int cnt_parts = clear_pipe(outPipe, &mySchema, false);
 	sf.WaitUntilDone();
 	G.WaitUntilDone();
@@ -377,8 +402,8 @@ int main(){
 	// test_write_out();
 	// test_duplicate_removal();
 	// test_sum();
-	test_join();
-	// test_groupby();
+	// test_join();
+	test_groupby();
 	// check_num_records("o6ohxwysq3.bin");
 	
 	cout<<"Main end"<<endl;
