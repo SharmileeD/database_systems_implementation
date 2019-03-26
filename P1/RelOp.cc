@@ -420,8 +420,17 @@ void* joinHelper (void * args) {
 		// cout <<"right----------->"<<cr<<endl;
 		vec_right.push_back(*tempRec);
 	}
+	int right_size = vec_right.size();
+	int left_size = vec_left.size();
+	Record arr_right[right_size];
+	Record arr_left[left_size];
 
-	
+	for(int i =0; i < right_size; i++)
+		arr_right[i] = vec_right[i];
+
+	for(int i =0; i < left_size; i++)
+		arr_left[i] = vec_left[i];
+
 	cout << "Final vector size = "<<vec_right.size()<<endl;
 
 	// int attsToKeep[7] = {0,0,2,3,4};
@@ -435,9 +444,9 @@ void* joinHelper (void * args) {
 	int prev_l, prev_r;
 	int fincnt = 0;
 	
-	while(l < vec_left.size() && r < vec_right.size()) {
+	while(l < left_size && r < right_size) {
 		
-		int cmp = ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right);
+		int cmp = ceng.Compare(&arr_left[l], &input_args->left, &arr_right[r], &input_args->right);
 		
 		if(cmp < 0)
 			l++;
@@ -445,8 +454,8 @@ void* joinHelper (void * args) {
 			r++;
 		else {
 			//if r and l recs match merge and push
-			lRec.Copy(&vec_left[l]);
-			rRec.Copy(&vec_right[r]);
+			lRec.Copy(&arr_left[l]);
+			rRec.Copy(&arr_right[r]);
 			// lRec.Print(&mySchemaL);
 			// rRec.Print(&mySchemaR);
 			fincnt++;
@@ -466,11 +475,11 @@ void* joinHelper (void * args) {
 			//check other l records that match rRec and merge 
 			l++;
 						
-			while(l < vec_left.size() && r <vec_right.size()) {
+			while(l < left_size && r <right_size) {
 				//if match found merge and push else break the loop
-				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
-					lRec.Copy(&vec_left[l]);
-					rRec.Copy(&vec_right[r]);
+				if(ceng.Compare(&arr_left[l], &input_args->left, &arr_right[r], &input_args->right)==0) {
+					lRec.Copy(&arr_left[l]);
+					rRec.Copy(&arr_right[r]);
 					// lRec.Print(&mySchemaL);
 					// rRec.Print(&mySchemaR);
 					fincnt++;
@@ -497,11 +506,11 @@ void* joinHelper (void * args) {
 			//check other r records that match the lRec and merge
 			r++;
 
-			while(r < vec_right.size() && l < vec_left.size() ) {
+			while(r < right_size && l < left_size) {
 				//if match found merge and push else break the loop
-				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
-					lRec.Copy(&vec_left[l]);
-					rRec.Copy(&vec_right[r]);
+				if(ceng.Compare(&arr_left[l], &input_args->left, &arr_right[r], &input_args->right)==0) {
+					lRec.Copy(&arr_left[l]);
+					rRec.Copy(&arr_right[r]);
 					// lRec.Print(&mySchemaL);
 					// rRec.Print(&mySchemaR);
 					fincnt++;
@@ -510,9 +519,9 @@ void* joinHelper (void * args) {
 						cout <<"reached1 r="<<r<<endl;
 						lRec.Print(&mySchemaL);
 						
-						rRec.Consume(&vec_right[r]);
+						rRec.Consume(&arr_right[r]);
 						rRec.Print(&mySchemaR);
-						// vec_right[r].Print(&mySchemaR);
+						// arr_right[r].Print(&mySchemaR);
 					}
 					tempRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					input_args->op->Insert(tempRec);
