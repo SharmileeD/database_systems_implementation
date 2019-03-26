@@ -956,6 +956,23 @@ void *group_by (void *arg) {
 		}
 		cout << "Final group by count ="<<count<<endl; 
 	}
+	Record lastrec;
+	if(finDobres != 0.0 && finIntres == 0) {
+		Schema sum_sch("sum_sch",1, &DA);
+		stringstream ss;
+    	ss << finDobres;
+		const char* str = (ss.str()+"|").c_str();
+		lastrec.ComposeRecord(&sum_sch,str);
+		input_args->out_pipe->Insert(&lastrec);
+	}
+	else if(finDobres == 0.0 && finIntres != 0) {
+		Schema sum_sch("sum_sch",1, &IA);
+		stringstream ss;
+    	ss << finIntres;
+		const char* str = (ss.str()+"|").c_str();
+		lastrec.ComposeRecord(&sum_sch,str);
+		input_args->out_pipe->Insert(&lastrec);
+	}
 	
 	
 	input_args->out_pipe->ShutDown();
