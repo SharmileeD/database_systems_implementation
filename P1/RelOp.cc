@@ -559,7 +559,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	OrderMaker left;
 	OrderMaker right;
 
-	if(selOp.GetSortOrders(left, right)==0) {
+	if(selOp.GetSortOrders(left, right)!=0) {
 			//block nested join
 		cout <<"OrderMAker empty!!"<<endl;
 		joinInput.literal = &literal;
