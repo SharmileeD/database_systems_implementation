@@ -2,15 +2,18 @@
 #include "ComparisonEngine.cc"
 #include "Comparison.cc"
 #include "Comparison.h"
-
+#include "Function.cc"
+#include "RelOp.h"
 #include "File.cc"
 #include "Record.cc"
 #include "Schema.cc"
 #include <cstdlib>
 #include "BigQ.cc"
 #include "Pipe.cc"
-#include "test.h"
+#include "RelOp.cc"
 #include <stdlib.h>
+#include "ParseTree.h"
+// #include "y.tab.h"
 #include <gtest/gtest.h>
 
 
@@ -24,7 +27,7 @@ TEST(CreateTestHeap, CreateSuccessHeap) {
     dbfile.Close();
 }
 
-
+/*
 TEST(OpenTestHeap, OpenSuccessHeap) { 
     DBFile dbfile;
     char myfname[] = "lee.txt";
@@ -188,45 +191,45 @@ TEST(SetValueFromTxtTest, SetValueSuccess) {
     ASSERT_EQ(get_val, dbfile.GetValueFromTxt(d_page));
 }
 
-TEST(CreateRunTest, checkNumRecs) {
-    Heap dbfile;
-    Heap to_test;
-    Record inprec;
+// TEST(CreateRunTest, checkNumRecs) {
+//     Heap dbfile;
+//     Heap to_test;
+//     Record inprec;
    
-    int count = 0;
-    int runcount = 0;
-	dbfile.Open("nation.bin");
-    to_test.Open("runs.bin");
-    dbfile.MoveFirst();
-    to_test.MoveFirst();
-    while (dbfile.GetNext(inprec) == 1) {
-        count++;
-    }
+//     int count = 0;
+//     int runcount = 0;
+// 	dbfile.Open("nation.bin");
+//     to_test.Open("runs.bin");
+//     dbfile.MoveFirst();
+//     to_test.MoveFirst();
+//     while (dbfile.GetNext(inprec) == 1) {
+//         count++;
+//     }
    
-    while (to_test.GetNext(inprec) == 1) {
-        runcount++;
-    }
-    dbfile.Close();
-    to_test.Close();
+//     while (to_test.GetNext(inprec) == 1) {
+//         runcount++;
+//     }
+//     dbfile.Close();
+//     to_test.Close();
     
-    ASSERT_EQ(count, runcount);
+//     ASSERT_EQ(count, runcount);
 
-}
+// }
 
-TEST(CreateRunTest, checkNumPages) {
-    Heap dbfile;
-    Heap to_test;
+// TEST(CreateRunTest, checkNumPages) {
+//     Heap dbfile;
+//     Heap to_test;
     
-	dbfile.Open("nation.bin");
-    to_test.Open("runs.bin");
-    int count = dbfile.file_instance.GetLength();
-    int runcount = to_test.file_instance.GetLength();
-    dbfile.Close();
-    to_test.Close();
+// 	dbfile.Open("nation.bin");
+//     to_test.Open("runs.bin");
+//     int count = dbfile.file_instance.GetLength();
+//     int runcount = to_test.file_instance.GetLength();
+//     dbfile.Close();
+//     to_test.Close();
     
-    ASSERT_EQ(count, runcount);
+//     ASSERT_EQ(count, runcount);
 
-}
+// }
 
 TEST(sortRecorsTest, checkRunSort1) {
     Heap dbfile;
@@ -518,7 +521,51 @@ TEST(PipeReset, PipeResetSuccess){
     in_pipe.resetPipe();
     ASSERT_EQ(in_pipe.getLastSlot(), 0);
     ASSERT_EQ(in_pipe.getFirstSlot(), 0);
+}*/
+int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
+	Record rec;
+	// cout<< "Inside clear pipe!!"<<endl;
+	// FILE *writefile = fopen ("opclear.txt", "w");
+	string strrec;
+	int cnt = 0;
+	const char * c;
+	while (in_pipe.Remove (&rec)) {
+		// strrec = rec.returnRecord(schema);
+		// c = strrec.c_str();
+		// fprintf(writefile, c);
+		if (print) {
+			rec.Print (schema);
+		}
+		cnt++;
+	}
+	// rec.Print (schema);
+	cout << "clear pipe count = "<<cnt<<endl;
+	return cnt;
 }
+TEST(RelopTest, SFTest){
+    Schema mySchema ("catalog", "supplier");
+    Record lit;
+    CNF cnf;
+    DBFile db;
+    SelectFile sf;
+    Pipe op(100);
+    db.Open("supplier.bin");
+    struct AndList *final;	
+    char * pred_str = "(s_suppkey = s_suppkey)";
+
+    cnf.GrowFromParseTree(final,&mySchema, lit);
+    // cnf.Print();
+    sf.Run (db, op, cnf, lit);
+	int cnt = clear_pipe (op, &mySchema, false);
+	sf.WaitUntilDone ();
+
+	// int cnt = clear_pipe (_ps, ps->schema (), true);
+	// cout << "\n\n query1 returned " << cnt << " records \n";
+    ASSERT_EQ(cnt,100);
+	db.Close ();
+
+}
+
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
