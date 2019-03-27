@@ -50,9 +50,10 @@ class OrderMaker {
 
 	int whichAtts[MAX_ANDS];
 	Type whichTypes[MAX_ANDS];
+	
 
 public:
-	
+	Schema *sch;
 	// creates an empty OrdermMaker
 	OrderMaker();
 
@@ -84,7 +85,8 @@ class CNF {
 	int numAnds;
 
 public:
-	
+	int leftAttrCount;
+	int rightAttrCount;
 	// this returns an instance of the OrderMaker class that
 	// allows the CNF to be implemented using a sort-based
 	// algorithm such as a sort-merge join.  Returns a 0 if and

@@ -10,39 +10,41 @@
 #include <array>
 #include <iostream>
 #include <queue>
+#include <string.h>
 
-
+using namespace std;
+// pthread_mutex_t count_mutex;
 struct worker_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
 	OrderMaker *sort_order;
-	int run_length;
+	int *run_length;
+	char * filename;
 };
-
-struct worker_data input;
 
 struct record_container {
 	Record rec;
 	int run;
 };
 
-struct CompareRecords {
-	bool operator()(record_container r1, record_container r2) {
-		ComparisonEngine ceng;
-		int val = ceng.Compare (&r1.rec, &r2.rec, input.sort_order);
-		if(val != 1)
-			return false;
-		return true;
-	} 
-
-};
 
 int pgCountLastRun = 0;
 
 void mergeSort(Record arr[], int l, int r, OrderMaker sort_order); 
 
 void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
-	
+	static OrderMaker *om = input_args->sort_order;
+	struct CompareRecords {
+	bool operator()(record_container r1, record_container r2) {
+		ComparisonEngine ceng;
+		int val = ceng.Compare (&r1.rec, &r2.rec, om);
+		if(val != 1)
+			return false;
+		return true;
+	} 
+
+	};
+	// cout << "Reached phase 2 for file: "<< input_args->filename<<endl;
 	//Stores a page from each run
 	Page runPage[numRuns];
 	//Stores which page from "run_index" is loaded in runPage
@@ -50,15 +52,17 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	int run_index = 0;
 	int get_first = 0;
 	int load_more = 0;
-	int runLength = input_args->run_length; //Number of pages in each run
+	int runLength = *input_args->run_length; //Number of pages in each run
 	struct record_container to_push; //Struct to store entity to push to the priority queue
 	struct record_container que[numRuns]; //Array of record_container struct which acts as the priority queue
 	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
 	struct record_container temp; 
 	struct record_container new_elemnt;
-
+	int bqcnt = 0;
 	Heap file;
-	file.Open("runs.bin");
+	std::string someString(input_args->filename);
+	file.Open((someString+".bin").c_str());
+	// file.Open("runs.bin");
 	//Get page from every run
 	
 	//First time load the runPage array with the first page of each run
@@ -68,13 +72,15 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		runPage[i].GetFirst(&que[i].rec);
 
 		que[i].run = i;
-		recQ.push(que[i]);
+	   	recQ.push(que[i]);
 
 	}
+	// cout << "recQ.size = "<<recQ.size()<<endl;
 	while(recQ.size()!=0){
 		//Step 1: Getting the first record(smallest) of the priority queue
 		temp = recQ.top();
 		run_index = temp.run;
+		bqcnt++;
 		input_args->out_pipe->Insert(&temp.rec);
 
 		//cout << "Smallest record : " << endl;
@@ -123,29 +129,34 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 			recQ.push(to_push);
 		}
 	}
-
+	
+	// cout << "Done for file: "<< bqcnt<<endl;
 	file.Close();
 }
 
 //Function that creates a sorted run and writes it to a file named runs.bin
-void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
+void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, string filename) {
 	
 	Page temp;
 	off_t page_num;
-	
+	int mfSize = 100;
+	char meta_file_name[mfSize];
 	int arr_size = vec_arr.size();
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-
+	// cout << "Creating runs for file: "<< filename<<endl;
 	Heap dbfile;
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
 		fType fileType = heap;
-		dbfile.Create("runs.bin", fileType, NULL);
+		// sprintf (meta_file_name, "%s_runs.bin", );
+		dbfile.Create((filename+".bin").c_str(), fileType, NULL);
+		// dbfile.Create("runs.bin", fileType, NULL);
 	}
 	else{
-		dbfile.Open("runs.bin"); 
+		dbfile.Open((filename+".bin").c_str()); 
+		// dbfile.Open(".bin").c_str()); 
 	}
 	//The first page is loaded when we call dbfile.Open so we need to empty it out
 	dbfile.buffer_page.EmptyItOut();
@@ -166,7 +177,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns) {
 void *sort_tpmms (void *arg) {
 	struct worker_data * input_args;
 	input_args = (struct worker_data *)arg;	
-	
+	// cout << "Start sort tppms for file: "<< input_args->filename<<endl;
 	int pageCount = 0;
 	int numRuns = 0;
 	bool writeRun = false;
@@ -176,24 +187,27 @@ void *sort_tpmms (void *arg) {
 	tempRec = &outrec;
 	Record pushThis;
 
-	
+	// Schema mySchema("catalog","partsupp");
+	// int count = 0;
 	Page dummy;
  	vector<Record> vec_arr; 
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		// tempRec->Print(&mySchema);
+	// count++;
+	// cout << "bigq Count= "<<count<<endl;
 		writeRun = false;
 		vec_arr.push_back(*tempRec);
-		
+			
 		if(dummy.Append(tempRec)!= 1){
 			//If page is full
 			pageCount ++;
-			if(pageCount == input_args->run_length) {
+			if(pageCount == *input_args->run_length) {
 				
 				//create a run when you have reached the run length limit. 
 				//Sort the records and write them out to disk
 				numRuns++;
 				vec_arr.pop_back();
-				createRun(vec_arr, *input_args->sort_order, numRuns);
+				createRun(vec_arr, *input_args->sort_order, numRuns, input_args->filename);
 				writeRun = true;
 				pageCount = 0;
 				
@@ -209,19 +223,24 @@ void *sort_tpmms (void *arg) {
 	//write last run to file if the page was never emptied into the dbifile
 	if(!writeRun) {
 			numRuns++;
-			createRun(vec_arr, *input_args->sort_order, numRuns);
+			createRun(vec_arr, *input_args->sort_order, numRuns, input_args->filename);
 			pgCountLastRun = pageCount;
 			pageCount = 0;
 			vec_arr.clear();
 			pgCountLastRun++;
 			
 	}
-	
+	// cout << "sort tppms for file: "<< input_args->filename<<endl;
 	phase2tpmms(input_args, numRuns, pgCountLastRun);
 
 	//Done with external sort so shutting down the outpipe
 	input_args->out_pipe->ShutDown();
  	cout<< "Exiting the worker thread"<<endl;
+	 
+	std::string someString(input_args->filename);
+	remove((someString+".bin").c_str());
+	remove((someString+"_lpage.txt").c_str());
+	remove((someString+"_dpage.txt").c_str());
 	pthread_exit(NULL);
 	
 }
@@ -298,14 +317,33 @@ void mergeSort(Record arr[], int l, int r, OrderMaker sort_order) {
     } 
 }
 
+string getRandomString(int n) 
+{ 
+    char alphabet[36] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 
+                          'h', 'i', 'j', 'k', 'l', 'm', 'n',  
+                          'o', 'p', 'q', 'r', 's', 't', 'u', 
+                          'v', 'w', 'x', 'y', 'z','1', '2','3','4','5','6','7','8','9','0'}; 
+  
+    string res = ""; 
+    for (int i = 0; i < n; i++)  
+        res = res + alphabet[rand() % 36]; 
+    return res; 
+
+} 
 BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	// read data from in pipe sort them into runlen pages
+	// pthread_mutex_lock( &count_mutex );
 	cout << "BigQ: Start"<<endl;
+	struct worker_data *input;
+	input = (worker_data *) malloc(sizeof(worker_data));
 	// storing address of the reference of in pipe coming in to the BigQ in the struct in_pipe variable
-	input.in_pipe = &in; 
-	input.out_pipe = &out;
-	input.sort_order = &sortorder;
-	input.run_length = runlen;
+	input->in_pipe = &in; 
+	input->out_pipe = &out;
+	input->sort_order = &sortorder;
+	input->run_length = &runlen;
+	string namestr = getRandomString(10);
+	char* name = strdup(namestr.c_str());
+	input->filename = name;
     // construct priority queue over sorted runs and dump sorted data 
  	// into the out pipe
 	pthread_t worker;
@@ -316,10 +354,10 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 		cout<<"Some issue with setting detached"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to detached"<<endl;
+		cout<<"BigQ Thread attr set to detached"<<endl;
 	}
-	pthread_create (&worker, &attr, sort_tpmms, (void*) &input);
-
+	pthread_create (&worker, &attr, sort_tpmms, (void*) input);
+	// pthread_mutex_unlock( &count_mutex );
     // finally shut down the out pipe
 }
 

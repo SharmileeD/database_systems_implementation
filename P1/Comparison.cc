@@ -70,7 +70,9 @@ OrderMaker :: OrderMaker() {
 
 OrderMaker :: OrderMaker(Schema *schema) {
 	numAtts = 0;
-
+	sch = schema;
+	// cout <<"inside ordermaker ="<<sch->GetNumAtts()<<endl;
+	// cout <<"schema numatts = "<<schema->GetNumAtts()<<endl;	
 	int n = schema->GetNumAtts();
 	Attribute *atts = schema->GetAtts();
 
@@ -209,7 +211,7 @@ int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 	// initialize the size of the OrderMakers
 	left.numAtts = 0;
 	right.numAtts = 0;
-
+	
 	// loop through all of the disjunctions in the CNF and find those
 	// that are acceptable for use in a sort ordering
 	// cout << "NumANDS" << numAnds << endl;
@@ -227,10 +229,11 @@ int CNF :: GetSortOrders (OrderMaker &left, OrderMaker &right) {
 		}
 
 		// now verify that it operates over atts from both tables
-		if (!((orList[i][0].operand1 == Left && orList[i][0].operand2 == Right) ||
-		      (orList[i][0].operand2 == Left && orList[i][0].operand1 == Right))) {
-			continue;		
-		}
+		// comment this to actually use the order
+		// if (!((orList[i][0].operand1 == Left && orList[i][0].operand2 == Right) ||
+		//       (orList[i][0].operand2 == Left && orList[i][0].operand1 == Right))) {
+		// 	continue;		
+		// }
 
 		// since we are here, we have found a join attribute!!!
 		// so all we need to do is add the new comparison info into the
@@ -335,7 +338,9 @@ void AddLitToFile (int &numFieldsInLiteral, FILE *outRecFile, FILE *outSchemaFil
 
 void CNF :: GrowFromParseTree (struct AndList *parseTree, Schema *leftSchema, 
 	Schema *rightSchema, Record &literal) {
-
+	this->leftAttrCount= leftSchema->GetNumAtts();
+	this->rightAttrCount = rightSchema->GetNumAtts();
+	
 	CNF &cnf = *this;
 
 	// as kind of a hack, the literal record is built up insiide of a text file,
@@ -726,8 +731,8 @@ void CNF :: GrowFromParseTree (struct AndList *parseTree, Schema *mySchema,
 	// close the record file
 	fclose (outRecFile);
 
-	// remove("sdafdsfFFDSDA");
-	// remove("hkljdfgkSDFSDF");
+	remove("sdafdsfFFDSDA");
+	remove("hkljdfgkSDFSDF");
 }
 
 

@@ -469,6 +469,59 @@ void Record :: Print (Schema *mySchema) {
 	cout << "\n";
 }
 
+string Record :: returnRecord (Schema *mySchema) {
+	string out;
+	int n = mySchema->GetNumAtts();
+	Attribute *atts = mySchema->GetAtts();
+
+	// loop through all of the attributes
+	for (int i = 0; i < n; i++) {
+
+		// print the attribute name
+		// out.append(atts[i].name);
+		// out.append(": ");
+		// cout << atts[i].name << ": ";
+
+		// use the i^th slot at the head of the record to get the
+		// offset to the correct attribute in the record
+		int pointer = ((int *) bits)[i + 1];
+
+		// here we determine the type, which given in the schema;
+		// depending on the type we then print out the contents
+		// cout << "[";
+		// out.append("[");
+
+		// first is integer
+		if (atts[i].myType == Int) {
+			int *myInt = (int *) &(bits[pointer]);
+			// cout << *myInt;	
+			out.append(to_string(*myInt));
+
+		// then is a double
+		} else if (atts[i].myType == Double) {
+			double *myDouble = (double *) &(bits[pointer]);
+			// cout << *myDouble;	
+			out.append(to_string(*myDouble));
+		// then is a character string
+		} else if (atts[i].myType == String) {
+			char *myString = (char *) &(bits[pointer]);
+			out.append(myString);
+			// cout << myString;	
+		} 
+
+		// cout << "]";
+		// out.append("]");
+		// print out a comma as needed to make things pretty
+		if (i != n - 1) {
+			// cout << ", ";
+			out.append("|");
+		}
+	}
+
+	// cout << "\n";
+	out.append("\n");
+	return out;
+}
 // void Record :: GetRecordBits(char * bits) {
 // 	bits = this->GetBits();
 // }

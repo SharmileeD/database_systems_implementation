@@ -182,6 +182,10 @@ void setup () {
 			free (mem);
 			exit (1);
 		}
+		// catalog_path="catalog";
+		// dbfile_dir="";
+		// tpch_dir="tables/";
+
 	}
 	else {
 		cerr << " Test settings files 'test.cat' missing \n";

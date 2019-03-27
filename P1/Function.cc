@@ -188,10 +188,10 @@ void Function :: GrowFromParseTree (struct FuncOperator *parseTree, Schema &mySc
 
 	// zero out the list of operrations
 	numOps = 0;
-
+	sch = &mySchema;
 	// now recursively build the list
 	Type resType = RecursivelyBuild (parseTree, mySchema);
-
+	sch = &mySchema;
 	// remember if we get back an interger or if we get a double
 	if (resType == Int)
 		returnsInt = 1;

@@ -1,4 +1,4 @@
-#include "test.h"
+#include "test_p22.h"
 #include "BigQ.h"
 #include <pthread.h>
 void test1 ();
@@ -31,12 +31,14 @@ void test1 () {
 	rel->get_sort_order (o);
 
 	int runlen = 0;
-	//while (runlen < 1) {
+	// while (runlen < 1) {
 		cout << "\t\n specify runlength:\n\t ";
 		cin >> runlen;
-	//}
+		cin >> runlen;
+	// }
+	runlen = 2;
 	struct {OrderMaker *o; int l;} startup = {&o, runlen};
-     o.Print();
+
 	DBFile dbfile;
 	cout << "\n output to dbfile : " << rel->path () << endl;
 	dbfile.Create (rel->path(), sorted, &startup);
@@ -51,15 +53,15 @@ void test1 () {
 	srand48 (time (NULL));
 
 	int proc = 1, res = 1, tot = 0;
-	while (proc && res) {
+	// while (proc && res) {
 		int x = 0;
-	//	while (x < 1 || x > 3) {
+		// while (x < 1 || x > 3) {
 			cout << "\n select option for : " << rel->path () << endl;
 			cout << " \t 1. add a few (1 to 1k recs)\n";
 			cout << " \t 2. add a lot (1k to 1e+06 recs) \n";
 			cout << " \t 3. run some query \n \t ";
-			// cin >> x;
-	//	}
+			cin >> x;
+		// }
 		x = 2;
 		if (x < 3) {
 			proc = add_data (tblfile,lrand48()%(int)pow(1e3,x)+(x-1)*1000, res);
@@ -70,7 +72,7 @@ void test1 () {
 		else {
 			test3 ();
 		}
-	 }
+	// }
 	cout << "\n create finished.. " << tot << " recs inserted\n";
 	fclose (tblfile);
 }
@@ -81,7 +83,6 @@ void test2 () {
 	cout << " scan : " << rel->path() << "\n";
 	DBFile dbfile;
 	dbfile.Open (rel->path());
-	// dbfile
 	dbfile.MoveFirst ();
 
 	Record temp;
@@ -103,11 +104,11 @@ void test3 () {
 	CNF cnf; 
 	Record literal;
 	rel->get_cnf (cnf, literal);
-	
+
 	DBFile dbfile;
 	dbfile.Open (rel->path());
 	dbfile.MoveFirst ();
-	
+
 	Record temp;
 
 	int cnt = 0;
@@ -123,40 +124,6 @@ void test3 () {
 
 }
 
-void testQuery() {
-        Schema lineitem ("catalog", "nation");
-        Heap binfile;
-        OrderMaker o(&lineitem);
-        rel->get_sort_order (o);
-        Record fileRec1;
-        Record fileRec2;
-        int runlen = 0;
-        ComparisonEngine ceng;
-
-        //while (runlen < 1) {
-                cout << "\t\n specify runlength:\n\t ";
-                cin >> runlen;
-        //}
-        CNF myComparison;
-        Record literal;
-        myComparison.GrowFromParseTree (final, &lineitem, literal);
-        cout << "Priniting comparison to screen"<<endl;
-        myComparison.Print ();
-        // OrderMaker o1(&lineitem);
-        // cout << "Printing sort_order ORdermaker" << endl;
-        // o1.Print();
-        // OrderMaker query = o1.makeQuery(myComparison);
-        // int binval = binfile.Open("nation.bin.bigq");
-        // binfile.MoveFirst();
-        // binfile.GetNext(fileRec1);
-        // binfile.GetNext(fileRec2);
-        // int val = ceng.Compare(&fileRec2, &fileRec1, &query);
-        // query.Print();
-
-        // cout <<"Val = "<<val<<endl;
-}
-
-
 int main (int argc, char *argv[]) {
 
 	setup ();
@@ -166,16 +133,16 @@ int main (int argc, char *argv[]) {
 	void (*test) ();
 
 	int tindx = 0;
-//	while (tindx < 1 || tindx > 3) {
+	while (tindx < 1 || tindx > 3) {
 		cout << " select test option: \n";
 		cout << " \t 1. create sorted dbfile\n";
 		cout << " \t 2. scan a dbfile\n";
 		cout << " \t 3. run some query \n \t ";
 		cin >> tindx;
-//	}
+	}
 
 	int findx = 0;
-//	while (findx < 1 || findx > 8) {
+	while (findx < 1 || findx > 8) {
 		cout << "\n select table: \n";
 		cout << "\t 1. nation \n";
 		cout << "\t 2. region \n";
@@ -186,12 +153,12 @@ int main (int argc, char *argv[]) {
 		cout << "\t 7. orders \n";
 		cout << "\t 8. lineitem \n \t ";
 		cin >> findx;
-//	}
+	}
 	rel = rel_ptr [findx - 1];
 
 	test = test_ptr [tindx-1];
 	test ();
-	// testQuery();
+
 	cleanup ();
 	cout << "\n\n";
 }
