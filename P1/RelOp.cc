@@ -410,7 +410,7 @@ void* joinHelper (void * args) {
 	int leftrl = 1;
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, leftrl);
 	// sleep(1);
-	int rightrl = 1;
+	int rightrl = 10;
 	BigQ bqR(*input_args->ipR, outpRight, input_args->right, rightrl);
 	ComparisonEngine ceng;
 	// sleep(1);

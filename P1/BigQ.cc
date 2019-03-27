@@ -18,7 +18,7 @@ struct worker_data{
 	Pipe *in_pipe;
 	Pipe *out_pipe;
 	OrderMaker *sort_order;
-	int run_length;
+	int *run_length;
 	char * filename;
 };
 
@@ -43,7 +43,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		return true;
 	} 
 
-};
+	};
 	// cout << "Reached phase 2 for file: "<< input_args->filename<<endl;
 	//Stores a page from each run
 	Page runPage[numRuns];
@@ -52,7 +52,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 	int run_index = 0;
 	int get_first = 0;
 	int load_more = 0;
-	int runLength = input_args->run_length; //Number of pages in each run
+	int runLength = *input_args->run_length; //Number of pages in each run
 	struct record_container to_push; //Struct to store entity to push to the priority queue
 	struct record_container que[numRuns]; //Array of record_container struct which acts as the priority queue
 	priority_queue<record_container, vector<record_container>, CompareRecords> recQ;
@@ -201,7 +201,7 @@ void *sort_tpmms (void *arg) {
 		if(dummy.Append(tempRec)!= 1){
 			//If page is full
 			pageCount ++;
-			if(pageCount == input_args->run_length) {
+			if(pageCount == *input_args->run_length) {
 				
 				//create a run when you have reached the run length limit. 
 				//Sort the records and write them out to disk
@@ -340,7 +340,7 @@ BigQ :: BigQ (Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	input->in_pipe = &in; 
 	input->out_pipe = &out;
 	input->sort_order = &sortorder;
-	input->run_length = runlen;
+	input->run_length = &runlen;
 	string namestr = getRandomString(10);
 	char* name = strdup(namestr.c_str());
 	input->filename = name;
