@@ -117,7 +117,7 @@ void *select_pipe (void *arg) {
 	Page dummy;
 	while (input_args->in_pipe->Remove(tempRec)==1) {
 		// Do something with the records
-		cout<<"while loop: inpipe recs"<<endl;
+		// cout<<"while loop: inpipe recs"<<endl;
 		if (ceng.Compare(tempRec, input_args->literal,input_args->select_op)){
 			input_args->out_pipe->Insert(tempRec);
 		}

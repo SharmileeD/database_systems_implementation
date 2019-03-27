@@ -539,8 +539,77 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 		cnt++;
 	}
 	// rec.Print (schema);
-	cout << "clear pipe count = "<<cnt<<endl;
+	// cout << "clear pipe count = "<<cnt<<endl;
 	return cnt;
+}
+/*TEST(RelopTest, SFTest){
+    Schema mySchema ("catalog", "supplier");
+    Record lit;
+    CNF cnf;
+    DBFile db;
+    SelectFile sf;
+    Pipe op(100);
+    db.Open("supplier.bin");
+    struct AndList *final;	
+    char * pred_str = "(s_suppkey = s_suppkey)";
+
+    cnf.GrowFromParseTree(final,&mySchema, lit);
+    // cnf.Print();
+    sf.Run (db, op, cnf, lit);
+	int cnt = clear_pipe (op, &mySchema, false);
+	sf.WaitUntilDone ();
+
+	// int cnt = clear_pipe (_ps, ps->schema (), true);
+	// cout << "\n\n query1 returned " << cnt << " records \n";
+    ASSERT_EQ(cnt,100);
+	db.Close ();
+
+}
+*/
+TEST(RelopTest, SelectPipeProjectTest){
+    Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "nation");
+	struct AndList *final;	
+	CNF myComparison;
+	Record literal;
+	myComparison.GrowFromParseTree (final, &mySchema, literal);
+	// myComparison.Print ();
+    int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+        inpipe.Insert(&temp);
+		count++;
+
+	}
+	// cout<<"Added "<<count<<" records to inpipe"<<endl;
+	inpipe.ShutDown();
+	// grow the CNF expression from the parse tree 
+	
+
+	SelectPipe sp;
+	sp.Run(inpipe, outPipe, myComparison,literal);
+	sp.WaitUntilDone();
+	
+	int keepMe[] = {0,1};
+	int numAttsIn = 4;
+	int numAttsOut = 2;
+	Project p;
+	p.Run(outPipe, outPipeProject, keepMe, numAttsIn, numAttsOut);
+	p.WaitUntilDone();
+	Record * tempRec;
+	Record outrec;
+	tempRec = &outrec;
+	int recs;
+	while (outPipeProject.Remove(tempRec)==1) {
+		recs++;
+	}	
+	// cout <<"Records = "<<recs<<endl;
+    ASSERT_EQ(recs,count);
+
 }
 TEST(RelopTest, SFTest){
     Schema mySchema ("catalog", "supplier");
@@ -565,7 +634,9 @@ TEST(RelopTest, SFTest){
 	db.Close ();
 
 }
+// TEST(RelopTest, SelectPipeProjectTest){
 
+// }
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
