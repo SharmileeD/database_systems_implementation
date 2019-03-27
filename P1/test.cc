@@ -306,17 +306,13 @@ void q6 () {
 	
 	SF_ps.WaitUntilDone ();
 	SF_s.WaitUntilDone();
-	cout<<"Moved on to better things"<<endl;
 	Schema sum_sch ("sum_sch", 1, &DA);
 	int cnt = clear_pipe (_out, &sum_sch, true);
 	J.WaitUntilDone ();
 	
 	G.WaitUntilDone ();
-	
-	
-	
 	// int cnt = clear_pipe (_out, &sum_sch, true);
-	cout << " query6 returned sum for " << cnt << " groups (expected 25 groups)\n"; 
+	cout << " query6 returned sum for " << cnt << " groups (expected 8000 groups)\n"; 
 }
 
 void q7 () { 

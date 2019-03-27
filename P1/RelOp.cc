@@ -23,18 +23,21 @@ struct selectStruct {
 
 void* selectHelper(void *args) {
 	
+	//get one record at a time till file is empty
+	//apply cnf to the record
+	//if cnf accepts the record, add it to the output pipe
 	Schema mySchema ("catalog","partsupp");
 	struct selectStruct * input_args;
 	input_args = (struct selectStruct *)args;
 	Record temprec;
 	int count = 0;
-	// cout << "File length:" << input_args->inFile->instVar->file_instance.GetLength()<<endl;
+
 	input_args->inFile->instVar->MoveFirst();
-	// input_args->inFile->instVar->GetNext(temprec);
+
 	input_args->selop->Print();
-	// input_args->literal->Print(&mySchema);
+
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
-		// temprec.Print(&mySchema);
+
 		input_args->outpipe->Insert(&temprec);
 		count++;
 	}
@@ -61,21 +64,16 @@ void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal
 		cout<<"Some issue with setting detached"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr for SelectFile set to joinable "<<endl;
 	}
 	pthread_create (&worker, &attr, selectHelper, (void*) selectInput);
 
-	//get one record at a time till input pipe is empty
-
-
-	//apply cnf to the record
-	//if cnf accepts the record, add it to the output pipe
 }
 
 void SelectFile::WaitUntilDone () {
-	cout << "In selectfile wait until done...."<<endl;
+	// cout << "In selectfile wait until done...."<<endl;
 	pthread_join (worker, NULL);
-	cout << "Done with SF wait"<<endl;
+	// cout << "Done with SF wait"<<endl;
 	
 }
 
@@ -149,7 +147,7 @@ void SelectPipe::Run (Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) 
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr for SelectPipe set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, select_pipe, (void*) sp_data);
 
@@ -229,28 +227,19 @@ void Project::Run (Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput, i
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr for Project set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, project_data_worker, (void*) proj_data);
 
 }
 void Project::WaitUntilDone () { 
-	cout<<"in: SelectPipe::WaitUntilDone"<<endl;
+	// cout<<"in: SelectPipe::WaitUntilDone"<<endl;
 	pthread_join (worker, NULL);
 }
 void Project::Use_n_Pages (int n) { 
 	
 }
 
-// struct nestedBlockStruct {
-// 	Pipe *ipL;
-// 	Pipe *ipR;
-// 	Pipe *op;
-// 	CNF *selop;
-// 	Record * literal;
-// };
-
-// struct nestedBlockStruct nbStruct;
 struct joinStruct {
 	Pipe *ipL;
 	Pipe *ipR;
@@ -262,10 +251,8 @@ struct joinStruct {
 };
 
 
-
-
 void * nestedBlock(void * args) {
-	cout << "Inside block join"<<endl;
+	// cout << "Inside block join"<<endl;
 	struct joinStruct *input_args;
 	input_args = (struct joinStruct *)args;
 	ComparisonEngine ceng;
@@ -287,7 +274,7 @@ void * nestedBlock(void * args) {
 	leftCount		= input_args->selop->leftAttrCount;
 	rightCount		= input_args->selop->rightAttrCount;
 
-    cout<< "Inside clear pipe!!"<<endl;
+    // cout<< "Inside clear pipe!!"<<endl;
 	FILE *writefile = fopen ("nested.txt", "w");
 	string strrec;
 	const char * ch;
@@ -325,45 +312,37 @@ void * nestedBlock(void * args) {
 		vec_right.push_back(*tempRec);
 	}
 
-	// sleep(1);
 	//perform block nested join
 	do {
 		cout << "Here!!"<<endl;
-		// cout<<"Inside do while"<<endl;
 		for(int r = 0; r < vec_right.size(); r++) {
 			for(int l =0; l< vec_left.size(); l++ ) {
-				// cout<< "l ="<<l<<"  r="<<r<<endl;
 				if(ceng.Compare(&vec_left[l], &vec_right[r], input_args->selop)==1) {
-					// vec_left[l].Print(&mySchemaL);
-					// vec_right[r].Print(&mySchemaR);
+
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
 					strrec = vec_left[l].returnRecord(&mySchemaL);
 					ch = strrec.c_str();
 					fprintf(writefile, ch);
-					//--------------------------------
+
 					strrec = vec_right[r].returnRecord(&mySchemaR);
 					ch = strrec.c_str();
 					fprintf(writefile, ch);
-					//------------------------
+
 					c++;
-					cout <<"--------------------------------------------------------------final = "<<c<<endl;
-					// vec_left[l].Copy(&lRec);
-					// vec_right[r].Copy(&rRec);
+
 					mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					
 					input_args->op->Insert(mergeRec);
 
-					// tempRec->Print(&mySchemaR);
 				} //if
 				
 			}//left
 		}//right
 		//clear the left buffer
-		cout << "------before clear!!"<<endl;
 		vec_left.clear();
+
 		//refill the left buffer
-		// cout<<"------->Inside do while"<<endl;
 		for(int i = 0; i < buff_size ; i++) {
 			if((val = input_args->ipL->Remove(tempRec))==1) {
 				vec_left.push_back(*tempRec);
@@ -377,13 +356,11 @@ void * nestedBlock(void * args) {
 		}	
 	} while(moreRec);
 
-	cout <<"Count = "<<count<<endl;
+	// cout <<"Count = "<<count<<endl;
 	
 	input_args->op->ShutDown();
 	//fill page with records from ipR
 	//pick one record of page and compare it with record of ipL, push the record of ipL in vector.
-
-
 }
 
 
@@ -398,33 +375,29 @@ void* joinHelper (void * args) {
 	tempRec = &outrec;
 	Record * mergeRec;
 	mergeRec = &outrecl;
-	// rRec = &outrecr;
 	int leftCount = 0;
 	int rightCount = 0;
+
 	leftCount= input_args->selop->leftAttrCount;
 	rightCount= input_args->selop->rightAttrCount;
+	
 	Pipe outpLeft(100);
 	Pipe outpRight(100);
-	Schema mySchemaL ("catalog","supplier");
-	Schema mySchemaR ("catalog","partsupp");
+	
 	int leftrl = 1;
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, leftrl);
-	// sleep(1);
+
 	int rightrl = 10;
 	BigQ bqR(*input_args->ipR, outpRight, input_args->right, rightrl);
 	ComparisonEngine ceng;
-	// sleep(1);
+
 	int count =0;
-	// cout <<"Inside join thread!"<<endl;
 
 	int cr = 0, cl = 0;
 	vector<Record> vec_right; //right
 	vector<Record> vec_left; //left
 
 	while(outpLeft.Remove(tempRec)==1) {
-		// tempRec->Print(&mySchemaL);
-		cl++;
-		cout <<"left----------->"<<cl<<endl;
 		vec_left.push_back(*tempRec);
 	}
 	
@@ -442,18 +415,9 @@ void* joinHelper (void * args) {
 		idx++;
 	}
 	while(outpRight.Remove(tempRec)==1) {
-		// tempRec->Print(&mySchemaR);
-		cr++;
-		cout <<"right----------->"<<cr<<endl;
+
 		vec_right.push_back(*tempRec);
 	}
-
-	// int attsToKeep[7] = {0,0,2,3,4};
-	
-
-	// FILE *writefile = fopen ("sortmerge.txt", "w");
-	// string strrec;
-	// const char * c;
 
 	int l = 0, r =0 ;
 	int prev_l, prev_r;
@@ -471,14 +435,7 @@ void* joinHelper (void * args) {
 			//if r and l recs match merge and push
 			lRec.Copy(&vec_left[l]);
 			rRec.Copy(&vec_right[r]);
-			// lRec.Print(&mySchemaL);
-			// rRec.Print(&mySchemaR);
 			fincnt++;
-			// if(fincnt == 7999){
-			// 	cout <<"reached1"<<endl;
-			// 	lRec.Print(&mySchemaL);
-			// 	rRec.Print(&mySchemaR);
-			// }
 				
 			mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 			input_args->op->Insert(mergeRec);
@@ -495,14 +452,8 @@ void* joinHelper (void * args) {
 				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
-					// lRec.Print(&mySchemaL);
-					// rRec.Print(&mySchemaR);
+
 					fincnt++;
-					// if(fincnt == 7999){
-					// 	cout <<"reached1"<<endl;
-					// 	lRec.Print(&mySchemaL);
-					// 	rRec.Print(&mySchemaR);
-					// }
 					mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					input_args->op->Insert(mergeRec);
 					l++;
@@ -523,14 +474,10 @@ void* joinHelper (void * args) {
 			while(r < vec_right.size() && l < vec_left.size() ) {
 				//if match found merge and push else break the loop
 
-				// vec_right[r].Print(&mySchemaR);
 				if(ceng.Compare(&vec_left[l], &input_args->left, &vec_right[r], &input_args->right)==0) {
 					lRec.Copy(&vec_left[l]);
 					rRec.Copy(&vec_right[r]);
-					// lRec.Print(&mySchemaL);
-					// rRec.Print(&mySchemaR);
 					fincnt++;
-
 					
 					mergeRec->MergeRecords(&lRec, &rRec, leftCount, rightCount, attsToKeep, mergedCount, startOfRight);
 					input_args->op->Insert(mergeRec);
@@ -564,9 +511,8 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	OrderMaker left;
 	OrderMaker right;
 
-	if(selOp.GetSortOrders(left, right)!=0) {
+	if(selOp.GetSortOrders(left, right)==0) {
 			//block nested join
-		cout <<"OrderMAker empty!!"<<endl;
 		joinInput->literal = &literal;
 		joinInput->ipL = &inPipeL;
 		joinInput->ipR = &inPipeR;
@@ -578,7 +524,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 			cout<<"Some issue with setting joinable"<<endl;
 		}
 		else{
-			cout<<"Thread attr set to joinable"<<endl;
+			cout<<"Thread attr for Join set to joinable"<<endl;
 		}
 
 		pthread_create (&worker, &attr, nestedBlock, (void*) joinInput);
@@ -604,12 +550,6 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 
 		pthread_create (&worker, &attr, joinHelper, (void*) joinInput);
 	}
-	// cout <<"----------------------------------------------------------------------------------------------"<<endl;
-	// selOp.Print();
-	// left.Print();
-	// right.Print();
-	
-	// cout << "Called here!!"<<endl;
 }
 
 void Join::WaitUntilDone () {
@@ -695,7 +635,7 @@ void DuplicateRemoval::Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) {
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr for DuplicateRemoval set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, duplicate_removal_worker, (void*) dup_rem);
 }
@@ -730,9 +670,9 @@ void *sum_worker (void *arg) {
 	Record outrec;
 	tempRec = &outrec;
 	ComparisonEngine ceng;
-	int intres;
+	int intres = 0;
 	int finIntres = 0;
-	double dobres;
+	double dobres = 0.0;
 	double finDobres = 0.0;
 	Page dummy;
 	while (input_args->in_pipe->Remove(tempRec)==1) {
@@ -743,14 +683,12 @@ void *sum_worker (void *arg) {
 	}
 	Record sum_rec;
 	
-	
 	if (finIntres!=0 and finDobres == 0.0){
 		Schema sum_sch ("sum_sch", 1, &IA);
 		stringstream ss;
     	ss << finIntres;
     	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
-		// sum_rec.Print(&sum_sch);
 	}
 	if (finIntres==0 and finDobres != 0.0){
 		Schema sum_sch ("sum_sch", 1, &DA);
@@ -758,9 +696,7 @@ void *sum_worker (void *arg) {
     	ss << finDobres;
     	const char* str = (ss.str()+"|").c_str();
 		sum_rec.ComposeRecord(&sum_sch,str);
-		// sum_rec.Print(&sum_sch);
 	}
-	// sum_rec.Print(&sum_sch);
 	input_args->out_pipe->Insert(&sum_rec);
 	input_args->out_pipe->ShutDown();
 }
@@ -789,7 +725,7 @@ void Sum::Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe) {
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr for Sum set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, sum_worker, (void*) sm_data);
 }
@@ -816,7 +752,7 @@ struct group_by_data{
     @return void. 
 */
 void *group_by (void *arg) {
-	cout<<"in: group by"<<endl;
+
 	struct group_by_data * input_args;
 	input_args = (struct group_by_data *)arg;
 	
@@ -841,17 +777,9 @@ void *group_by (void *arg) {
 	
 	Pipe bq_out(100);
 	ComparisonEngine ceng;
-	int runLen = 1;
+	int runLen = 10;
 	Record sum;
 	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts, runLen);
-	cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
-	input_args->groupAtts->Print();
-	// while(bq_out.Remove(tempRec)==1) {
-	// 	count ++;
-	// 	cout <<"Removing record "<<count<<" from big q" <<endl;
-	// 	input_args->out_pipe->Insert(tempRec);
-	// }
-
 	
 	Attribute *inp = input_args->computeMe->sch->GetAtts();
 	int schemaAtts = input_args->computeMe->sch->GetNumAtts();
@@ -873,15 +801,11 @@ void *group_by (void *arg) {
 	int cnt = 0;
 	while(bq_out.Remove(tempRec)==1) {
 		cnt++;
-		cout<<"inside bigq remove of groupby "<<cnt<<endl;
-		// tempRec->Print(&mySchema);
 		if(count ==0){
 			prev.Copy(tempRec);
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
-			
 			finDobres = finDobres + dobres;
-			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 			continue;
 		}
@@ -889,9 +813,7 @@ void *group_by (void *arg) {
 		if(ceng.Compare(&prev, tempRec, input_args->groupAtts)==0) {
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
-			
 			finDobres = finDobres + dobres;
-			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 		} else {
 		//if cannot be grouped, create record of the current sum and push to the outpipe.	
@@ -923,15 +845,13 @@ void *group_by (void *arg) {
 				// Schema sum_sch ("sum_sch", newAtts, newSchemaAttsDoub);
 				
 				Schema sum_sch("sum_sch",1, &DA);
-				// cout << "------------------>";
-				// OrderMaker dummy(&sum_sch);
-				// dummy.Print();
+
 				stringstream ss;
     			ss << finDobres;
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
-				// sum_rec.Print(&sum_sch);
-				cout << "-------------------->"<<endl;
+
+
 				finDobres = 0.0;
 				// string temp = ss.str();
     			// string rec_bits = prev.returnRecord(input_args->computeMe->sch);
@@ -948,13 +868,11 @@ void *group_by (void *arg) {
 			prev.Copy(tempRec);	
 			input_args->computeMe->Apply(*tempRec, intres, dobres);
 			finIntres = finIntres + intres;
-			
 			finDobres = finDobres + dobres;
-			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 
 			input_args->out_pipe->Insert(&sum_rec);
 		}
-		cout << "Final group by count ="<<count<<endl; 
+		// cout << "Final group by count ="<<count<<endl; 
 	}
 	Record lastrec;
 	if(finDobres != 0.0 && finIntres == 0) {
@@ -977,7 +895,6 @@ void *group_by (void *arg) {
 	
 	input_args->out_pipe->ShutDown();
 }
-
 /***/
 
 void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) { 
@@ -996,7 +913,7 @@ void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function 
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable in groupby"<<endl;
+		cout<<"Thread attr for GroupBy set to joinable"<<endl;
 	}
 	
 
@@ -1073,7 +990,7 @@ void WriteOut::Run (Pipe &inPipe, FILE *outFile, Schema &mySchema) {
 		cout<<"Some issue with setting joinable"<<endl;
 	}
 	else{
-		cout<<"Thread attr set to joinable"<<endl;
+		cout<<"Thread attr for WriteOut set to joinable"<<endl;
 	}
 	pthread_create (&worker, &attr, write_out_worker, (void*) wo_data);
 }
