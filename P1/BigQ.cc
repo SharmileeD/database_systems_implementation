@@ -130,7 +130,7 @@ void phase2tpmms(struct worker_data *input_args, int numRuns, int numPages) {
 		}
 	}
 	
-	cout << "Done for file: "<< bqcnt<<endl;
+	// cout << "Done for file: "<< bqcnt<<endl;
 	file.Close();
 }
 
@@ -145,7 +145,7 @@ void createRun(vector<Record> vec_arr, OrderMaker sort_order, int numRuns, strin
 	Record arr[arr_size];
 	for(int i =0; i < arr_size; i++)
 		arr[i] = vec_arr[i];
-	cout << "Creating runs for file: "<< filename<<endl;
+	// cout << "Creating runs for file: "<< filename<<endl;
 	Heap dbfile;
 	//If this is the first run then we need to create the dbfile else just open the existing runs.bin file
 	if(numRuns == 1){
