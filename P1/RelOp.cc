@@ -21,8 +21,6 @@ struct selectStruct {
 	Record * literal;
 };
 
-struct selectStruct selectInput;
-
 void* selectHelper(void *args) {
 	
 	Schema mySchema ("catalog","partsupp");
@@ -39,7 +37,6 @@ void* selectHelper(void *args) {
 		// temprec.Print(&mySchema);
 		input_args->outpipe->Insert(&temprec);
 		count++;
-		// cout<<"are you working "<<count<<endl;
 	}
 	// cout<<"Select file count "<<count<<endl;
 	input_args->outpipe->ShutDown();
@@ -49,14 +46,15 @@ void* selectHelper(void *args) {
 
 void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal) {
 	
-	
+	struct selectStruct *selectInput;
+	selectInput = (selectStruct *) malloc(sizeof(selectStruct));
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 		
-	selectInput.inFile = &inFile;
-	selectInput.outpipe = &outPipe;
-	selectInput.selop = &selOp;
-	selectInput.literal = &literal;
+	selectInput->inFile = &inFile;
+	selectInput->outpipe = &outPipe;
+	selectInput->selop = &selOp;
+	selectInput->literal = &literal;
 
     int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
 	if (det){
@@ -65,7 +63,7 @@ void SelectFile::Run (DBFile &inFile, Pipe &outPipe, CNF &selOp, Record &literal
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, selectHelper, (void*) &selectInput);
+	pthread_create (&worker, &attr, selectHelper, (void*) selectInput);
 
 	//get one record at a time till input pipe is empty
 
@@ -95,7 +93,6 @@ struct select_pipe_data{
 	Record *literal;
 };
 
-struct select_pipe_data sp_data;
 /**
     Function that the worker thread of select_pipe calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
@@ -136,10 +133,15 @@ void *select_pipe (void *arg) {
     @return void. 
 */
 void SelectPipe::Run (Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) { 
-	sp_data.in_pipe = &inPipe;
-	sp_data.out_pipe = &outPipe;
-	sp_data.select_op = &selOp;
-	sp_data.literal = &literal;
+	
+	
+	struct select_pipe_data *sp_data;
+	sp_data = (select_pipe_data *) malloc(sizeof(select_pipe_data));
+
+	sp_data->in_pipe = &inPipe;
+	sp_data->out_pipe = &outPipe;
+	sp_data->select_op = &selOp;
+	sp_data->literal = &literal;
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
     int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
@@ -149,7 +151,7 @@ void SelectPipe::Run (Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) 
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, select_pipe, (void*) &sp_data);
+	pthread_create (&worker, &attr, select_pipe, (void*) sp_data);
 
 }
 /**
@@ -177,7 +179,6 @@ struct project_data{
 	int numAttsOutput;
 };
 
-struct project_data proj_data;
 /**
     Function that the worker thread of select_pipe calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
@@ -212,11 +213,14 @@ void *project_data_worker (void *arg) {
     @return void. 
 */
 void Project::Run (Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput, int numAttsOutput) { 
-	proj_data.in_pipe = &inPipe;
-	proj_data.out_pipe = &outPipe;
-	proj_data.keepMe = keepMe;
-	proj_data.numAttsInput = numAttsInput;
-	proj_data.numAttsOutput = numAttsOutput;
+	struct project_data *proj_data;
+	
+	proj_data = (project_data *) malloc(sizeof(project_data));
+	proj_data->in_pipe = &inPipe;
+	proj_data->out_pipe = &outPipe;
+	proj_data->keepMe = keepMe;
+	proj_data->numAttsInput = numAttsInput;
+	proj_data->numAttsOutput = numAttsOutput;
 
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -227,7 +231,7 @@ void Project::Run (Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput, i
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, project_data_worker, (void*) &proj_data);
+	pthread_create (&worker, &attr, project_data_worker, (void*) proj_data);
 
 }
 void Project::WaitUntilDone () { 
@@ -257,7 +261,7 @@ struct joinStruct {
 	Record * literal;
 };
 
-struct joinStruct joinInput;
+
 
 
 void * nestedBlock(void * args) {
@@ -321,7 +325,7 @@ void * nestedBlock(void * args) {
 		vec_right.push_back(*tempRec);
 	}
 
-	sleep(1);
+	// sleep(1);
 	//perform block nested join
 	do {
 		cout << "Here!!"<<endl;
@@ -405,11 +409,11 @@ void* joinHelper (void * args) {
 	Schema mySchemaR ("catalog","partsupp");
 	int leftrl = 1;
 	BigQ bqL(*input_args->ipL, outpLeft, input_args->left, leftrl);
-	sleep(1);
-	int rightrl = 1;
+	// sleep(1);
+	int rightrl = 10;
 	BigQ bqR(*input_args->ipR, outpRight, input_args->right, rightrl);
 	ComparisonEngine ceng;
-	sleep(1);
+	// sleep(1);
 	int count =0;
 	// cout <<"Inside join thread!"<<endl;
 
@@ -419,8 +423,8 @@ void* joinHelper (void * args) {
 
 	while(outpLeft.Remove(tempRec)==1) {
 		// tempRec->Print(&mySchemaL);
-		// cl++;
-		// cout <<"left----------->"<<cl<<endl;
+		cl++;
+		cout <<"left----------->"<<cl<<endl;
 		vec_left.push_back(*tempRec);
 	}
 	
@@ -439,8 +443,8 @@ void* joinHelper (void * args) {
 	}
 	while(outpRight.Remove(tempRec)==1) {
 		// tempRec->Print(&mySchemaR);
-		// cr++;
-		// cout <<"right----------->"<<cr<<endl;
+		cr++;
+		cout <<"right----------->"<<cr<<endl;
 		vec_right.push_back(*tempRec);
 	}
 
@@ -552,7 +556,8 @@ void* joinHelper (void * args) {
 void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal) { 
 	// Use 2 BigQs to store all of the tuples comingfrom the left input pipe, and a second BigQ for the right input pipe
 	// perform a merge in order to join the two input pipes.
-	
+	struct joinStruct *joinInput;
+	joinInput = (joinStruct *) malloc(sizeof(joinStruct));
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 
@@ -562,11 +567,11 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 	if(selOp.GetSortOrders(left, right)!=0) {
 			//block nested join
 		cout <<"OrderMAker empty!!"<<endl;
-		joinInput.literal = &literal;
-		joinInput.ipL = &inPipeL;
-		joinInput.ipR = &inPipeR;
-		joinInput.op = &outPipe;
-		joinInput.selop = &selOp;
+		joinInput->literal = &literal;
+		joinInput->ipL = &inPipeL;
+		joinInput->ipR = &inPipeR;
+		joinInput->op = &outPipe;
+		joinInput->selop = &selOp;
 
 		int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
 		if (det){
@@ -576,17 +581,17 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 			cout<<"Thread attr set to joinable"<<endl;
 		}
 
-		pthread_create (&worker, &attr, nestedBlock, (void*) &joinInput);
+		pthread_create (&worker, &attr, nestedBlock, (void*) joinInput);
 		// outPipe.ShutDown();
 	}
 	else {
-		joinInput.left = left;
-		joinInput.right = right;
-		joinInput.literal = &literal;
-		joinInput.ipL = &inPipeL;
-		joinInput.ipR = &inPipeR;
-		joinInput.op = &outPipe;
-		joinInput.selop = &selOp;
+		joinInput->left = left;
+		joinInput->right = right;
+		joinInput->literal = &literal;
+		joinInput->ipL = &inPipeL;
+		joinInput->ipR = &inPipeR;
+		joinInput->op = &outPipe;
+		joinInput->selop = &selOp;
 
 
 		int det = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
@@ -597,7 +602,7 @@ void Join::Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record 
 			cout<<"Thread attr set to joinable"<<endl;
 		}
 
-		pthread_create (&worker, &attr, joinHelper, (void*) &joinInput);
+		pthread_create (&worker, &attr, joinHelper, (void*) joinInput);
 	}
 	// cout <<"----------------------------------------------------------------------------------------------"<<endl;
 	// selOp.Print();
@@ -623,8 +628,6 @@ struct duplicate_removal_data{
 	Pipe *out_pipe;
 	Schema *mySchema;
 };
-
-struct duplicate_removal_data dup_rem;
 /**
     Function that the worker thread of duplicate_removal calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
@@ -678,9 +681,12 @@ void *duplicate_removal_worker (void *arg) {
     @return void. 
 */
 void DuplicateRemoval::Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) { 
-	dup_rem.in_pipe = &inPipe;
-	dup_rem.out_pipe = &outPipe;
-	dup_rem.mySchema = &mySchema;
+
+	struct duplicate_removal_data *dup_rem;
+	dup_rem = (duplicate_removal_data *) malloc(sizeof(duplicate_removal_data));
+	dup_rem->in_pipe = &inPipe;
+	dup_rem->out_pipe = &outPipe;
+	dup_rem->mySchema = &mySchema;
 
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -691,7 +697,7 @@ void DuplicateRemoval::Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) {
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, duplicate_removal_worker, (void*) &dup_rem);
+	pthread_create (&worker, &attr, duplicate_removal_worker, (void*) dup_rem);
 }
 void DuplicateRemoval::WaitUntilDone () { 
 	cout<<"in: DuplicateRemoval::WaitUntilDone"<<endl;
@@ -710,7 +716,6 @@ struct sum_data{
 	Function *computeMe;
 };
 
-struct sum_data sm_data;
 /**
     Function that the worker thread of select_pipe calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
@@ -769,10 +774,13 @@ void *sum_worker (void *arg) {
     @return void. 
 */
 void Sum::Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe) { 
-	sm_data.in_pipe = &inPipe;
-	sm_data.out_pipe = &outPipe;
-	sm_data.computeMe = &computeMe;
 
+	struct sum_data *sm_data;
+	sm_data = (sum_data *) malloc(sizeof(sum_data)); 
+
+	sm_data->in_pipe = &inPipe;
+	sm_data->out_pipe = &outPipe;
+	sm_data->computeMe = &computeMe;
 
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -783,7 +791,7 @@ void Sum::Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe) {
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, sum_worker, (void*) &sm_data);
+	pthread_create (&worker, &attr, sum_worker, (void*) sm_data);
 }
 void Sum::WaitUntilDone () { 
 	pthread_join (worker, NULL);
@@ -802,7 +810,6 @@ struct group_by_data{
 	Function *computeMe;
 };
 
-struct group_by_data gb_data;
 /**
     Function that the worker thread of group_by calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
@@ -837,7 +844,7 @@ void *group_by (void *arg) {
 	int runLen = 1;
 	Record sum;
 	BigQ bq(*input_args->in_pipe, bq_out, *input_args->groupAtts, runLen);
-	// cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
+	cout <<"------------------------------->"<<input_args->groupAtts->sch->GetNumAtts()<<endl;
 	input_args->groupAtts->Print();
 	// while(bq_out.Remove(tempRec)==1) {
 	// 	count ++;
@@ -863,8 +870,10 @@ void *group_by (void *arg) {
 		newSchemaAttsInt[it] = inp[it-1];
 	}
 
-	
+	int cnt = 0;
 	while(bq_out.Remove(tempRec)==1) {
+		cnt++;
+		cout<<"inside bigq remove of groupby "<<cnt<<endl;
 		// tempRec->Print(&mySchema);
 		if(count ==0){
 			prev.Copy(tempRec);
@@ -872,7 +881,7 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 			continue;
 		}
@@ -882,7 +891,7 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 			count++;
 		} else {
 		//if cannot be grouped, create record of the current sum and push to the outpipe.	
@@ -922,7 +931,7 @@ void *group_by (void *arg) {
 				const char* str = (ss.str()+"|").c_str();
 				sum_rec.ComposeRecord(&sum_sch,str);
 				// sum_rec.Print(&sum_sch);
-				// cout << "-------------------->"<<endl;
+				cout << "-------------------->"<<endl;
 				finDobres = 0.0;
 				// string temp = ss.str();
     			// string rec_bits = prev.returnRecord(input_args->computeMe->sch);
@@ -941,11 +950,11 @@ void *group_by (void *arg) {
 			finIntres = finIntres + intres;
 			
 			finDobres = finDobres + dobres;
-			// cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
+			cout << "finDobres="<<finDobres<<"  finIntres="<<finIntres<<endl;
 
 			input_args->out_pipe->Insert(&sum_rec);
 		}
-		// cout << "Final group by count ="<<count<<endl; 
+		cout << "Final group by count ="<<count<<endl; 
 	}
 	Record lastrec;
 	if(finDobres != 0.0 && finIntres == 0) {
@@ -972,10 +981,13 @@ void *group_by (void *arg) {
 /***/
 
 void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) { 
-	gb_data.in_pipe = &inPipe;
-	gb_data.out_pipe = &outPipe;
-	gb_data.groupAtts = &groupAtts;
-	gb_data.computeMe = &computeMe;
+	
+	struct group_by_data *gb_data;
+	gb_data = (group_by_data *) malloc(sizeof(group_by_data)); 
+	gb_data->in_pipe = &inPipe;
+	gb_data->out_pipe = &outPipe;
+	gb_data->groupAtts = &groupAtts;
+	gb_data->computeMe = &computeMe;
 	
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -989,7 +1001,7 @@ void GroupBy::Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function 
 	
 
 	// ipR, *input_args->opR, input_args->right, 1);
-	pthread_create (&worker, &attr, group_by, (void*) &gb_data);
+	pthread_create (&worker, &attr, group_by, (void*) gb_data);
 }
 void GroupBy::WaitUntilDone () { 
 	cout<<"in: GroupBy::WaitUntilDone "<<endl;
@@ -1009,7 +1021,7 @@ struct writeout_data{
 	Schema *mySchema;
 };
 
-struct writeout_data wo_data;
+
 /**
     Function that the worker thread of write_out calls when spawned
     @param arg Pointer to the struct that contains data that the worker needs to use to generate output
@@ -1048,9 +1060,11 @@ void *write_out_worker (void *arg) {
     @return void. 
 */
 void WriteOut::Run (Pipe &inPipe, FILE *outFile, Schema &mySchema) { 
-	wo_data.in_pipe = &inPipe;
-	wo_data.outFile = outFile;
-	wo_data.mySchema = &mySchema;
+	struct writeout_data *wo_data;
+	wo_data = (writeout_data *) malloc(sizeof(writeout_data)); 
+	wo_data->in_pipe = &inPipe;
+	wo_data->outFile = outFile;
+	wo_data->mySchema = &mySchema;
 
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -1061,7 +1075,7 @@ void WriteOut::Run (Pipe &inPipe, FILE *outFile, Schema &mySchema) {
 	else{
 		cout<<"Thread attr set to joinable"<<endl;
 	}
-	pthread_create (&worker, &attr, write_out_worker, (void*) &wo_data);
+	pthread_create (&worker, &attr, write_out_worker, (void*) wo_data);
 }
 void WriteOut::WaitUntilDone () { 
 	pthread_join (worker, NULL);

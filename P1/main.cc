@@ -326,16 +326,16 @@ void test_join() {
 	
 	SF_sup.Run (db1, sup1, cnf_sup, lit_sup);
 	// int cnt_sup = clear_pipe1 (sup1, &mySchemaS, false);
-	sleep(2);
+	// sleep(2);
 	db2.Open("partsupp.bin");
 	get_cnf (pred_parts, &mySchemaP, cnf_parts, lit_parts);
 
-	sleep(2);
+	// sleep(2);
 	
 	SF_parts.Run (db2, parts, cnf_parts, lit_parts);
 	// int cnt_parts = clear_pipe (parts, &mySchemaP, false);
 	get_cnf ("(s_suppkey = ps_suppkey)", &mySchemaS, &mySchemaP, cnf_join, lit_join);	
-	sleep(1);
+	// sleep(1);
 	J.Run (sup1, parts, op, cnf_join, lit_join);
 	
 
@@ -353,15 +353,15 @@ void test_join() {
 	func.Print ();
 	Schema sum_sch ("sum_sch", 1, &DA);
 	
-	T.Run (op, _out, func);
+	// T.Run (op, _out, func);
 	
 	
 	SF_parts.WaitUntilDone();
 	SF_sup.WaitUntilDone();
-
+	int joincnt = clear_pipe (op, &join_sch ,true);
 	J.WaitUntilDone ();
-	int joincnt = clear_pipe (_out, &sum_sch ,true);
-	T.WaitUntilDone();
+	// int joincnt = clear_pipe (_out, &sum_sch ,true);
+	// T.WaitUntilDone();
 	
     db1.Close();
 	db2.Close();
@@ -402,8 +402,8 @@ int main(){
 	// test_write_out();
 	// test_duplicate_removal();
 	// test_sum();
-	// test_join();
-	test_groupby();
+	test_join();
+	// test_groupby();
 	// check_num_records("o6ohxwysq3.bin");
 	
 	cout<<"Main end"<<endl;
