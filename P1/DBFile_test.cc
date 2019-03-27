@@ -13,7 +13,7 @@
 #include "RelOp.cc"
 #include <stdlib.h>
 #include "ParseTree.h"
-// #include "y.tab.h"
+
 #include <gtest/gtest.h>
 
 
@@ -27,7 +27,7 @@ TEST(CreateTestHeap, CreateSuccessHeap) {
     dbfile.Close();
 }
 
-/*
+
 TEST(OpenTestHeap, OpenSuccessHeap) { 
     DBFile dbfile;
     char myfname[] = "lee.txt";
@@ -521,7 +521,7 @@ TEST(PipeReset, PipeResetSuccess){
     in_pipe.resetPipe();
     ASSERT_EQ(in_pipe.getLastSlot(), 0);
     ASSERT_EQ(in_pipe.getFirstSlot(), 0);
-}*/
+}
 int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 	Record rec;
 	// cout<< "Inside clear pipe!!"<<endl;
@@ -566,7 +566,44 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 
 }
 */
-TEST(RelopTest, SelectPipeProjectTest){
+TEST(RelopTest, SelectPipeTest){
+    Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "nation");
+	struct AndList *final;	
+	CNF myComparison;
+	Record literal;
+	myComparison.GrowFromParseTree (final, &mySchema, literal);
+	// myComparison.Print ();
+    int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+        inpipe.Insert(&temp);
+		count++;
+
+	}
+	// cout<<"Added "<<count<<" records to inpipe"<<endl;
+	inpipe.ShutDown();
+	// grow the CNF expression from the parse tree 
+	
+    int recs = 0;
+	SelectPipe sp;
+    Record * tempRec;
+    Record outRec;
+    tempRec = &outRec;
+	sp.Run(inpipe, outPipe, myComparison,literal);
+    while (outPipe.Remove(tempRec)==1) {
+		recs++;
+	}
+
+	sp.WaitUntilDone();
+    ASSERT_EQ(recs,25);
+}
+
+TEST(RelopTest, ProjectTest){
     Pipe inpipe(100);
 	Pipe outPipe(100);
 	Pipe outPipeProject(100);
@@ -611,6 +648,85 @@ TEST(RelopTest, SelectPipeProjectTest){
     ASSERT_EQ(recs,count);
 
 }
+
+TEST(RelopTest, DuplicateRemovalTest){
+    Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "nation");
+	
+	// suck up the schema from the file
+	string rec;
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/nation.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+        rec= temp.returnRecord(&mySchema);
+		inpipe.Insert(&temp);
+		// cout<< rec<<endl;
+		count++;
+
+	}
+	Record temp2;
+	FILE *tblfile2 = fopen ("tables/nation.tbl", "r");
+	// cout<<"Added "<<count<<" records to inpipe after first while loop"<<endl;
+	while ((res = temp2.SuckNextRecord (&mySchema, tblfile2))) {
+        inpipe.Insert(&temp2);
+		count++;
+
+	}
+	Record temp3;
+	FILE *tblfile3 = fopen ("tables/nation.tbl", "r");
+	// cout<<"Added "<<count<<" records to inpipe after first while loop"<<endl;
+	while ((res = temp3.SuckNextRecord (&mySchema, tblfile3))) {
+        inpipe.Insert(&temp3);
+		count++;
+
+	}
+	inpipe.ShutDown();
+    DuplicateRemoval dr;
+	dr.Run(inpipe, outPipe, mySchema);
+    Record *tempRec;
+    Record outRec;
+    tempRec = &outRec;
+    int recs = 0;
+    while (outPipe.Remove(tempRec)==1) {
+		recs++;
+	}
+    ASSERT_EQ(recs,25);
+	dr.WaitUntilDone();
+}
+
+TEST(RelopTest, WriteTest) {
+    Pipe inpipe(100);
+	Pipe outPipe(100);
+	Pipe outPipeProject(100);
+	Schema mySchema ("catalog", "customer");
+	// fillInputPipe(&inpipe, &mySchema);
+	
+	WriteOut W;
+		// _s (input pipe)
+		
+	FILE *writefile = fopen ("outputfile_new.txt", "w");
+	Pipe _s_ps (100);
+	W.Run (inpipe, writefile, mySchema);
+	int res;
+	Record temp;
+	FILE *tblfile = fopen ("tables/customer.tbl", "r");
+    int count =0;
+	while ((res = temp.SuckNextRecord (&mySchema, tblfile))) {
+		inpipe.Insert(&temp);
+		count++;
+
+	}
+	// cout<<"Added "<<count<<" records to inpipe"<<endl;
+	inpipe.ShutDown();
+	W.WaitUntilDone ();
+    ASSERT_EQ(1500,count);		
+	
+}
+
 TEST(RelopTest, SFTest){
     Schema mySchema ("catalog", "supplier");
     Record lit;
@@ -634,9 +750,7 @@ TEST(RelopTest, SFTest){
 	db.Close ();
 
 }
-// TEST(RelopTest, SelectPipeProjectTest){
 
-// }
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
