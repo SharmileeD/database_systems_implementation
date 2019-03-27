@@ -75,3 +75,13 @@ To implement the DBFile class for Sorted file.
 The job of the DBFile class within the database system is simply to store and retrieve records from the disk.
 Now with a possibility for heap type and Sorted type both
 
+Project 3
+To implement the following relational operations
+SelectPipe, SelectFile, Project, Join, DuplicateRemoval, Sum, GroupBy, and WriteOut
+We build on top of previous three projects here making extensive use of BigQ and DBFile
+
+Please note that for test Q6 the schema used to create the order maker for the groupby is the complete join schema 
+essentially making every record distinct with no specific grouping attribute thus making grouping redundant and returning all rows
+We have tested it with a specific grouping attribute(s_nationkey) and function performing the following operation-> (s_acctbal + (s_acctbal * 1.05)) 
+Have included the screenshot for the same with the project.
+The result in the screenshot returns 25 results since it groups on s_nationkey(with 25 unique values).

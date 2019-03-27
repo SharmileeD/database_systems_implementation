@@ -264,8 +264,8 @@ void test_groupby() {
 	// int cnt_parts = clear_pipe1 (parts, &mySchemaP, false);
 	
 	G.Run(inpipe,outPipe,grp_order,func);
-
-	int cnt_parts = clear_pipe(outPipe, &mySchema, false);
+	Schema sum_sch ("sum_sch", 1, &DA);
+	int cnt_parts = clear_pipe(outPipe, &sum_sch, true);
 	sf.WaitUntilDone();
 	G.WaitUntilDone();
 
@@ -402,8 +402,8 @@ int main(){
 	// test_write_out();
 	// test_duplicate_removal();
 	// test_sum();
-	test_join();
-	// test_groupby();
+	// test_join();
+	test_groupby();
 	// check_num_records("o6ohxwysq3.bin");
 	
 	cout<<"Main end"<<endl;
