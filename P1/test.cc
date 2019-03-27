@@ -298,7 +298,7 @@ void q6 () {
 	SF_ps.Run (dbf_ps, _ps, cnf_ps, lit_ps); // 161 recs qualified
 	sleep(1);
 	J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
-	sleep(10);
+	// sleep(10);
 	G.Run (_s_ps, _out, grp_order, func);
 	
 	// int cnt = clear_pipe (_out, &join_sch, true);
