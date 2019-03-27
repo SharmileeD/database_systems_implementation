@@ -423,8 +423,8 @@ void* joinHelper (void * args) {
 
 	while(outpLeft.Remove(tempRec)==1) {
 		// tempRec->Print(&mySchemaL);
-		// cl++;
-		// cout <<"left----------->"<<cl<<endl;
+		cl++;
+		cout <<"left----------->"<<cl<<endl;
 		vec_left.push_back(*tempRec);
 	}
 	
@@ -443,8 +443,8 @@ void* joinHelper (void * args) {
 	}
 	while(outpRight.Remove(tempRec)==1) {
 		// tempRec->Print(&mySchemaR);
-		// cr++;
-		// cout <<"right----------->"<<cr<<endl;
+		cr++;
+		cout <<"right----------->"<<cr<<endl;
 		vec_right.push_back(*tempRec);
 	}
 

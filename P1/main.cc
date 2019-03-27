@@ -353,15 +353,15 @@ void test_join() {
 	func.Print ();
 	Schema sum_sch ("sum_sch", 1, &DA);
 	
-	T.Run (op, _out, func);
+	// T.Run (op, _out, func);
 	
 	
 	SF_parts.WaitUntilDone();
 	SF_sup.WaitUntilDone();
-
+	int joincnt = clear_pipe (op, &join_sch ,true);
 	J.WaitUntilDone ();
-	int joincnt = clear_pipe (_out, &sum_sch ,true);
-	T.WaitUntilDone();
+	// int joincnt = clear_pipe (_out, &sum_sch ,true);
+	// T.WaitUntilDone();
 	
     db1.Close();
 	db2.Close();
