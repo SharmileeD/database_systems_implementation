@@ -180,10 +180,10 @@ void q4 () {
 	char *pred_s = "(s_suppkey = s_suppkey)";
 	init_SF_s (pred_s, 100);
 	SF_s.Run (dbf_s, _s, cnf_s, lit_s); // 10k recs qualified
-	// sleep(1);
+	sleep(1);
 	char *pred_ps = "(ps_suppkey = ps_suppkey)";
 	init_SF_ps (pred_ps, 100);
-	// sleep(2);
+	sleep(2);
 	Join J;
 		// left _s
 		// right _ps
@@ -267,7 +267,7 @@ void q6 () {
 	char *pred_s = "(s_suppkey = s_suppkey)";
 	init_SF_s (pred_s, 100);
 	SF_s.Run (dbf_s, _s, cnf_s, lit_s); // 10k recs qualified
-	// sleep(1);
+	sleep(1);
 	char *pred_ps = "(ps_suppkey = ps_suppkey)";
 	init_SF_ps (pred_ps, 100);
 
@@ -296,9 +296,9 @@ void q6 () {
 	G.Use_n_Pages (1);
 
 	SF_ps.Run (dbf_ps, _ps, cnf_ps, lit_ps); // 161 recs qualified
-	// sleep(1);
+	sleep(1);
 	J.Run (_s, _ps, _s_ps, cnf_p_ps, lit_p_ps);
-	// sleep(10);
+	sleep(10);
 	G.Run (_s_ps, _out, grp_order, func);
 	
 	// int cnt = clear_pipe (_out, &join_sch, true);
