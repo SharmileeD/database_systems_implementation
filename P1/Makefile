@@ -10,10 +10,16 @@ gtest_mac:  clean test_mac
 gtest_linux: clean test.out
 	g++ -std=c++11 DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
-test_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab_mac.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o
+test_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o -ll
+
+test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o -lfl
+
+test_relops_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab_mac.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o -ll -lpthread
 
-test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o
+test_relops: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o -lfl -lpthread
 
 test_sorted_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab_mac.o lex.yy.o test_p22.o
@@ -58,6 +64,8 @@ test_p21.o: test_p21.cc
 test_p22.o: test_p22.cc
 	$(CC) -g -c test_p22.cc
 
+Statistics.o: Statistics.cc
+	$(CC) -g -c Statistics.cc
 Comparison.o: Comparison.cc
 	$(CC) -g -c Comparison.cc
 	
