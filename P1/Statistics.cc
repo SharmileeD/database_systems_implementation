@@ -7,14 +7,21 @@ using namespace std;
 Statistics::Statistics()
 {
     // relationMap 
-    
 
 }
 Statistics::Statistics(Statistics &copyMe)
 {
+    for(auto it = copyMe.relationMap.begin(); it != copyMe.relationMap.end(); it++) {
+        this->AddRel(it->first, it->second.num_tuples);
+		for(auto it2 = 	it->second.innerMap.begin(); it2 != it->second.innerMap.end(); it2++) {
+                this->AddAtt(it->first, it2->first, it2->second);
+		}
+    }
+
 }
 Statistics::~Statistics()
 {
+    // delete relationMap;
 }
 
 
@@ -68,6 +75,13 @@ void Statistics::AddAtt(char *relName, char *attName, int numDistincts)
 }
 void Statistics::CopyRel(char *oldName, char *newName)
 {
+    relation_struct new_relation;
+    std::unordered_map<char*,relation_struct>::const_iterator got = this->relationMap.find (oldName);
+
+    if ( got != this->relationMap.end() ){
+        new_relation = got->second;
+        this->relationMap.insert({newName, new_relation});
+    }
 }
 	
 void Statistics::Read(char *fromWhere)

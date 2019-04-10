@@ -394,6 +394,23 @@ int clear_pipe1 (Pipe &in_pipe,  bool print) {
 // 	cout<< "Number of records is "<< counter <<endl;
 // 	dbfile_test.Close();
 // }
+void test_copy_const(Statistics s){
+	Statistics s2;
+	s2 = Statistics(s);
+	cout << "Copy constructor test"<<endl;
+	cout << "size of map:" << s.relationMap.size()<<endl;
+	for(auto it = s2.relationMap.begin(); it != s2.relationMap.end(); it++) {
+		cout << (*it).first <<", " << (*it).second.num_tuples <<endl;
+		cout << "size of iiner map:" << it->second.innerMap.size()<<endl;
+		for(auto it2 = 	it->second.innerMap.begin(); it2 != it->second.innerMap.end(); it2++) {
+				cout <<" ----" <<(*it2).first <<", " << (*it2).second <<endl;
+
+		}
+	}
+	cout << "size of map after copyrel:" << s2.relationMap.size()<<endl;
+	cout << "Original value" <<s2.relationMap.at("lineitem").num_tuples<<endl;
+	cout << "Copied value" <<s2.relationMap.at("lineitem_new").num_tuples<<endl;
+}
 
 void test_addRel() {
 	Statistics s;
@@ -403,6 +420,8 @@ void test_addRel() {
 	s.AddAtt("supplier", "s_suppkey",10000);
 	s.AddAtt("lineitem", "l_orderkey",1300);
 	s.AddAtt("nations", "n_nationkey",1234);
+	s.AddAtt("nations", "n_sharmilee",12728);
+	
 	cout << "size of map:" << s.relationMap.size()<<endl;
 	for(auto it = s.relationMap.begin(); it != s.relationMap.end(); it++) {
 		cout << (*it).first <<", " << (*it).second.num_tuples <<endl;
@@ -412,9 +431,16 @@ void test_addRel() {
 
 		}
 	}
+	s.CopyRel("lineitem", "lineitem_new");
+	cout << "size of map after copyrel:" << s.relationMap.size()<<endl;
+	cout << "Original value" <<s.relationMap.at("lineitem").num_tuples<<endl;
+	cout << "Copied value" <<s.relationMap.at("lineitem_new").num_tuples<<endl;
 	// for(auto it = s.relat)
+	test_copy_const(s);
+
 
 }
+
 
 int main(){
 	cout<<"Main start"<<endl;
