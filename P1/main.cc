@@ -420,7 +420,7 @@ void test_addRel() {
 	s.AddAtt("supplier", "s_suppkey",10000);
 	s.AddAtt("lineitem", "l_orderkey",1300);
 	s.AddAtt("nations", "n_nationkey",1234);
-	s.AddAtt("nations", "n_sharmilee",12728);
+	s.AddAtt("lineitem", "l_shipmode",7);
 	
 	cout << "size of map:" << s.relationMap.size()<<endl;
 	for(auto it = s.relationMap.begin(); it != s.relationMap.end(); it++) {
@@ -435,6 +435,8 @@ void test_addRel() {
 	cout << "size of map after copyrel:" << s.relationMap.size()<<endl;
 	cout << "Original value" <<s.relationMap.at("lineitem").num_tuples<<endl;
 	cout << "Copied value" <<s.relationMap.at("lineitem_new").num_tuples<<endl;
+	s.Write("statWrite.txt");
+	s.Read("statWrite.txt");
 	// for(auto it = s.relat)
 	test_copy_const(s);
 
@@ -452,6 +454,7 @@ int main(){
 	// test_join();
 	// test_groupby();
 	test_addRel();
+	
 	// check_num_records("o6ohxwysq3.bin");
 	
 	cout<<"Main end"<<endl;
