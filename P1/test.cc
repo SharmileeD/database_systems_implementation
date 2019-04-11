@@ -1,3 +1,4 @@
+#include "test.h"
 #include "y.tab.h"
 #include <iostream>
 #include <stdlib.h>
@@ -135,7 +136,10 @@ void q1 (){
 	char *cnf = "(l_returnflag = 'R') AND (l_discount < 0.04 OR l_shipmode = 'MAIL')";
 
 	yy_scan_string(cnf);
-	yyparse();
+	if (yyparse() != 0) {
+			std::cout << "Can't parse your CNF.\n";
+			exit (1);
+		}
 
 	double result = s.Estimate(final, relName, 1);
 	cout<<"Your estimation Result  " <<result;

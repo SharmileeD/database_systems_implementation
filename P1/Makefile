@@ -1,4 +1,5 @@
 CC = g++ -O0 -Wno-deprecated 
+
 tag = -i
 ifdef linux
 tag = -n
@@ -10,11 +11,11 @@ gtest_mac:  clean test_mac
 gtest_linux: clean test.out
 	g++ -std=c++11 DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
-test_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab_mac.o lex.yy.o test.o
-	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o -ll
+test_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab_mac.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab.o lex.yy.o test.o -ll
 
-test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o
-	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Statistics.o y.tab.o lex.yy.o test.o -lfl
+test.out: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab.o lex.yy.o test.o
+	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab.o lex.yy.o test.o -lfl
 
 test_relops_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab_mac.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test_p3.o
 	$(CC) -o test_relops.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o BigQ.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test_p3.o -ll -lpthread
@@ -126,7 +127,6 @@ clean:
 	rm -f main
 	rm -f *.o
 	rm -f *.out
-	rm -f y.tab.*
-	rm -f yyfunc.tab.*
-	rm -f lex.yy.*
-	rm -f lex.yyfunc*
+	rm -f y.tab.c
+	rm -f lex.yy.c
+	rm -f y.tab.h
