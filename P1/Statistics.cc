@@ -7,9 +7,12 @@
 #include <bits/stdc++.h> 
 using namespace std;
 
+
+int Statistics::partition_id = 0;
 Statistics::Statistics()
 {
-    // relationMap 
+    // this->idToRel; 
+    // this->partition_id = 0;
 
 }
 Statistics::Statistics(Statistics &copyMe)
@@ -35,6 +38,8 @@ void Statistics::AddRel(char *relName, int numTuples)
         relation_struct relstruct;
         relstruct.num_tuples = numTuples;
         this->relationMap.insert({relName, relstruct});
+        this->relToId.insert({relName, Statistics::partition_id});
+        this->idToRel.insert({Statistics::partition_id, relName});
     }
     //if relation already exists update the value 
     else {
@@ -106,6 +111,7 @@ void Statistics::Read(char *fromWhere)
         while(getline(file,line)) {
 
             string delim = "|";
+            
             //read relation name
             pos = line.find(delim);
             temp = line.substr(0, pos);
@@ -115,14 +121,15 @@ void Statistics::Read(char *fromWhere)
             // cout << "temp="<<temp << "  relname="<<relname<<endl;
             line.erase(0,pos+1);
 
-            // read num of tuples of relation
+            //read num of tuples of relation
             pos = line.find(delim);
             numTuples = line.substr(0, pos);
             line.erase(0,pos+1);
-                                
+
+            //add relation name and its total no. of tuples in the statistics                  
             this->AddRel(relname, stoi(numTuples));
            
-           //read the sttributes and their distinct values.
+           //read the attributes and their distinct values.
             while((pos =line.find(delim) ) != string::npos) {
                 temp = line.substr(0, line.find(delim));
                 line.erase(0,pos+1);
@@ -133,8 +140,7 @@ void Statistics::Read(char *fromWhere)
                 numDistinctVals = line.substr(0, pos);
                 line.erase(0,pos+1);
                 
-                // cout <<"attr:"<< attr<<" distinctval:"<<numDistinctVals <<endl;
-
+                //add attributes and the distinctVal to the cooresponding map in relation
                 this->AddAtt(relname, attr, stoi(numDistinctVals));
 
             }//while
@@ -142,12 +148,7 @@ void Statistics::Read(char *fromWhere)
 
            
         }
-        // for(auto it = this->relationMap.begin(); it != this->relationMap.end(); it++) {
-        //     cout << (*it).first <<", " << (*it).second.num_tuples <<endl;
-        //     cout << "size of iiner map:" << it->second.innerMap.size()<<endl;
-		//     for(auto it2 = 	it->second.innerMap.begin(); it2 != it->second.innerMap.end(); it2++) 
-		// 		cout <<" ----" <<(*it2).first <<", " << (*it2).second <<endl;
-        // }
+      
     }
     
 
@@ -179,8 +180,35 @@ void Statistics::Write(char *fromWhere)
 
 void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJoin)
 {
+    
 }
 double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numToJoin)
 {
+    cout << "here!"<<endl;
+   //processing all ANDS
+   if(parseTree != NULL) {
+       
+       
+       struct AndList *currAnd = parseTree;
+
+       while(currAnd)
+       {
+            struct OrList *currOr = currAnd->left;
+            while(currOr){
+                //process currOR->left 
+                cout <<currOr->left->left->value<<currOr->left->code <<currOr->left->right->value<<endl;
+                currOr = currOr->rightOr;
+            }
+            //calculate for combined Or
+            currAnd = currAnd->rightAnd;
+       }
+
+   }
+   else
+   {
+       return 0.0;
+   }
+   
+    return 1.0;
 }
 

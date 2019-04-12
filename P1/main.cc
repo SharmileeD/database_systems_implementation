@@ -17,6 +17,7 @@
 #include "RelOp.h"
 #include "Statistics.h"
 using namespace std;
+extern struct AndList *final;
 
 Attribute IA = {"int", Int};
 Attribute SA = {"string", String};
@@ -439,6 +440,12 @@ void test_addRel() {
 	s.Read("statWrite.txt");
 	// for(auto it = s.relat)
 	test_copy_const(s);
+	// char *relInput[] = {"supplier","partsupp"};
+	// char *cnf = "(s_suppkey = ps_suppkey)";
+
+	// yy_scan_string(cnf);
+	// yyparse();
+	// double dummy = s.Estimate(final, relInput, 2);
 
 
 }

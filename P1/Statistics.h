@@ -16,8 +16,10 @@ class Statistics
 {
 	public:
 	// struct relation_struct * rel_struct;
+	static int partition_id;
 	unordered_map<char *, struct relation_struct>  relationMap;	
-	// unordered_map<int , int> relationMap;
+	unordered_map<char*, int> relToId;
+	unordered_map<int, char*> idToRel;
 	Statistics();
 	Statistics(Statistics &copyMe);	 // Performs deep copy
 	~Statistics();
@@ -34,5 +36,7 @@ class Statistics
 	double Estimate(struct AndList *parseTree, char **relNames, int numToJoin);
 
 };
+
+// int Statistics::partition_id = 0;
 
 #endif
