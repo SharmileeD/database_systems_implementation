@@ -4,11 +4,13 @@
 #include <fstream>
 #include <stdlib.h>
 #include <string>
-#include <bits/stdc++.h> 
+#include <algorithm>
+#include <bits/stdc++.h>
+#include <vector> 
 using namespace std;
 
 
-int Statistics::partition_id = 0;
+// int Statistics::partition_id = 0;
 Statistics::Statistics()
 {
     // this->idToRel; 
@@ -18,11 +20,31 @@ Statistics::Statistics()
 Statistics::Statistics(Statistics &copyMe)
 {
     for(auto it = copyMe.relationMap.begin(); it != copyMe.relationMap.end(); it++) {
-        this->AddRel(it->first, it->second.num_tuples);
+        char relname [it->first.size()];
+        strcpy(relname, it->first.c_str());
+        this->AddRel(relname, it->second.num_tuples);
 		for(auto it2 = 	it->second.innerMap.begin(); it2 != it->second.innerMap.end(); it2++) {
-                this->AddAtt(it->first, it2->first, it2->second);
+                char attname [it2->first.size()];
+                strcpy(attname, it2->first.c_str());
+                this->AddAtt(relname, attname, it2->second);
 		}
     }
+    // this->relToId =  new unordered_map<string, int>();
+    for(auto it1 = copyMe.relToId.begin(); it1 != copyMe.relToId.end(); it1++) {
+        char relname [it1->first.size()];
+        strcpy(relname, it1->first.c_str());
+        int pid = (*it1).second;
+        this->relToId.insert({relname, pid});
+    }
+
+    // for(auto it1 = copyMe.idToRel.begin(); it1 != copyMe.idToRel.end(); it1++) {
+    //     vector <string> dummyVec;
+    //     for(auto it2 = (*it1).second.begin(); it2 != (*it1).second.end(); it2++) {
+    //         dummyVec.push_back((*it2));
+    //     }
+    //     this->idToRel.insert({(*it1).first, dummyVec});
+    // }
+    // cout << "Sie here:" <<this->idToRel.size()<<endl;
 
 }
 Statistics::~Statistics()
@@ -38,8 +60,14 @@ void Statistics::AddRel(char *relName, int numTuples)
         relation_struct relstruct;
         relstruct.num_tuples = numTuples;
         this->relationMap.insert({relName, relstruct});
+        //update maps
         this->relToId.insert({relName, Statistics::partition_id});
-        this->idToRel.insert({Statistics::partition_id, relName});
+        
+        vector<string> relVector;
+        relVector.push_back(relName);
+        
+        this->idToRel.insert({Statistics::partition_id, relVector});
+        this->partition_id ++;
     }
     //if relation already exists update the value 
     else {
@@ -55,6 +83,14 @@ void Statistics::AddAtt(char *relName, char *attName, int numDistincts)
         relstruct.num_tuples = numDistincts;
         relstruct.innerMap.insert({attName, numDistincts});
         this->relationMap.insert({relName, relstruct});
+        //update maps
+        this->relToId.insert({relName, Statistics::partition_id});
+
+        vector<string> relVector;
+        relVector.push_back(relName);
+
+        this->idToRel.insert({Statistics::partition_id, relVector});
+        this->partition_id++;
     } 
     //if relation aready exists
     else {
@@ -82,22 +118,20 @@ void Statistics::AddAtt(char *relName, char *attName, int numDistincts)
 }
 void Statistics::CopyRel(char *oldName, char *newName)
 {
-    relation_struct new_relation;
-    std::unordered_map<char*,relation_struct>::const_iterator got = this->relationMap.find (oldName);
+    // relation_struct new_relation;
+    // std::unordered_map<char*,relation_struct>::const_iterator got = this->relationMap.find (oldName);
 
-    if ( got != this->relationMap.end() ){
-        new_relation = got->second;
-        this->relationMap.insert({newName, new_relation});
-    }
+    // if ( got != this->relationMap.end() ){
+    //     new_relation = got->second;
+    //     this->relationMap.insert({newName, new_relation});
+    // }
 }
 	
 void Statistics::Read(char *fromWhere)
 {
     FILE *readfile;
     if((readfile = fopen (fromWhere, "r"))== NULL)
-    {
-        cout << "File is empty"<<endl;
-    }
+            cout << "File is empty"<<endl;
     else 
     {
         string line;
@@ -111,16 +145,12 @@ void Statistics::Read(char *fromWhere)
         while(getline(file,line)) {
 
             string delim = "|";
-            
             //read relation name
             pos = line.find(delim);
             temp = line.substr(0, pos);
             char * relname = new char[temp.length()+1] ;
-            // cout << "temp="<<temp<<endl;
             strcpy(relname, temp.c_str());
-            // cout << "temp="<<temp << "  relname="<<relname<<endl;
             line.erase(0,pos+1);
-
             //read num of tuples of relation
             pos = line.find(delim);
             numTuples = line.substr(0, pos);
@@ -144,14 +174,52 @@ void Statistics::Read(char *fromWhere)
                 this->AddAtt(relname, attr, stoi(numDistinctVals));
 
             }//while
-           
-
-           
         }
-      
+        fclose(readfile);
+        //read the relToId hashmap
+        char relToIdFile[100];
+        sprintf(relToIdFile, "%s_relToId", fromWhere);
+        ifstream rifile(relToIdFile);
+        string pid;
+        while(getline(rifile, line)) {
+            string delim = "|";
+            pos = line.find(delim);
+            temp = line.substr(0,pos);
+            char * relname = new char[temp.length()+1] ;
+            strcpy(relname, temp.c_str());
+            line.erase(0,pos+1);
+            //read partition_id    
+            pos = line.find(delim);
+            pid = line.substr(0, pos);
+            line.erase(0,pos+1);
+            //insert entry to hashmap relToId
+            cout << "Inside read ->"<< relname << " pid=" <<pid<<endl;
+            this->relToId.insert({relname,stoi(pid)});
+        }
+
+        //read the idToRel hashmap
+        char idToRelFile[100];
+        sprintf(idToRelFile, "%s_idToRel", fromWhere);
+        ifstream irfile(idToRelFile);
+        while(getline(irfile,line)) {
+            string delim = "|";
+            pos = line.find(delim);
+            pid = line.substr(0,pos);
+            line.erase(0,pos+1);
+            //read all the relations correspnding to the pid
+            vector<string> idToRelVector;
+            while((pos =line.find(delim) ) != string::npos) {
+                temp = line.substr(0,pos);
+                char * relname = new char[temp.length()+1] ;
+                strcpy(relname, temp.c_str());
+                line.erase(0,pos+1);
+                //add the relation name to the vector
+                idToRelVector.push_back(relname);
+            }
+            this->idToRel.insert({stoi(pid), idToRelVector});
+        }
     }
     
-
 }
 void Statistics::Write(char *fromWhere)
 {
@@ -159,14 +227,14 @@ void Statistics::Write(char *fromWhere)
     const char *ch;
     for(auto relation_itr = this->relationMap.begin(); relation_itr != this->relationMap.end(); relation_itr++) {
         // ch = (*relation_itr).first;
-        fprintf(writefile, (*relation_itr).first);
+        fprintf(writefile, ((*relation_itr).first).c_str());
         fprintf(writefile, "|");
         ch = to_string((*relation_itr).second.num_tuples).c_str();
         fprintf(writefile, ch);
         fprintf(writefile, "|");
         for(auto attr_itr = relation_itr->second.innerMap.begin(); attr_itr != relation_itr->second.innerMap.end(); attr_itr++) {
             
-            fprintf(writefile, (*attr_itr).first);
+            fprintf(writefile,((*attr_itr).first).c_str());
             fprintf(writefile, "|");
             ch = to_string((*attr_itr).second).c_str();
             fprintf(writefile, ch);
@@ -176,39 +244,185 @@ void Statistics::Write(char *fromWhere)
 
     }
     fclose(writefile);
+    //write hashmap relToId
+    char relToIdFile[100];
+    sprintf(relToIdFile, "%s_relToId", fromWhere);
+    writefile = fopen(relToIdFile, "w");   
+    for(auto hmap1_it = this->relToId.begin(); hmap1_it != this->relToId.end(); hmap1_it++) {
+        fprintf(writefile, (*hmap1_it).first.c_str());
+        fprintf(writefile, "|");
+        ch = to_string((*hmap1_it).second).c_str();
+        fprintf(writefile, ch);
+        fprintf(writefile, "|");
+        fprintf(writefile, "\n");
+    }
+    fclose(writefile);
+    //write hashmap idToRel
+    char idToRelFile[100];
+    sprintf(idToRelFile, "%s_idToRel", fromWhere);
+    writefile = fopen(idToRelFile, "w");   
+    for(auto hmap2_it = this->idToRel.begin(); hmap2_it != this->idToRel.end(); hmap2_it++) {
+        ch = to_string((*hmap2_it).first).c_str();
+        fprintf(writefile, ch);
+        fprintf(writefile, "|");
+        for(auto it2 = (*hmap2_it).second.begin(); it2 != (*hmap2_it).second.end(); it2++){
+            fprintf(writefile,(*it2).c_str());
+            fprintf(writefile, "|");
+        }
+        fprintf(writefile, "\n");
+    }
+    fclose(writefile);
 }
 
 void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJoin)
 {
     
 }
+
+
+
 double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numToJoin)
 {
     cout << "here!"<<endl;
+    double numTuples = 0.0;
+    double orResult;
+    double andResult = -1.0;
+
+    Statistics cpyStat(*this);
+    
+    // this->Write("dummy.txt");
+    // cpyStat.Read("dummy.txt");
+    // cout << cpyStat.idToRel.size();
+    for(auto it = cpyStat.relToId.begin(); it != cpyStat.relToId.end(); it++) {
+		cout << (*it).first << " " << (*it).second <<endl;
+	}
+
    //processing all ANDS
    if(parseTree != NULL) {
-       
-       
+              
        struct AndList *currAnd = parseTree;
 
        while(currAnd)
        {
             struct OrList *currOr = currAnd->left;
+            vector<double> orVector;
+            int l, r;
             while(currOr){
-                //process currOR->left 
-                cout <<currOr->left->left->value<<currOr->left->code <<currOr->left->right->value<<endl;
+                //if both operands are name then JOIN
+                if(currOr->left->left->code == NAME && currOr->left->right->code == NAME ) {
+                    
+                    double totalLeft, totalRight,attLeft, attRight;
+                    for(l = 0; l < numToJoin; l++) {
+                        if(cpyStat.relationMap.find(relNames[l])->second.innerMap.find(currOr->left->left->value) != cpyStat.relationMap.find(relNames[l])->second.innerMap.end()) {
+                            attLeft = cpyStat.relationMap.at(relNames[l]).innerMap.at(currOr->left->left->value);
+                            totalLeft = cpyStat.relationMap.find(relNames[l])->second.num_tuples;
+                            break;
+                        }
+                    }
+                    for(r = 0; r < numToJoin; r++) {
+                        if(cpyStat.relationMap.find(relNames[r])->second.innerMap.find(currOr->left->right->value) != cpyStat.relationMap.find(relNames[r])->second.innerMap.end()) {
+                            attRight = cpyStat.relationMap.at(relNames[r]).innerMap.at(currOr->left->right->value);
+                            totalRight = cpyStat.relationMap.find(relNames[r])->second.num_tuples;
+                            break;
+                        }
+                    }
+                    //TODO: handle condition where attribute name is incorrect
+                    //if both belong to the same partition then selectoion else join
+                    if(cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) == cpyStat.relToId.at(cpyStat.relationMap.find(relNames[l])->first))
+                        orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
+                    else
+                        orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+
+                    //update the Statistics after join
+                    int pid = cpyStat.relToId.at(cpyStat.relationMap.find(relNames[l])->first);
+                    //update partition_id in reltoId
+                    cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) = pid; 
+                    //udate relation names in idToRel
+                    cpyStat.idToRel.at(pid).push_back(relNames[r]);
+
+                    cpyStat.relationMap.at(relNames[l]).num_tuples = orResult;
+                    cpyStat.relationMap.at(relNames[r]).num_tuples = orResult; //redundant since this happens in loop below
+
+                    //if relations were already joined, update the relations in the partition for left
+                    for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
+                        cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
+                        //now update their attributes too
+                        for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) {
+                            if((*innerit).second > orResult) {
+                                (*innerit).second = orResult;
+                            }
+                        }
+                    }
+                }
+                // else SELECTION
+                else {
+                    double numAttrs, numTotal;
+                    int index = -1;
+                    //if both are literals 
+                    if(currOr->left->left->code != NAME || currOr->left->right->code != NAME){}
+                    else {
+                        if(currOr->left->left->code == NAME){
+                            for(l = 0; l < numToJoin; l++) {
+                               if(cpyStat.relationMap.find(relNames[l])->second.innerMap.find(currOr->left->left->value) != cpyStat.relationMap.find(relNames[l])->second.innerMap.end()) {
+                                   numAttrs = cpyStat.relationMap.at(relNames[l]).innerMap.at(currOr->left->left->value);
+                                   numTotal = cpyStat.relationMap.find(relNames[l])->second.num_tuples;
+                                   index = l;
+                                   break;
+                               }
+                            }
+                        }
+                        else if(currOr->left->right->code == NAME) {
+                            for(r = 0; r < numToJoin; r++) {
+                                if(cpyStat.relationMap.find(relNames[r])->second.innerMap.find(currOr->left->right->value) != cpyStat.relationMap.find(relNames[r])->second.innerMap.end()) {
+                                    numAttrs = cpyStat.relationMap.at(relNames[r]).innerMap.at(currOr->left->right->value);
+                                    numTotal = cpyStat.relationMap.find(relNames[r])->second.num_tuples;
+                                    index = r;
+                                    break;
+                                }
+                            }
+                        }
+                        switch(currOr->left->code) {
+                            case LESS_THAN:
+                                orResult = numTotal/3;
+                                break;
+                            case GREATER_THAN:
+                                orResult = numTotal/3;
+                                break;
+                            case EQUALS:
+                                orResult = numTotal/numAttrs;
+                                break;    
+                        }
+                        //update statistics for selection
+                        cpyStat.relationMap.at(relNames[index]).num_tuples = orResult;
+                        //if sleceted table was joined, update the values in correspnding relations as well 
+                        int pid = cpyStat.relToId.at(relNames[index]);
+                        for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
+                            cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
+                            //also update the attribute values
+                            for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) {
+                                if((*innerit).second > orResult) {
+                                    (*innerit).second = orResult;
+                                }
+                            }
+                        }     
+                    }//else
+                    
+                }//else
+                orVector.push_back(orResult);
                 currOr = currOr->rightOr;
             }
             //calculate for combined Or
+            double orCombined = 1;
+            for(auto it = orVector.begin(); it != orVector.end(); it++) {
+                orCombined = orCombined*(1 - (*it)/andResult);
+            }
+            andResult = andResult * (1 - orCombined);
             currAnd = currAnd->rightAnd;
        }
-
+       
    }
-   else
-   {
-       return 0.0;
-   }
+    return numTuples;
    
-    return 1.0;
+    
 }
 

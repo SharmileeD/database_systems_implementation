@@ -3,23 +3,23 @@
 #include "ParseTree.h"
 #include <unordered_map>
 #include <string>
-
+#include <vector>
 using namespace std;
 // typedef unordered_map<char*, int> attributeMap;
 // typedef unordered_map<char *, pair<int, attributeMap>>  relationMap;
 struct  relation_struct{
 	int num_tuples;
-	unordered_map<char*, int> innerMap;
+	unordered_map<string, int> innerMap;
 };
 
 class Statistics
 {
 	public:
 	// struct relation_struct * rel_struct;
-	static int partition_id;
-	unordered_map<char *, struct relation_struct>  relationMap;	
-	unordered_map<char*, int> relToId;
-	unordered_map<int, char*> idToRel;
+	int partition_id;
+	unordered_map<string, struct relation_struct>  relationMap;	
+	unordered_map<string, int> relToId;
+	unordered_map<int, vector<string>> idToRel;
 	Statistics();
 	Statistics(Statistics &copyMe);	 // Performs deep copy
 	~Statistics();

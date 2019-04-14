@@ -425,21 +425,37 @@ void test_addRel() {
 	
 	cout << "size of map:" << s.relationMap.size()<<endl;
 	for(auto it = s.relationMap.begin(); it != s.relationMap.end(); it++) {
-		cout << (*it).first <<", " << (*it).second.num_tuples <<endl;
+		cout << (*it).first <<", " << (*it).second.num_tuples << endl;
+	
 		cout << "size of iiner map:" << it->second.innerMap.size()<<endl;
 		for(auto it2 = 	it->second.innerMap.begin(); it2 != it->second.innerMap.end(); it2++) {
 				cout <<" ----" <<(*it2).first <<", " << (*it2).second <<endl;
 
 		}
 	}
-	s.CopyRel("lineitem", "lineitem_new");
-	cout << "size of map after copyrel:" << s.relationMap.size()<<endl;
-	cout << "Original value" <<s.relationMap.at("lineitem").num_tuples<<endl;
-	cout << "Copied value" <<s.relationMap.at("lineitem_new").num_tuples<<endl;
+
+	// for(auto it = s.relToId.begin(); it != s.relToId.end(); it++) {
+	// 	cout << (*it).first << " " << (*it).second <<endl;
+	// }	
+	// s.CopyRel("lineitem", "lineitem_new");
+	// cout << "size of map after copyrel:" << s.relationMap.size()<<endl;
+	// cout << "Original value" <<s.relationMap.at("lineitem").num_tuples<<endl;
+	// cout << "Copied value" <<s.relationMap.at("lineitem_new").num_tuples<<endl;
 	s.Write("statWrite.txt");
 	s.Read("statWrite.txt");
+	// for(auto it = s.relToId.begin(); it != s.relToId.end(); it++) {
+	// 	cout << (*it).first << " " << (*it).second <<endl;
+	// }	
+	// for(auto it = s.idToRel.begin(); it != s.idToRel.end(); it++) {
+	// 	cout << (*it).first << " : ";
+	// 	// " " << (*it).second <<endl;
+	// 	for(auto init = (*it).second.begin(); init != (*it).second.end(); init++){
+	// 		cout << (*init) << "  ";
+	// 	}
+	// 	cout <<endl;
+	// }	
 	// for(auto it = s.relat)
-	test_copy_const(s);
+	// test_copy_const(s);
 	// char *relInput[] = {"supplier","partsupp"};
 	// char *cnf = "(s_suppkey = ps_suppkey)";
 
