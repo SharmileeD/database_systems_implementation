@@ -30,22 +30,21 @@ Statistics::Statistics(Statistics &copyMe)
 		}
     }
     // this->relToId =  new unordered_map<string, int>();
+    this->relToId.clear();
     for(auto it1 = copyMe.relToId.begin(); it1 != copyMe.relToId.end(); it1++) {
         char relname [it1->first.size()];
         strcpy(relname, it1->first.c_str());
-        int pid = (*it1).second;
-        this->relToId.insert({relname, pid});
+        this->relToId.insert({relname, it1->second});
     }
-
-    // for(auto it1 = copyMe.idToRel.begin(); it1 != copyMe.idToRel.end(); it1++) {
-    //     vector <string> dummyVec;
-    //     for(auto it2 = (*it1).second.begin(); it2 != (*it1).second.end(); it2++) {
-    //         dummyVec.push_back((*it2));
-    //     }
-    //     this->idToRel.insert({(*it1).first, dummyVec});
-    // }
-    // cout << "Sie here:" <<this->idToRel.size()<<endl;
-
+    this->idToRel.clear();
+    
+    for(auto it1 = copyMe.idToRel.begin(); it1 != copyMe.idToRel.end(); it1++) {
+        vector <string> dummyVec;
+        for(auto it2 = it1->second.begin(); it2 != it1->second.end(); it2++) 
+            dummyVec.push_back((*it2));
+        this->idToRel.insert({(*it1).first, dummyVec});
+    }
+  
 }
 Statistics::~Statistics()
 {
@@ -181,6 +180,7 @@ void Statistics::Read(char *fromWhere)
         sprintf(relToIdFile, "%s_relToId", fromWhere);
         ifstream rifile(relToIdFile);
         string pid;
+        this->relToId.clear();
         while(getline(rifile, line)) {
             string delim = "|";
             pos = line.find(delim);
@@ -201,6 +201,7 @@ void Statistics::Read(char *fromWhere)
         char idToRelFile[100];
         sprintf(idToRelFile, "%s_idToRel", fromWhere);
         ifstream irfile(idToRelFile);
+        this->idToRel.clear();
         while(getline(irfile,line)) {
             string delim = "|";
             pos = line.find(delim);
@@ -286,17 +287,24 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
     cout << "here!"<<endl;
     double numTuples = 0.0;
     double orResult;
-    double andResult = -1.0;
+    double andResult = 1.0;
 
     Statistics cpyStat(*this);
-    
+    // Statistics cpyStat;
     // this->Write("dummy.txt");
     // cpyStat.Read("dummy.txt");
-    // cout << cpyStat.idToRel.size();
+
     for(auto it = cpyStat.relToId.begin(); it != cpyStat.relToId.end(); it++) {
 		cout << (*it).first << " " << (*it).second <<endl;
-	}
+	}   
 
+    for(auto it = cpyStat.idToRel.begin(); it != cpyStat.idToRel.end(); it++) {
+		cout << (*it).first << " : ";
+		for(auto init = (*it).second.begin(); init != (*it).second.end(); init++){
+			cout << (*init) << "  ";
+		}
+		cout <<endl;
+	}
    //processing all ANDS
    if(parseTree != NULL) {
               
@@ -326,6 +334,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                             break;
                         }
                     }
+                    andResult = totalLeft * totalRight;
                     //TODO: handle condition where attribute name is incorrect
                     //if both belong to the same partition then selectoion else join
                     if(cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) == cpyStat.relToId.at(cpyStat.relationMap.find(relNames[l])->first))
@@ -334,11 +343,21 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                         orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
 
                     //update the Statistics after join
-                    int pid = cpyStat.relToId.at(cpyStat.relationMap.find(relNames[l])->first);
-                    //update partition_id in reltoId
+                    int pid = cpyStat.relToId.at(relNames[l]); //left relation pid
+                    int prev_pid = cpyStat.relToId.at(relNames[r]); //right relation pid
+
+                    //update partition_id of relations that are in the same partition as the right relation
+                    for(auto temp =cpyStat.idToRel.at(prev_pid).begin(); temp != cpyStat.idToRel.at(prev_pid).end(); temp++ ) {
+                        cpyStat.relToId.at(*temp) = pid;
+                    }
                     cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) = pid; 
-                    //udate relation names in idToRel
-                    cpyStat.idToRel.at(pid).push_back(relNames[r]);
+                    
+                    //update relation names in idToRel
+                    for(auto temp =cpyStat.idToRel.at(prev_pid).begin(); temp != cpyStat.idToRel.at(prev_pid).end(); temp++ ) {
+                        cpyStat.idToRel.at(pid).push_back(*temp);
+                    }
+                    //remove the old entry of right side relation name from idToRel
+                    cpyStat.idToRel.erase(prev_pid);
 
                     cpyStat.relationMap.at(relNames[l]).num_tuples = orResult;
                     cpyStat.relationMap.at(relNames[r]).num_tuples = orResult; //redundant since this happens in loop below
@@ -392,6 +411,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                                 orResult = numTotal/numAttrs;
                                 break;    
                         }
+                        andResult = numTotal;
                         //update statistics for selection
                         cpyStat.relationMap.at(relNames[index]).num_tuples = orResult;
                         //if sleceted table was joined, update the values in correspnding relations as well 
@@ -414,10 +434,13 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
             //calculate for combined Or
             double orCombined = 1;
             for(auto it = orVector.begin(); it != orVector.end(); it++) {
+                cout << "individual or results = " << (*it) <<endl;
                 orCombined = orCombined*(1 - (*it)/andResult);
             }
+            cout << "\n\nCombined OR = " << orCombined<<endl; 
             andResult = andResult * (1 - orCombined);
             currAnd = currAnd->rightAnd;
+            numTuples = andResult;
        }
        
    }
