@@ -16,7 +16,7 @@ class Statistics
 {
 	public:
 	// struct relation_struct * rel_struct;
-	int partition_id;
+	int partition_id = 0;
 	unordered_map<string, struct relation_struct>  relationMap;	
 	unordered_map<string, int> relToId;
 	unordered_map<int, vector<string>> idToRel;

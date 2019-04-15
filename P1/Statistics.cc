@@ -287,24 +287,24 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
     cout << "here!"<<endl;
     double numTuples = 0.0;
     double orResult;
-    double andResult = 1.0;
-
+    double andResult = -1.0;
+    double n;
     Statistics cpyStat(*this);
     // Statistics cpyStat;
     // this->Write("dummy.txt");
     // cpyStat.Read("dummy.txt");
 
-    for(auto it = cpyStat.relToId.begin(); it != cpyStat.relToId.end(); it++) {
-		cout << (*it).first << " " << (*it).second <<endl;
-	}   
+    // for(auto it = cpyStat.relToId.begin(); it != cpyStat.relToId.end(); it++) {
+	// 	cout << (*it).first << " " << (*it).second <<endl;
+	// }   
 
-    for(auto it = cpyStat.idToRel.begin(); it != cpyStat.idToRel.end(); it++) {
-		cout << (*it).first << " : ";
-		for(auto init = (*it).second.begin(); init != (*it).second.end(); init++){
-			cout << (*init) << "  ";
-		}
-		cout <<endl;
-	}
+    // for(auto it = cpyStat.idToRel.begin(); it != cpyStat.idToRel.end(); it++) {
+	// 	cout << (*it).first << " : ";
+	// 	for(auto init = (*it).second.begin(); init != (*it).second.end(); init++){
+	// 		cout << (*init) << "  ";
+	// 	}
+	// 	cout <<endl;
+	// }
    //processing all ANDS
    if(parseTree != NULL) {
               
@@ -315,10 +315,12 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
             struct OrList *currOr = currAnd->left;
             vector<double> orVector;
             int l, r;
+            bool isJoin = false;
+            int index = -1;
             while(currOr){
                 //if both operands are name then JOIN
                 if(currOr->left->left->code == NAME && currOr->left->right->code == NAME ) {
-                    
+                    isJoin = true;
                     double totalLeft, totalRight,attLeft, attRight;
                     for(l = 0; l < numToJoin; l++) {
                         if(cpyStat.relationMap.find(relNames[l])->second.innerMap.find(currOr->left->left->value) != cpyStat.relationMap.find(relNames[l])->second.innerMap.end()) {
@@ -334,7 +336,6 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                             break;
                         }
                     }
-                    andResult = totalLeft * totalRight;
                     //TODO: handle condition where attribute name is incorrect
                     //if both belong to the same partition then selectoion else join
                     if(cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) == cpyStat.relToId.at(cpyStat.relationMap.find(relNames[l])->first))
@@ -366,19 +367,19 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                     for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
                         cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
                         //now update their attributes too
-                        for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) {
-                            if((*innerit).second > orResult) {
+                        for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) 
+                            if((*innerit).second > orResult) 
                                 (*innerit).second = orResult;
-                            }
-                        }
+                            
                     }
                 }
                 // else SELECTION
                 else {
+                    isJoin = false;
                     double numAttrs, numTotal;
-                    int index = -1;
+                    
                     //if both are literals 
-                    if(currOr->left->left->code != NAME || currOr->left->right->code != NAME){}
+                    if(currOr->left->left->code != NAME && currOr->left->right->code != NAME){}
                     else {
                         if(currOr->left->left->code == NAME){
                             for(l = 0; l < numToJoin; l++) {
@@ -402,43 +403,61 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                         }
                         switch(currOr->left->code) {
                             case LESS_THAN:
-                                orResult = numTotal/3;
+                                orResult = (double)numTotal/3.0;
                                 break;
                             case GREATER_THAN:
-                                orResult = numTotal/3;
+                                orResult = (double)numTotal/3.0;
                                 break;
                             case EQUALS:
-                                orResult = numTotal/numAttrs;
+                                orResult = (double)numTotal/numAttrs;
                                 break;    
                         }
-                        andResult = numTotal;
+                        cout << "Oresult = "<<orResult<< "numtotal = "<< numTotal <<endl;
+                        if(andResult == -1)
+                            n = numTotal;
+                        else
+                            n = andResult;                        
                         //update statistics for selection
-                        cpyStat.relationMap.at(relNames[index]).num_tuples = orResult;
+                        // cpyStat.relationMap.at(relNames[index]).num_tuples = orResult;
                         //if sleceted table was joined, update the values in correspnding relations as well 
-                        int pid = cpyStat.relToId.at(relNames[index]);
-                        for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
-                            cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
-                            //also update the attribute values
-                            for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) {
-                                if((*innerit).second > orResult) {
-                                    (*innerit).second = orResult;
-                                }
-                            }
-                        }     
-                    }//else
+                        // int pid = cpyStat.relToId.at(relNames[index]);
+                            
+                        orVector.push_back(orResult);    
+                    }//else validation check
                     
-                }//else
-                orVector.push_back(orResult);
+                }//else join or selection
+                
                 currOr = currOr->rightOr;
             }
             //calculate for combined Or
-            double orCombined = 1;
-            for(auto it = orVector.begin(); it != orVector.end(); it++) {
-                cout << "individual or results = " << (*it) <<endl;
-                orCombined = orCombined*(1 - (*it)/andResult);
+           
+           //if not join calculate the combined or.
+            if(!isJoin) {
+                 double orCombined = 1.0;
+                 for(auto it = orVector.begin(); it != orVector.end(); it++) {
+                    cout << "individual or results = " << (*it) <<endl;
+                    orCombined = (double)orCombined*(1 - (*it)/n);
+                 }
+                //  cout << "\n\nCombined OR = " << orCombined<<endl;
+                 andResult = (double)n * (1 - orCombined);
+                 cout <<"andResult = "<<andResult<<endl;                
+                 //update the values in statistics
+                 cpyStat.relationMap.at(relNames[index]).num_tuples = andResult;
+                 int pid = cpyStat.relToId.at(relNames[index]);
+                 for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
+                    cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
+                            //also update the attribute values
+                    for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) 
+                         if((*innerit).second > orResult) 
+                             (*innerit).second = orResult;
+                } 
+
             }
-            cout << "\n\nCombined OR = " << orCombined<<endl; 
-            andResult = andResult * (1 - orCombined);
+            //if join then update the result
+           else 
+             andResult = orResult;
+            cout <<"andResult = "<<andResult<<endl;
+
             currAnd = currAnd->rightAnd;
             numTuples = andResult;
        }
