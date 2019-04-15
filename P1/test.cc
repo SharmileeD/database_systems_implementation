@@ -139,7 +139,6 @@ void q0 (){
     yyparse();
     double result = s.Estimate(final, relName, 2);
 
-    cout << "*******result="<<result<<endl;
     if(result!=800000)
         cout<<"error in estimating Q1 before apply \n ";
     cnf = "(s_suppkey = ps_suppkey) AND (s_suppkey>1000)";
