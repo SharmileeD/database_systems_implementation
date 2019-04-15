@@ -353,19 +353,19 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                         vector<string> prev_vector = this->idToRel.at(prev_pid);
 
                         for(auto temp2 =prev_vector.begin(); temp2 != prev_vector.end(); temp2++ ) {
-                            cout<<"temp "<<*temp2<<endl;
+                            // cout<<"temp "<<*temp2<<endl;
                             this->idToRel.at(pid).push_back(*temp2);
                         }
                         //remove the old entry of right side relation name from idToRel
-                        cout<<"Debug prints before delete"<<endl;
+
                         // this->printDicts();
                         this->idToRel.erase(prev_pid);
                     }
-                    cout<<"Debug prints"<<endl;
+
                     // this->printDicts();
                     this->relationMap.at(relNameLeft).num_tuples = orResult;
                     this->relationMap.at(relNameRight).num_tuples = orResult; //redundant since this happens in loop below
-                    cout<<"Debug prints"<<endl;
+
                     // this->printDicts();
                     vector<string> temp_vector = this->idToRel.at(pid);
                     
@@ -381,7 +381,7 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                 }
                 // else SELECTION
                 else {
-                    cout<<"Debug prints"<<endl;
+                    // cout<<"Debug prints"<<endl;
                     // this->printDicts();
                     isJoin = false;
                     double numAttrs, numTotal;
@@ -427,7 +427,7 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                                 orResult = (double)numTotal/numAttrs;
                                 break;    
                         }
-                        cout << "Oresult = "<<orResult<< "numtotal = "<< numTotal <<endl;
+                        // cout << "Oresult = "<<orResult<< "numtotal = "<< numTotal <<endl;
                         if(andResult == -1)
                             n = numTotal;
                         else
@@ -455,7 +455,7 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                  }
                 //  cout << "\n\nCombined OR = " << orCombined<<endl;
                  andResult = (double)n * (1 - orCombined);
-                 cout <<"andResult = "<<andResult<<endl;       
+                //  cout <<"andResult = "<<andResult<<endl;       
                 //update the values in statistics
                  this->relationMap.at(relName).num_tuples = andResult;
                  int pid = this->relToId.at(relName);
@@ -471,7 +471,7 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
             //if join then update the result
            else 
              andResult = orResult;
-            cout <<"andResult = "<<andResult<<endl;
+            // cout <<"andResult = "<<andResult<<endl;
 
             currAnd = currAnd->rightAnd;
             numTuples = andResult;
@@ -551,19 +551,19 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                         vector<string> prev_vector = cpyStat.idToRel.at(prev_pid);
 
                         for(auto temp2 =prev_vector.begin(); temp2 != prev_vector.end(); temp2++ ) {
-                            cout<<"temp "<<*temp2<<endl;
+                            // cout<<"temp "<<*temp2<<endl;
                             cpyStat.idToRel.at(pid).push_back(*temp2);
                         }
                         //remove the old entry of right side relation name from idToRel
-                        cout<<"Debug prints before delete"<<endl;
+                        // cout<<"Debug prints before delete"<<endl;
                         // cpyStat.printDicts();
                         cpyStat.idToRel.erase(prev_pid);
                     }
-                    cout<<"Debug prints"<<endl;
+                    // cout<<"Debug prints"<<endl;
                     // cpyStat.printDicts();
                     cpyStat.relationMap.at(relNameLeft).num_tuples = orResult;
                     cpyStat.relationMap.at(relNameRight).num_tuples = orResult; //redundant since this happens in loop below
-                    cout<<"Debug prints"<<endl;
+                    // cout<<"Debug prints"<<endl;
                     // cpyStat.printDicts();
                     vector<string> temp_vector = cpyStat.idToRel.at(pid);
                     
@@ -579,7 +579,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                 }
                 // else SELECTION
                 else {
-                    cout<<"Debug prints"<<endl;
+                    // cout<<"Debug prints"<<endl;
                     // cpyStat.printDicts();
                     isJoin = false;
                     double numAttrs, numTotal;
@@ -593,26 +593,12 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                         // Check if left is a NAME
                         if(llcode == NAME){
                             cpyStat.extractValues(llval, relName, numTotal, numAttrs, numToJoin, relNames);
-                            // for(l = 0; l < numToJoin; l++) {
-                            //    if(cpyStat.relationMap.find(relNameLeft)->second.innerMap.find(llval) != cpyStat.relationMap.find(relNameLeft)->second.innerMap.end()) {
-                            //        numAttrs = cpyStat.relationMap.at(relNameLeft).innerMap.at(llval);
-                            //        numTotal = cpyStat.relationMap.find(relNameLeft)->second.num_tuples;
-                            //        index = l;
-                            //        break;
-                            //    }
-                            // }
+                            
                         }
                         // Check if right is a NAME
                         else if(lrcode == NAME) {
                             cpyStat.extractValues(lrval, relName, numTotal, numAttrs, numToJoin, relNames);
-                            // for(r = 0; r < numToJoin; r++) {
-                            //     if(cpyStat.relationMap.find(relNameRight)->second.innerMap.find(lrval) != cpyStat.relationMap.find(relNameRight)->second.innerMap.end()) {
-                            //         numAttrs = cpyStat.relationMap.at(relNameRight).innerMap.at(lrval);
-                            //         numTotal = cpyStat.relationMap.find(relNameRight)->second.num_tuples;
-                            //         index = r;
-                            //         break;
-                            //     }
-                            // }
+                            
                         }
                         switch(currOr->left->code) {
                             case LESS_THAN:
@@ -625,7 +611,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                                 orResult = (double)numTotal/numAttrs;
                                 break;    
                         }
-                        cout << "Oresult = "<<orResult<< "numtotal = "<< numTotal <<endl;
+                        // cout << "Oresult = "<<orResult<< "numtotal = "<< numTotal <<endl;
                         if(andResult == -1)
                             n = numTotal;
                         else
@@ -653,7 +639,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                  }
                 //  cout << "\n\nCombined OR = " << orCombined<<endl;
                  andResult = (double)n * (1 - orCombined);
-                 cout <<"andResult = "<<andResult<<endl;       
+                //  cout <<"andResult = "<<andResult<<endl;       
                 //update the values in statistics
                  cpyStat.relationMap.at(relName).num_tuples = andResult;
                  int pid = cpyStat.relToId.at(relName);
@@ -669,7 +655,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
             //if join then update the result
            else 
              andResult = orResult;
-            cout <<"andResult = "<<andResult<<endl;
+            // cout <<"andResult = "<<andResult<<endl;
 
             currAnd = currAnd->rightAnd;
             numTuples = andResult;
