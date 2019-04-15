@@ -227,8 +227,9 @@ void q3 (){
 	s.Read(fileName);
 	
 	s.AddRel(relName[0],10000);
-	s.AddAtt(relName[0], "s_nationey",25);
-
+	s.AddAtt(relName[0], "s_nationkey",25);
+	
+	
 	s.AddRel(relName[1],150000);
 	s.AddAtt(relName[1], "c_custkey",150000);
 	s.AddAtt(relName[1], "c_nationkey",25);
@@ -254,7 +255,7 @@ void q3 (){
 	s.Apply(final, set2, 2);
 
 	char *set3[] = {"c","s","n1","n2"};
-	cnf = " (n1.n_nationkey = n2.n_nationkey )";
+	cnf = " (n1.n_nationkey = n2.n_nationkey)";
 	yy_scan_string(cnf);
 	yyparse();
 
@@ -344,6 +345,7 @@ void q5 (){
 	s.AddRel(relName[1],1500000);
 	s.AddAtt(relName[1], "o_orderkey",1500000);
 	s.AddAtt(relName[1], "o_custkey",150000);
+	s.AddAtt(relName[1], "o_orderdate",150000);
 	
 	s.AddRel(relName[2],6001215);
 	s.AddAtt(relName[2], "l_orderkey",1500000);
@@ -362,7 +364,7 @@ void q5 (){
 
 	double result = s.Estimate(final, relName, 3);
 
-	if(fabs(result-400081)>0.1)
+	if(fabs(result-400077)>0.1)
 		cout<<"error in estimating Q5\n";
 
 	s.Apply(final, relName, 3);
@@ -426,9 +428,10 @@ void q7(){
 	
 	s.AddRel(relName[1],6001215);
 	s.AddAtt(relName[1], "l_orderkey",1500000);
+	s.AddAtt(relName[1], "l_receiptdate",1500000);
 	
 
-	char *cnf = "(l_receiptdate >'1995-02-01' ) AND (l_orderkey = o_orderkey)";
+	char *cnf = "(l_orderkey = o_orderkey) AND (l_receiptdate >'1995-02-01' )";
 
 	yy_scan_string(cnf);
 	yyparse();
@@ -467,7 +470,7 @@ void q8 (){
 		
 	double result = s.Estimate(final, relName,2);
 
-	if(fabs(result-48000)>0.1)
+	if(fabs(result-47046.4)>0.1)
 		cout<<"error in estimating Q8\n";
 
 	s.Apply(final, relName,2);
@@ -526,6 +529,7 @@ void q10 (){
 
 	s.AddRel(relName[1],1500000);
 	s.AddAtt(relName[1], "o_orderkey",1500000);
+	s.AddAtt(relName[1], "o_orderdate",1500000);
 	s.AddAtt(relName[1], "o_custkey",150000);
 	
 	s.AddRel(relName[2],6001215);
@@ -550,7 +554,7 @@ void q10 (){
 	yyparse();	
 	
 	double result = s.Estimate(final, relName, 4);
-	if(fabs(result-2000405)>0.1)
+	if(fabs(result-2000405)>1.1)
 		cout<<"error in estimating Q10\n";
 
 	s.Apply(final, relName, 4);  
@@ -569,7 +573,7 @@ void q11 (){
 	
 	s.AddRel(relName[0],200000);
 	s.AddAtt(relName[0], "p_partkey",200000);
-	s.AddAtt(relName[0], "p_conatiner",40);
+	s.AddAtt(relName[0], "p_container",40);
 
 	s.AddRel(relName[1],6001215);
 	s.AddAtt(relName[1], "l_partkey",200000);

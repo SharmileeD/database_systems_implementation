@@ -296,13 +296,15 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
     if (this->validateRels(relNames, numToJoin)){
 
     }
+
    
    //processing all ANDS
-   this->printDicts();
    if(parseTree != NULL) {
               
-       struct AndList *currAnd = parseTree;
-
+        struct AndList *currAnd = parseTree;
+        string relNameLeft;
+        string relNameRight;
+        string relName;
        while(currAnd)
        {
             struct OrList *currOr = currAnd->left;
@@ -315,76 +317,60 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                 string lrval = currOr->left->right->value;
                 int llcode = currOr->left->left->code;
                 int lrcode = currOr->left->right->code;
-
                 //if both operands are name then JOIN
+                
                 if(llcode == NAME && lrcode == NAME ) {
                     isJoin = true;
-                    int exceptionCount =0;
-
+                    int exceptionCount;
+                    double totalLeft, totalRight,attLeft, attRight;
+                    this->extractValues(llval, relNameLeft, totalLeft, attLeft,numToJoin, relNames);
+                    this->extractValues(lrval, relNameRight, totalRight, attRight, numToJoin, relNames);
                     
                     // Initialising the number of tuples of the relation and the number of unique tuples of the attribute
-                    double totalLeft, totalRight,attLeft, attRight;
-                    for(l = 0; l < numToJoin; l++) {
-                        if(this->relationMap.find(relNames[l])->second.innerMap.find(llval) != this->relationMap.find(relNames[l])->second.innerMap.end()) {
-                            try{
-                                attLeft = this->relationMap.at(relNames[l]).innerMap.at(llval);
-                            }
-                            catch(const std::out_of_range& e){
-                            }
-                            
-                            totalLeft = this->relationMap.find(relNames[l])->second.num_tuples;
-                            break;
-                        }
-                    }
-                    if (exceptionCount>=numToJoin){
-                        cout<<"Attribute does not exist in the map!"<<endl;
-                    }
-                    exceptionCount = 0;
-                    for(r = 0; r < numToJoin; r++) {
-                        if(this->relationMap.find(relNames[r])->second.innerMap.find(lrval) != this->relationMap.find(relNames[r])->second.innerMap.end()) {
-                            try{
-                            attRight = this->relationMap.at(relNames[r]).innerMap.at(lrval);
-                            }
-                            catch(const std::out_of_range& e){
-                                exceptionCount++;
-                            }
-                            totalRight = this->relationMap.find(relNames[r])->second.num_tuples;
-                            break;
-                        }
-                    }
-                    if (exceptionCount>=numToJoin){
-                        cout<<"Attribute does not exist in the map!"<<endl;
-                    }
+                    
                     // andResult = totalLeft * totalRight;
                     //TODO: handle condition where attribute name is incorrect
                     //if both belong to the same partition then selection else join
-                    if(this->relToId.at(this->relationMap.find(relNames[r])->first) == this->relToId.at(this->relationMap.find(relNames[l])->first))
-                        orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
-                    else
-                        orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+                    // if(this->relToId.at(this->relationMap.find(relNameRight)->first) == this->relToId.at(this->relationMap.find(relNameLeft)->first))
+                    //     orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
+                    // else
+                    //     orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+                    orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
                     andResult = orResult;
                     //update the Statistics after join
-                    int pid = this->relToId.at(relNames[l]); //left relation pid
-                    int prev_pid = this->relToId.at(relNames[r]); //right relation pid
+                    int pid = this->relToId.at(relNameLeft); //left relation pid
+                    int prev_pid = this->relToId.at(relNameRight); //right relation pid
 
                     //update partition_id of relations that are in the same partition as the right relation
-                    for(auto temp =this->idToRel.at(prev_pid).begin(); temp != this->idToRel.at(prev_pid).end(); temp++ ) {
-                        this->relToId.at(*temp) = pid;
+                    if(pid !=prev_pid){
+                        for(auto temp =this->idToRel.at(prev_pid).begin(); temp != this->idToRel.at(prev_pid).end(); temp++ ) {
+                            this->relToId.at(*temp) = pid;
+                        }
+                        this->relToId.at(this->relationMap.find(relNameRight)->first) = pid; 
+                        
+                        //update relation names in idToRel
+                        
+                        vector<string> prev_vector = this->idToRel.at(prev_pid);
+
+                        for(auto temp2 =prev_vector.begin(); temp2 != prev_vector.end(); temp2++ ) {
+                            cout<<"temp "<<*temp2<<endl;
+                            this->idToRel.at(pid).push_back(*temp2);
+                        }
+                        //remove the old entry of right side relation name from idToRel
+                        cout<<"Debug prints before delete"<<endl;
+                        // this->printDicts();
+                        this->idToRel.erase(prev_pid);
                     }
-                    this->relToId.at(this->relationMap.find(relNames[r])->first) = pid; 
+                    cout<<"Debug prints"<<endl;
+                    // this->printDicts();
+                    this->relationMap.at(relNameLeft).num_tuples = orResult;
+                    this->relationMap.at(relNameRight).num_tuples = orResult; //redundant since this happens in loop below
+                    cout<<"Debug prints"<<endl;
+                    // this->printDicts();
+                    vector<string> temp_vector = this->idToRel.at(pid);
                     
-                    //update relation names in idToRel
-                    for(auto temp =this->idToRel.at(prev_pid).begin(); temp != this->idToRel.at(prev_pid).end(); temp++ ) {
-                        this->idToRel.at(pid).push_back(*temp);
-                    }
-                    //remove the old entry of right side relation name from idToRel
-                    this->idToRel.erase(prev_pid);
-
-                    this->relationMap.at(relNames[l]).num_tuples = orResult;
-                    this->relationMap.at(relNames[r]).num_tuples = orResult; //redundant since this happens in loop below
-
                     //if relations were already joined, update the relations in the partition for left
-                    for(auto outerit = this->idToRel.at(pid).begin(); outerit != this->idToRel.at(pid).end(); outerit++) {
+                    for(auto outerit = temp_vector.begin(); outerit != temp_vector.end(); outerit++) {
                         this->relationMap.at((*outerit)).num_tuples = orResult;
                         //now update their attributes too
                         for(auto innerit = this->relationMap.at((*outerit)).innerMap.begin(); innerit != this->relationMap.at((*outerit)).innerMap.end(); innerit++) 
@@ -395,6 +381,8 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                 }
                 // else SELECTION
                 else {
+                    cout<<"Debug prints"<<endl;
+                    // this->printDicts();
                     isJoin = false;
                     double numAttrs, numTotal;
                     
@@ -403,28 +391,30 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                         // Error since both are literals 
                     }
                     else {
+                        // SET LLVAL LRVAL RELNAME LEFT AND RELNAMERIGHT
                         // Check if left is a NAME
                         if(llcode == NAME){
-                            
-                            for(l = 0; l < numToJoin; l++) {
-                               if(this->relationMap.find(relNames[l])->second.innerMap.find(llval) != this->relationMap.find(relNames[l])->second.innerMap.end()) {
-                                   numAttrs = this->relationMap.at(relNames[l]).innerMap.at(llval);
-                                   numTotal = this->relationMap.find(relNames[l])->second.num_tuples;
-                                   index = l;
-                                   break;
-                               }
-                            }
+                            this->extractValues(llval, relName, numTotal, numAttrs, numToJoin, relNames);
+                            // for(l = 0; l < numToJoin; l++) {
+                            //    if(this->relationMap.find(relNameLeft)->second.innerMap.find(llval) != this->relationMap.find(relNameLeft)->second.innerMap.end()) {
+                            //        numAttrs = this->relationMap.at(relNameLeft).innerMap.at(llval);
+                            //        numTotal = this->relationMap.find(relNameLeft)->second.num_tuples;
+                            //        index = l;
+                            //        break;
+                            //    }
+                            // }
                         }
                         // Check if right is a NAME
                         else if(lrcode == NAME) {
-                            for(r = 0; r < numToJoin; r++) {
-                                if(this->relationMap.find(relNames[r])->second.innerMap.find(lrval) != this->relationMap.find(relNames[r])->second.innerMap.end()) {
-                                    numAttrs = this->relationMap.at(relNames[r]).innerMap.at(lrval);
-                                    numTotal = this->relationMap.find(relNames[r])->second.num_tuples;
-                                    index = r;
-                                    break;
-                                }
-                            }
+                            this->extractValues(lrval, relName, numTotal, numAttrs, numToJoin, relNames);
+                            // for(r = 0; r < numToJoin; r++) {
+                            //     if(this->relationMap.find(relNameRight)->second.innerMap.find(lrval) != this->relationMap.find(relNameRight)->second.innerMap.end()) {
+                            //         numAttrs = this->relationMap.at(relNameRight).innerMap.at(lrval);
+                            //         numTotal = this->relationMap.find(relNameRight)->second.num_tuples;
+                            //         index = r;
+                            //         break;
+                            //     }
+                            // }
                         }
                         switch(currOr->left->code) {
                             case LESS_THAN:
@@ -460,21 +450,21 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
             if(!isJoin) {
                  double orCombined = 1.0;
                  for(auto it = orVector.begin(); it != orVector.end(); it++) {
-                    cout << "individual or results = " << (*it) <<endl;
+                    // cout << "individual or results = " << (*it) <<endl;
                     orCombined = (double)orCombined*(1 - (*it)/n);
                  }
                 //  cout << "\n\nCombined OR = " << orCombined<<endl;
                  andResult = (double)n * (1 - orCombined);
-                 cout <<"andResult = "<<andResult<<endl;                
-                 //update the values in statistics
-                 this->relationMap.at(relNames[index]).num_tuples = andResult;
-                 int pid = this->relToId.at(relNames[index]);
+                 cout <<"andResult = "<<andResult<<endl;       
+                //update the values in statistics
+                 this->relationMap.at(relName).num_tuples = andResult;
+                 int pid = this->relToId.at(relName);
                  for(auto outerit = this->idToRel.at(pid).begin(); outerit != this->idToRel.at(pid).end(); outerit++) {
-                    this->relationMap.at((*outerit)).num_tuples = orResult;
+                    this->relationMap.at((*outerit)).num_tuples = andResult;
                             //also update the attribute values
                     for(auto innerit = this->relationMap.at((*outerit)).innerMap.begin(); innerit != this->relationMap.at((*outerit)).innerMap.end(); innerit++) 
-                         if((*innerit).second > orResult) 
-                             (*innerit).second = orResult;
+                         if((*innerit).second > andResult) 
+                             (*innerit).second = andResult;
                 } 
 
             }
@@ -488,7 +478,6 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
        }
        
    }
-   this->printDicts();
    
 }
 
@@ -496,6 +485,7 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
 
 double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numToJoin)
 {
+   
     double numTuples = 0.0;
     double orResult;
     double andResult = -1.0;
@@ -504,13 +494,15 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
     if (this->validateRels(relNames, numToJoin)){
 
     }
-    Statistics cpyStat(*this);
-   
+
+   Statistics cpyStat(*this);
    //processing all ANDS
    if(parseTree != NULL) {
               
-       struct AndList *currAnd = parseTree;
-
+        struct AndList *currAnd = parseTree;
+        string relNameLeft;
+        string relNameRight;
+        string relName;
        while(currAnd)
        {
             struct OrList *currOr = currAnd->left;
@@ -524,77 +516,59 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                 int llcode = currOr->left->left->code;
                 int lrcode = currOr->left->right->code;
                 //if both operands are name then JOIN
+                
                 if(llcode == NAME && lrcode == NAME ) {
                     isJoin = true;
                     int exceptionCount;
-
+                    double totalLeft, totalRight,attLeft, attRight;
+                    cpyStat.extractValues(llval, relNameLeft, totalLeft, attLeft,numToJoin, relNames);
+                    cpyStat.extractValues(lrval, relNameRight, totalRight, attRight, numToJoin, relNames);
                     
                     // Initialising the number of tuples of the relation and the number of unique tuples of the attribute
-                    double totalLeft, totalRight,attLeft, attRight;
-                    for(l = 0; l < numToJoin; l++) {
-                        if(cpyStat.relationMap.find(relNames[l])->second.innerMap.find(llval) != cpyStat.relationMap.find(relNames[l])->second.innerMap.end()) {
-                            try{
-                                attLeft = cpyStat.relationMap.at(relNames[l]).innerMap.at(llval);
-                            }
-                            catch(const std::out_of_range& e){
-                                exceptionCount++;
-                            }
-                            
-                            totalLeft = cpyStat.relationMap.find(relNames[l])->second.num_tuples;
-                            break;
-                        }
-                    }
-                    if (exceptionCount>=numToJoin){
-                        cout<<"Attribute does not exist in the map!"<<endl;
-                        return 0.0;
-                    }
-                    exceptionCount = 0;
-                    for(r = 0; r < numToJoin; r++) {
-                        if(cpyStat.relationMap.find(relNames[r])->second.innerMap.find(lrval) != cpyStat.relationMap.find(relNames[r])->second.innerMap.end()) {
-                            try{
-                            attRight = cpyStat.relationMap.at(relNames[r]).innerMap.at(lrval);
-                            }
-                            catch(const std::out_of_range& e){
-                                exceptionCount++;
-                            }
-                            totalRight = cpyStat.relationMap.find(relNames[r])->second.num_tuples;
-                            break;
-                        }
-                    }
-                    if (exceptionCount>=numToJoin){
-                        cout<<"Attribute does not exist in the map!"<<endl;
-                        return 0.0;
-                    }
+                    
                     // andResult = totalLeft * totalRight;
                     //TODO: handle condition where attribute name is incorrect
                     //if both belong to the same partition then selection else join
-                    if(cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) == cpyStat.relToId.at(cpyStat.relationMap.find(relNames[l])->first))
-                        orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
-                    else
-                        orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+                    // if(cpyStat.relToId.at(cpyStat.relationMap.find(relNameRight)->first) == cpyStat.relToId.at(cpyStat.relationMap.find(relNameLeft)->first))
+                    //     orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
+                    // else
+                    //     orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+                    orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
                     andResult = orResult;
                     //update the Statistics after join
-                    int pid = cpyStat.relToId.at(relNames[l]); //left relation pid
-                    int prev_pid = cpyStat.relToId.at(relNames[r]); //right relation pid
+                    int pid = cpyStat.relToId.at(relNameLeft); //left relation pid
+                    int prev_pid = cpyStat.relToId.at(relNameRight); //right relation pid
 
                     //update partition_id of relations that are in the same partition as the right relation
-                    for(auto temp =cpyStat.idToRel.at(prev_pid).begin(); temp != cpyStat.idToRel.at(prev_pid).end(); temp++ ) {
-                        cpyStat.relToId.at(*temp) = pid;
+                    if(pid !=prev_pid){
+                        for(auto temp =cpyStat.idToRel.at(prev_pid).begin(); temp != cpyStat.idToRel.at(prev_pid).end(); temp++ ) {
+                            cpyStat.relToId.at(*temp) = pid;
+                        }
+                        cpyStat.relToId.at(cpyStat.relationMap.find(relNameRight)->first) = pid; 
+                        
+                        //update relation names in idToRel
+                        
+                        vector<string> prev_vector = cpyStat.idToRel.at(prev_pid);
+
+                        for(auto temp2 =prev_vector.begin(); temp2 != prev_vector.end(); temp2++ ) {
+                            cout<<"temp "<<*temp2<<endl;
+                            cpyStat.idToRel.at(pid).push_back(*temp2);
+                        }
+                        //remove the old entry of right side relation name from idToRel
+                        cout<<"Debug prints before delete"<<endl;
+                        // cpyStat.printDicts();
+                        cpyStat.idToRel.erase(prev_pid);
                     }
-                    cpyStat.relToId.at(cpyStat.relationMap.find(relNames[r])->first) = pid; 
+                    cout<<"Debug prints"<<endl;
+                    // cpyStat.printDicts();
+                    cpyStat.relationMap.at(relNameLeft).num_tuples = orResult;
+                    cpyStat.relationMap.at(relNameRight).num_tuples = orResult; //redundant since this happens in loop below
+                    cout<<"Debug prints"<<endl;
+                    // cpyStat.printDicts();
+                    vector<string> temp_vector = cpyStat.idToRel.at(pid);
                     
-                    //update relation names in idToRel
-                    for(auto temp =cpyStat.idToRel.at(prev_pid).begin(); temp != cpyStat.idToRel.at(prev_pid).end(); temp++ ) {
-                        cpyStat.idToRel.at(pid).push_back(*temp);
-                    }
-                    //remove the old entry of right side relation name from idToRel
-                    cpyStat.idToRel.erase(prev_pid);
-
-                    cpyStat.relationMap.at(relNames[l]).num_tuples = orResult;
-                    cpyStat.relationMap.at(relNames[r]).num_tuples = orResult; //redundant since this happens in loop below
-
                     //if relations were already joined, update the relations in the partition for left
-                    for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
+                    for(auto outerit = temp_vector.begin(); outerit != temp_vector.end(); outerit++) {
                         cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
                         //now update their attributes too
                         for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) 
@@ -605,6 +579,8 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                 }
                 // else SELECTION
                 else {
+                    cout<<"Debug prints"<<endl;
+                    // cpyStat.printDicts();
                     isJoin = false;
                     double numAttrs, numTotal;
                     
@@ -613,28 +589,30 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                         // Error since both are literals 
                     }
                     else {
+                        // SET LLVAL LRVAL RELNAME LEFT AND RELNAMERIGHT
                         // Check if left is a NAME
                         if(llcode == NAME){
-                            
-                            for(l = 0; l < numToJoin; l++) {
-                               if(cpyStat.relationMap.find(relNames[l])->second.innerMap.find(llval) != cpyStat.relationMap.find(relNames[l])->second.innerMap.end()) {
-                                   numAttrs = cpyStat.relationMap.at(relNames[l]).innerMap.at(llval);
-                                   numTotal = cpyStat.relationMap.find(relNames[l])->second.num_tuples;
-                                   index = l;
-                                   break;
-                               }
-                            }
+                            cpyStat.extractValues(llval, relName, numTotal, numAttrs, numToJoin, relNames);
+                            // for(l = 0; l < numToJoin; l++) {
+                            //    if(cpyStat.relationMap.find(relNameLeft)->second.innerMap.find(llval) != cpyStat.relationMap.find(relNameLeft)->second.innerMap.end()) {
+                            //        numAttrs = cpyStat.relationMap.at(relNameLeft).innerMap.at(llval);
+                            //        numTotal = cpyStat.relationMap.find(relNameLeft)->second.num_tuples;
+                            //        index = l;
+                            //        break;
+                            //    }
+                            // }
                         }
                         // Check if right is a NAME
                         else if(lrcode == NAME) {
-                            for(r = 0; r < numToJoin; r++) {
-                                if(cpyStat.relationMap.find(relNames[r])->second.innerMap.find(lrval) != cpyStat.relationMap.find(relNames[r])->second.innerMap.end()) {
-                                    numAttrs = cpyStat.relationMap.at(relNames[r]).innerMap.at(lrval);
-                                    numTotal = cpyStat.relationMap.find(relNames[r])->second.num_tuples;
-                                    index = r;
-                                    break;
-                                }
-                            }
+                            cpyStat.extractValues(lrval, relName, numTotal, numAttrs, numToJoin, relNames);
+                            // for(r = 0; r < numToJoin; r++) {
+                            //     if(cpyStat.relationMap.find(relNameRight)->second.innerMap.find(lrval) != cpyStat.relationMap.find(relNameRight)->second.innerMap.end()) {
+                            //         numAttrs = cpyStat.relationMap.at(relNameRight).innerMap.at(lrval);
+                            //         numTotal = cpyStat.relationMap.find(relNameRight)->second.num_tuples;
+                            //         index = r;
+                            //         break;
+                            //     }
+                            // }
                         }
                         switch(currOr->left->code) {
                             case LESS_THAN:
@@ -677,8 +655,8 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                  andResult = (double)n * (1 - orCombined);
                  cout <<"andResult = "<<andResult<<endl;       
                 //update the values in statistics
-                 cpyStat.relationMap.at(relNames[index]).num_tuples = andResult;
-                 int pid = cpyStat.relToId.at(relNames[index]);
+                 cpyStat.relationMap.at(relName).num_tuples = andResult;
+                 int pid = cpyStat.relToId.at(relName);
                  for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
                     cpyStat.relationMap.at((*outerit)).num_tuples = andResult;
                             //also update the attribute values
@@ -699,7 +677,6 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
        
    }
     return numTuples;
-   
     
 }
 
@@ -715,5 +692,47 @@ void Statistics::printDicts(){
 
 		}
 	}
+    cout<<"rel map ________________"<<endl;
+    for(auto it = this->relToId.begin(); it != this->relToId.end(); it++) {
+		cout << (*it).first <<": " << (*it).second <<endl;
+    }
+
+    cout<<"reltoID ________________"<<endl;
+
+    for(auto it = this->idToRel.begin(); it != this->idToRel.end(); it++) {
+		cout << (*it).first <<": "<<endl;
+        for (auto it1 = (*it).second.begin(); it1 != (*it).second.cend(); it1++)
+        {
+            cout << *it1 << ' ';
+        }
+        cout<<'\n';
+    }
+    cout<<"\nidtorel ________________"<<endl;
     cout<<"********************************************"<<endl;
+}
+
+void Statistics::extractValues(string &attName, string &relname , double &totalCount, double &attCount, int numRels, char *relNames[]){
+    if (attName.find('.') != std::string::npos){
+        relname = attName.substr(0, attName.find('.'));
+        attName = attName.substr(attName.find('.')+1);
+        attCount = this->relationMap.at(relname).innerMap.at(attName);
+        totalCount = this->relationMap.find(relname)->second.num_tuples;
+    }
+    else{
+        int l = 0;
+        for(l = 0; l < numRels; l++) {
+                if(this->relationMap.find(relNames[l])->second.innerMap.find(attName) != this->relationMap.find(relNames[l])->second.innerMap.end()) {
+                    try{
+                        attCount = this->relationMap.at(relNames[l]).innerMap.at(attName);
+                    }
+                    catch(const std::out_of_range& e){
+                    }
+                    
+                    totalCount = this->relationMap.find(relNames[l])->second.num_tuples;
+                    break;
+                }
+            }
+            relname = relNames[l];
+    }
+    
 }

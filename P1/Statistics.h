@@ -36,6 +36,7 @@ class Statistics
 	double Estimate(struct AndList *parseTree, char **relNames, int numToJoin);
 	bool validateRels(char **relname, int numToJoin);
 	void printDicts();
+	void extractValues(string &attName, string &relname , double &attCount, double &totalCount, int numRels, char *relNames[]);
 
 };
 
