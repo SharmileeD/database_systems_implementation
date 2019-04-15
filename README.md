@@ -63,6 +63,16 @@ make clean
 make test_sorted_mac
 ./test_sorted.out
 
+9. To run Project 2 Milestone 2 on Linux just run the following commands
+make clean
+make test_relops
+./test_relops.out
+
+10.  To run Project 2 Milestone 2 on macOS just run the following commands
+make clean
+make test_relops_mac
+./test_relops.out
+
 #Overview
 Aim: To implement the DBFile class specifically a heap. 
 The job of the DBFile class within the database system is simply to store and retrieve records from the disk.
@@ -80,8 +90,16 @@ To implement the following relational operations
 SelectPipe, SelectFile, Project, Join, DuplicateRemoval, Sum, GroupBy, and WriteOut
 We build on top of previous three projects here making extensive use of BigQ and DBFile
 
+Project 4.1
+Implement the Statistics class which calculates the cost in terms of number of tuples for the given query
+
+
+Project 3 Note:
 Please note that for test Q6 the schema used to create the order maker for the groupby is the complete join schema 
 essentially making every record distinct with no specific grouping attribute thus making grouping redundant and returning all rows
 We have tested it with a specific grouping attribute(s_nationkey) and function performing the following operation-> (s_acctbal + (s_acctbal * 1.05)) 
 Have included the screenshot for the same with the project.
 The result in the screenshot returns 25 results since it groups on s_nationkey(with 25 unique values).
+
+Project 4 Note:
+Please note that for tests Q8 and Q11 we get different results than those checked against in the test case.
