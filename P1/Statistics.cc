@@ -667,9 +667,25 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 }
 
 bool Statistics::validateRels(char **relname, int numToJoin){
-    
-    return true;
+    unordered_set<int> added_pid;
+    unordered_set<string> relations;
+    for(int i =0; i< numToJoin; i++) {
+        int pid = this->relToId.at(relname[i]);
+        //if not already present append
+        if(added_pid.find(pid) == added_pid.end()) {
+            relations.insert(this->idToRel.at(pid).begin(), this->idToRel.at(pid).end());
+            added_pid.insert(pid);
+        }
+    }
+
+    for(int i =0; i< numToJoin; i++) {
+        relations.erase(relname[i]);
+    }
+    if(relations.size()==0)
+        return true;
+    return false;
 }
+
 void Statistics::printDicts(){
     for(auto it = this->relationMap.begin(); it != this->relationMap.end(); it++) {
 		cout << (*it).first <<", " << (*it).second.num_tuples <<endl;
