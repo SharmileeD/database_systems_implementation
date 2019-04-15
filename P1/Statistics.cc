@@ -106,7 +106,7 @@ void Statistics::AddAtt(char *relName, char *attName, int numDistincts)
         //if the attribute is  already present, update distinctValues
         else
         {
-            if(numDistincts != -1)
+            if(numDistincts == -1)
                 this->relationMap.find(relName)->second.innerMap.at(attName)= this->relationMap.find(relName)->second.num_tuples;
             else
                 this->relationMap.find(relName)->second.innerMap.at(attName)= numDistincts;
@@ -193,7 +193,7 @@ void Statistics::Read(char *fromWhere)
             pid = line.substr(0, pos);
             line.erase(0,pos+1);
             //insert entry to hashmap relToId
-            cout << "Inside read ->"<< relname << " pid=" <<pid<<endl;
+            // cout << "Inside read ->"<< relname << " pid=" <<pid<<endl;
             this->relToId.insert({relname,stoi(pid)});
         }
 
@@ -440,7 +440,8 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                  }
                 //  cout << "\n\nCombined OR = " << orCombined<<endl;
                  andResult = (double)n * (1 - orCombined);
-                 cout <<"andResult = "<<andResult<<endl;                
+                 cout <<"andResult = "<<andResult<<endl;       
+                 cout << "index ="<<index << "  relation="<<         
                  //update the values in statistics
                  cpyStat.relationMap.at(relNames[index]).num_tuples = andResult;
                  int pid = cpyStat.relToId.at(relNames[index]);
