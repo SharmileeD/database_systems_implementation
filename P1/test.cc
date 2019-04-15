@@ -84,44 +84,69 @@ char *fileName = "Statistics.txt";
 
 
 
+// void q0 (){
+
+// 	Statistics s;
+//         char *relName[] = {"supplier","partsupp"};
+
+	
+// 	s.AddRel(relName[0],10000);
+// 	s.AddAtt(relName[0], "s_suppkey",10000);
+
+// 	s.AddRel(relName[1],800000);
+// 	s.AddAtt(relName[1], "ps_suppkey", 10000);	
+
+// 	char *cnf = "(s_suppkey = ps_suppkey)";
+
+// 	yy_scan_string(cnf);
+// 	yyparse();
+// 	double result = s.Estimate(final, relName, 2);
+// 	if(result!=800000)
+// 		cout<<"error in estimating Q1 before apply \n ";
+// 	s.Apply(final, relName, 2);
+
+// 	// test write and read
+// 	s.Write(fileName);
+
+// 	//reload the statistics object from file
+// 	Statistics s1;
+// 	s1.Read(fileName);	
+// 	cnf = "(s_suppkey>1000)";	
+// 	yy_scan_string(cnf);
+// 	yyparse();
+// 	double dummy = s1.Estimate(final, relName, 2);
+// 	if(fabs(dummy*3.0-result) >0.1)
+// 	{
+// 		cout<<"Read or write or last apply is not correct\n";
+// 	}	
+	
+// }
 void q0 (){
 
-	Statistics s;
-        char *relName[] = {"supplier","partsupp"};
+    Statistics s;
+       char *relName[] = {"supplier","partsupp"};
 
-	
-	s.AddRel(relName[0],10000);
-	s.AddAtt(relName[0], "s_suppkey",10000);
+    
+    s.AddRel(relName[0],10000);
+    s.AddAtt(relName[0], "s_suppkey",10000);
 
-	s.AddRel(relName[1],800000);
-	s.AddAtt(relName[1], "ps_suppkey", 10000);	
+    s.AddRel(relName[1],800000);
+    s.AddAtt(relName[1], "ps_suppkey", 10000);    
 
-	char *cnf = "(s_suppkey = ps_suppkey)";
+    char *cnf = "(s_suppkey = ps_suppkey)";
 
-	yy_scan_string(cnf);
-	yyparse();
-	double result = s.Estimate(final, relName, 2);
-	if(result!=800000)
-		cout<<"error in estimating Q1 before apply \n ";
-	s.Apply(final, relName, 2);
+    yy_scan_string(cnf);
+    yyparse();
+    double result = s.Estimate(final, relName, 2);
 
-	// test write and read
-	s.Write(fileName);
-
-	//reload the statistics object from file
-	Statistics s1;
-	s1.Read(fileName);	
-	cnf = "(s_suppkey>1000)";	
-	yy_scan_string(cnf);
-	yyparse();
-	double dummy = s1.Estimate(final, relName, 2);
-	if(fabs(dummy*3.0-result) >0.1)
-	{
-		cout<<"Read or write or last apply is not correct\n";
-	}	
-	
+    cout << "*******result="<<result<<endl;
+    if(result!=800000)
+        cout<<"error in estimating Q1 before apply \n ";
+    cnf = "(s_suppkey = ps_suppkey) AND (s_suppkey>1000)";
+    yy_scan_string(cnf);
+    yyparse();
+    double dummy = s.Estimate(final, relName, 2);
 }
-
 void q1 (){
 
 	Statistics s;
@@ -133,7 +158,7 @@ void q1 (){
 	s.AddAtt(relName[0], "l_shipmode",7);
 
 		
-	char *cnf = "(l_returnflag = 'R') AND (l_discount < 0.04 OR l_shipmode = 'MAIL')";
+	char *cnf = "(l_returnflag = 'R') AND (l_discount < 0.04 OR l_shipmode = 'MAIL') ";
 
 	yy_scan_string(cnf);
 	if (yyparse() != 0) {
@@ -515,12 +540,14 @@ void q10 (){
 	s.Apply(final, relName, 2);
 
 	cnf = " (l_orderkey = o_orderkey) ";
-	yy_scan_string(cnf);                                                                               	yyparse();
+	yy_scan_string(cnf);                                                                               	
+	yyparse();
 
 	s.Apply(final, relName, 3);  
 	
 	cnf = "(c_nationkey = n_nationkey) ";
-	yy_scan_string(cnf);                                                                               	yyparse();	
+	yy_scan_string(cnf);                                                                               	
+	yyparse();	
 	
 	double result = s.Estimate(final, relName, 4);
 	if(fabs(result-2000405)>0.1)

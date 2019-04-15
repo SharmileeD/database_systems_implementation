@@ -34,6 +34,8 @@ class Statistics
 
 	void  Apply(struct AndList *parseTree, char *relNames[], int numToJoin);
 	double Estimate(struct AndList *parseTree, char **relNames, int numToJoin);
+	bool validateRels(char **relname, int numToJoin);
+	void printDicts();
 
 };
 
