@@ -763,25 +763,50 @@ TEST(StatisticsTest, Validation1Test1){
 	s.AddAtt(relName[1], "c_nationkey",25);
 	s.AddRel(relName[2],25);
 	s.AddAtt(relName[2], "n_nationkey",25);
-   	// Join the first two relations in relName
-    // struct AndList *final;	
-	// char *cnf = "(c_custkey = o_custkey)";
-	// yy_scan_string(cnf);
-	// yyparse();
-    // s.Apply(final, relName, 2);
-    //simulate join of orders and customer
-
+   
     int o_pid = s.relToId.at(relName[0]); 
     int c_pid = s.relToId.at(relName[1]);
 
     s.relToId.at(relName[1]) = o_pid;
     s.idToRel.at(o_pid).insert(s.idToRel.at(o_pid).end(), s.idToRel.at(c_pid).begin(), s.idToRel.at(c_pid).end());
     s.idToRel.erase(c_pid);
+    
     for(auto it = s.idToRel.begin(); it != s.idToRel.end(); it++) {
         for(auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
             cout << it->first << "  "<<(*it2) <<endl;
     }
+    bool result = s.validateRels(relName,2);
+    ASSERT_EQ(result,true);
 }
+
+TEST(StatisticsTest, Validation1Test2){
+    Statistics s;
+    char *relName[] = {"orders","customer","nation"};
+	s.AddRel(relName[0],1500000);
+	s.AddAtt(relName[0], "o_custkey",150000);
+	s.AddRel(relName[1],150000);
+	s.AddAtt(relName[1], "c_custkey",150000);
+	s.AddAtt(relName[1], "c_nationkey",25);
+	s.AddRel(relName[2],25);
+	s.AddAtt(relName[2], "n_nationkey",25);
+   
+    int o_pid = s.relToId.at(relName[0]); 
+    int c_pid = s.relToId.at(relName[1]);
+
+    s.relToId.at(relName[1]) = o_pid;
+    s.idToRel.at(o_pid).insert(s.idToRel.at(o_pid).end(), s.idToRel.at(c_pid).begin(), s.idToRel.at(c_pid).end());
+    s.idToRel.erase(c_pid);
+    
+    for(auto it = s.idToRel.begin(); it != s.idToRel.end(); it++) {
+        for(auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+            cout << it->first << "  "<<(*it2) <<endl;
+    }
+
+    char *relName1[] = {"orders","nation","customer"};
+    bool result = s.validateRels(relName1,2);
+    ASSERT_EQ(result,false);
+}
+
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
