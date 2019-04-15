@@ -586,7 +586,7 @@ void q11 (){
 	
 	double result = s.Estimate(final, relName,2);
 
-	if(fabs(result-21432.9)>0.5)
+	if(fabs(result-19653.2)>0.5)
 		cout<<"error in estimating Q11\n";
 	s.Apply(final, relName,2);
 	
