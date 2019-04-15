@@ -435,22 +435,21 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
             if(!isJoin) {
                  double orCombined = 1.0;
                  for(auto it = orVector.begin(); it != orVector.end(); it++) {
-                    cout << "individual or results = " << (*it) <<endl;
+                    // cout << "individual or results = " << (*it) <<endl;
                     orCombined = (double)orCombined*(1 - (*it)/n);
                  }
                 //  cout << "\n\nCombined OR = " << orCombined<<endl;
                  andResult = (double)n * (1 - orCombined);
                  cout <<"andResult = "<<andResult<<endl;       
-                 cout << "index ="<<index << "  relation="<<         
-                 //update the values in statistics
+                //update the values in statistics
                  cpyStat.relationMap.at(relNames[index]).num_tuples = andResult;
                  int pid = cpyStat.relToId.at(relNames[index]);
                  for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
-                    cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
+                    cpyStat.relationMap.at((*outerit)).num_tuples = andResult;
                             //also update the attribute values
                     for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) 
-                         if((*innerit).second > orResult) 
-                             (*innerit).second = orResult;
+                         if((*innerit).second > andResult) 
+                             (*innerit).second = andResult;
                 } 
 
             }
