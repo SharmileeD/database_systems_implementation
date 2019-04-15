@@ -106,7 +106,7 @@ void Statistics::AddAtt(char *relName, char *attName, int numDistincts)
         //if the attribute is  already present, update distinctValues
         else
         {
-            if(numDistincts != -1)
+            if(numDistincts == -1)
                 this->relationMap.find(relName)->second.innerMap.at(attName)= this->relationMap.find(relName)->second.num_tuples;
             else
                 this->relationMap.find(relName)->second.innerMap.at(attName)= numDistincts;
@@ -203,7 +203,7 @@ void Statistics::Read(char *fromWhere)
             pid = line.substr(0, pos);
             line.erase(0,pos+1);
             //insert entry to hashmap relToId
-            cout << "Inside read ->"<< relname << " pid=" <<pid<<endl;
+            // cout << "Inside read ->"<< relname << " pid=" <<pid<<endl;
             this->relToId.insert({relname,stoi(pid)});
         }
 
@@ -670,21 +670,21 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
             if(!isJoin) {
                  double orCombined = 1.0;
                  for(auto it = orVector.begin(); it != orVector.end(); it++) {
-                    cout << "individual or results = " << (*it) <<endl;
+                    // cout << "individual or results = " << (*it) <<endl;
                     orCombined = (double)orCombined*(1 - (*it)/n);
                  }
                 //  cout << "\n\nCombined OR = " << orCombined<<endl;
                  andResult = (double)n * (1 - orCombined);
-                 cout <<"andResult = "<<andResult<<endl;                
-                 //update the values in statistics
+                 cout <<"andResult = "<<andResult<<endl;       
+                //update the values in statistics
                  cpyStat.relationMap.at(relNames[index]).num_tuples = andResult;
                  int pid = cpyStat.relToId.at(relNames[index]);
                  for(auto outerit = cpyStat.idToRel.at(pid).begin(); outerit != cpyStat.idToRel.at(pid).end(); outerit++) {
-                    cpyStat.relationMap.at((*outerit)).num_tuples = orResult;
+                    cpyStat.relationMap.at((*outerit)).num_tuples = andResult;
                             //also update the attribute values
                     for(auto innerit = cpyStat.relationMap.at((*outerit)).innerMap.begin(); innerit != cpyStat.relationMap.at((*outerit)).innerMap.end(); innerit++) 
-                         if((*innerit).second > orResult) 
-                             (*innerit).second = orResult;
+                         if((*innerit).second > andResult) 
+                             (*innerit).second = andResult;
                 } 
 
             }

@@ -8,8 +8,8 @@ using namespace std;
 // typedef unordered_map<char*, int> attributeMap;
 // typedef unordered_map<char *, pair<int, attributeMap>>  relationMap;
 struct  relation_struct{
-	int num_tuples;
-	unordered_map<string, int> innerMap;
+	double num_tuples;
+	unordered_map<string, double> innerMap;
 };
 
 class Statistics
