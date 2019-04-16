@@ -807,6 +807,30 @@ TEST(StatisticsTest, Validation1Test2){
     ASSERT_EQ(result,false);
 }
 
+TEST(StatisticsTest, AddRelTest){
+    Statistics s;
+    int map_size = s.relationMap.size();
+    ASSERT_EQ(map_size,0);
+    char *relName[] = {"orders","customer","nation"};
+	s.AddRel(relName[0],1500000);
+    s.AddRel(relName[1],150000);
+    map_size = s.relationMap.size();
+    ASSERT_EQ(map_size,2);
+}
+
+
+TEST(StatisticsTest, AddAttTest){
+    Statistics s;
+    char *relName[] = {"orders","customer","nation"};
+	s.AddRel(relName[0],1500000);
+    s.AddRel(relName[1],150000);
+    int map_size = s.relationMap.at(relName[0]).innerMap.size();
+    ASSERT_EQ(map_size,0);
+    s.AddAtt(relName[0], "o_custkey",150000);
+    map_size = s.relationMap.at(relName[0]).innerMap.size();
+    ASSERT_EQ(map_size,1);
+
+}
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
