@@ -2,7 +2,6 @@
 #include <iostream>
 #include "ParseTree.h"
 #include "Statistics.h"
-#include "Tree.h"
 #include <vector>
 
 using namespace std;
@@ -31,12 +30,24 @@ void separateJoinSelection() {
         int lrcode = currOr->left->right->code;
 		while(currOr) {
 			// its a join
-			if(llcode == NAME && lrcode == NAME) 
+			if(llcode == NAME && lrcode == NAME) {
 				joinVector.push_back(currOr);
+				cout<<"join"<<endl;
+				cout<<currOr->left->left->value<<endl;
+				cout<<currOr->left->right->value<<endl;
+
+			}
+				
 			// its a selection	
-			else 
+			else {
 				selectionVector.push_back(currOr);
+				cout<<"selection"<<endl;
+				cout<<currOr->left->left->value<<endl;
+				cout<<currOr->left->right->value<<endl;
+			}
+			currOr = currOr->rightOr;
 		}//or while
+		currAnd = currAnd->rightAnd;
 	}//and while
 }
 
@@ -52,25 +63,25 @@ void separateJoinSelection() {
 int main () {
 	cout<<"Enter the query"<<endl;
 	yyparse();
-	// separateJoinSelection();
+	separateJoinSelection();
 
-	cout<<"Table name "<<tables->tableName<<endl;
-	// cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
-	cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
-	cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
-	if(attsToSelect->next->next == NULL){
-		cout << "only two atts present"<<endl;
-	}
-	cout<<"Distinct Atts "<<distinctAtts<<endl;
-	cout<<"Distinct Funcs "<<distinctFunc<<endl;
-	cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
+	// cout<<"Table name "<<tables->tableName<<endl;
+	// // cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	// cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
+	// cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
+	// if(attsToSelect->next->next == NULL){
+	// 	cout << "only two atts present"<<endl;
+	// }
+	// cout<<"Distinct Atts "<<distinctAtts<<endl;
+	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
+	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
 	
-	if (finalFunction == NULL){
-		cout<<"NO SUM PRESENT"<<endl;
-	}
-	else{
-		cout<<"SUM PRESENT"<<endl;
-	}
+	// if (finalFunction == NULL){
+	// 	cout<<"NO SUM PRESENT"<<endl;
+	// }
+	// else{
+	// 	cout<<"SUM PRESENT"<<endl;
+	// }
 
 	Statistics s;
 	char *relName[] = { "part",  "partsupp","supplier"};
@@ -89,9 +100,10 @@ int main () {
 	s.CopyRel("part","p");
 	s.CopyRel("partsupp","ps");
 	s.CopyRel("supplier","s");
-
+	struct AndList *tempAnd;
+	tempAnd->left = 
 	double res = s.Estimate(boolean, relName, 3);
-	cout<< res<<endl;
+	// cout<< res<<endl;
 
 }
 
