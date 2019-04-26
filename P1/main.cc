@@ -52,13 +52,21 @@ void separateJoinSelection() {
 }
 
 // helper class to enumerate the permutations of the joins Dynamic programming
+void getOptimalJoinSequence() {
+	//TODO
+}
+ 
+void calculateCost() {
 
+}
+
+// helper to print query plan
+void printQueryPlan() {
+	
+}
 
 // class for node of the tree
 // tree class with all operations
-
-// helper to print query plan
-
 
 int main () {
 	cout<<"Enter the query"<<endl;
@@ -101,10 +109,17 @@ int main () {
 	s.CopyRel("partsupp","ps");
 	s.CopyRel("supplier","s");
 	struct AndList *tempAnd;
-	tempAnd->left = 
+	// tempAnd->left = 
 	double res = s.Estimate(boolean, relName, 3);
 	// cout<< res<<endl;
 
+	// separateJoinSelection();
+
+	cout<<"Table name "<<tables->tableName<<endl;
+	cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	cout<<"Name list attsToSelect "<<attsToSelect->name<<endl;
+	cout<<"Distinct Atts "<<distinctAtts<<endl;
+	cout<<"Distinct Funcs "<<distinctFunc<<endl;
 }
 
 
