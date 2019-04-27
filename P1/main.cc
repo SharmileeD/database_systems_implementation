@@ -43,13 +43,21 @@ void separateJoinSelection(vector <OrList*> &joinVector, vector <OrList*> &selec
 }
 
 // helper class to enumerate the permutations of the joins Dynamic programming
+void getOptimalJoinSequence() {
+	//TODO
+}
+ 
+void calculateCost() {
 
+}
+
+// helper to print query plan
+void printQueryPlan() {
+	
+}
 
 // class for node of the tree
 // tree class with all operations
-
-// helper to print query plan
-
 
 int main () {
 	cout<<"Enter the query"<<endl;
@@ -60,23 +68,23 @@ int main () {
 	cout<<"size of join "<< joinVector.size()<<endl;
 	cout<<"size of selection "<< selectionVector.size()<<endl;
 
-	// cout<<"Table name "<<tables->tableName<<endl;
-	// // cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
-	// cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
-	// cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
-	// if(attsToSelect->next->next == NULL){
-	// 	cout << "only two atts present"<<endl;
-	// }
-	// cout<<"Distinct Atts "<<distinctAtts<<endl;
-	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
-	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
+	cout<<"Table name "<<tables->tableName<<endl;
+	// cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
+	cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
+	if(attsToSelect->next->next == NULL){
+		cout << "only two atts present"<<endl;
+	}
+	cout<<"Distinct Atts "<<distinctAtts<<endl;
+	cout<<"Distinct Funcs "<<distinctFunc<<endl;
+	cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
 	
-	// if (finalFunction == NULL){
-	// 	cout<<"NO SUM PRESENT"<<endl;
-	// }
-	// else{
-	// 	cout<<"SUM PRESENT"<<endl;
-	// }
+	if (finalFunction == NULL){
+		cout<<"NO SUM PRESENT"<<endl;
+	}
+	else{
+		cout<<"SUM PRESENT"<<endl;
+	}
 
 	Statistics s;
 	char *relName[] = { "part",  "partsupp","supplier"};
@@ -114,6 +122,18 @@ int main () {
 	Project_node p;
 	p.left_child = &j;
 	
+	// tempAnd->left = 
+	// cout<< res<<endl;
+
+
+	cout<<"Table name "<<tables->tableName<<endl;
+	if (groupingAtts!=NULL){
+		cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	}
+	
+	cout<<"Name list attsToSelect "<<attsToSelect->name<<endl;
+	cout<<"Distinct Atts "<<distinctAtts<<endl;
+	cout<<"Distinct Funcs "<<distinctFunc<<endl;
 }
 
 
