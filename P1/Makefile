@@ -11,11 +11,11 @@ gtest_mac:  clean test_mac
 gtest_linux: clean test.out
 	g++ -std=c++11 DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
-main_mac:   y.tab_mac.o lex.yy.o Statistics.o main.o
-	$(CC) -o main y.tab.o lex.yy.o Statistics.o main.o -ll
+main_mac:   y.tab_mac.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o TreeNode.o main.o
+	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o TreeNode.o main.o -ll
 
-main:   y.tab.o lex.yy.o Statistics.o main.o
-	$(CC) -o main y.tab.o lex.yy.o Statistics.o main.o -lfl
+main:   y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o TreeNode.o main.o
+	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o TreeNode.o main.o -lfl
 
 test_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab_mac.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab.o lex.yy.o test.o -ll
@@ -98,6 +98,9 @@ Record.o: Record.cc
 
 Schema.o: Schema.cc
 	$(CC) -g -c Schema.cc
+
+TreeNode.o: TreeNode.cc
+	$(CC) -g -c TreeNode.cc
 	
 y.tab_mac.o: Parser.y
 	yacc -d Parser.y

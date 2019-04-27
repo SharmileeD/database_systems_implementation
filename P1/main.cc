@@ -2,6 +2,7 @@
 #include <iostream>
 #include "ParseTree.h"
 #include "Statistics.h"
+#include "TreeNode.h"
 #include <vector>
 
 using namespace std;
@@ -18,11 +19,9 @@ extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
 
 
-vector <OrList*> joinVector;
-vector <OrList*> selectionVector;
 
 //Store selection and join in separate vectors
-void separateJoinSelection() {
+void separateJoinSelection(vector <OrList*> &joinVector, vector <OrList*> &selectionVector) {
 	struct AndList *currAnd = boolean;
 	while(currAnd) {
 		struct OrList *currOr = currAnd->left;
@@ -32,18 +31,10 @@ void separateJoinSelection() {
 			// its a join
 			if(llcode == NAME && lrcode == NAME) {
 				joinVector.push_back(currOr);
-				cout<<"join"<<endl;
-				cout<<currOr->left->left->value<<endl;
-				cout<<currOr->left->right->value<<endl;
-
-			}
-				
+			}	
 			// its a selection	
 			else {
 				selectionVector.push_back(currOr);
-				cout<<"selection"<<endl;
-				cout<<currOr->left->left->value<<endl;
-				cout<<currOr->left->right->value<<endl;
 			}
 			currOr = currOr->rightOr;
 		}//or while
@@ -63,7 +54,11 @@ void separateJoinSelection() {
 int main () {
 	cout<<"Enter the query"<<endl;
 	yyparse();
-	separateJoinSelection();
+	vector <OrList*> joinVector;
+	vector <OrList*> selectionVector;
+	separateJoinSelection(joinVector, selectionVector);
+	cout<<"size of join "<< joinVector.size()<<endl;
+	cout<<"size of selection "<< selectionVector.size()<<endl;
 
 	// cout<<"Table name "<<tables->tableName<<endl;
 	// // cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
@@ -100,11 +95,25 @@ int main () {
 	s.CopyRel("part","p");
 	s.CopyRel("partsupp","ps");
 	s.CopyRel("supplier","s");
-	struct AndList *tempAnd;
-	tempAnd->left = 
-	double res = s.Estimate(boolean, relName, 3);
-	// cout<< res<<endl;
+	
+	struct AndList A;
+	struct AndList *tempAnd = &A;
 
+	cout<<"selection vector size"<<endl;
+	cout<<selectionVector[0]->left->left->value<<endl;
+	if (tempAnd->left==NULL){
+		cout<<"selection vector size"<<endl;
+
+	}
+	tempAnd->left = selectionVector[0];
+	tempAnd->rightAnd = NULL;
+	double res = s.Estimate(tempAnd, relName, 3);
+	cout<< res<<endl;
+	TreeNode n;
+	Join_node j;
+	Project_node p;
+	p.left_child = &j;
+	
 }
 
 
