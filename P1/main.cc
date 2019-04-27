@@ -268,7 +268,7 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 		TreeNode *select_node = new TreeNode();
 		int loop_ind = 0;
 		temp_aliases.clear();
-		condition = "";
+		condition = "(";
 		while(currOr){
 			
 			attName = currOr->left->left->value;
@@ -354,7 +354,11 @@ void getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s) {
 	cout << "\n\n\n+++++++++++++++++++++++++++++FinalAnswer+++++++++++++++++++++++++"<<endl;
 	cout << "Cost for sequence: " << minCostPermutation << " = " <<min_cost<<endl;
 }
- 
+void printPlan(){
+	for ( auto it = operations_tree.begin(); it != operations_tree.end(); ++it ){
+			cout<< "SF"+it->second->cnf_str+" => "+it->second->out_pipe_name<<endl;
+	}
+}
 int main () {
 
 	// Schema rel1_sch("catalog", "partsupp");
@@ -418,7 +422,7 @@ int main () {
 	getTableAndAliasNames(tableName, aliasAs, aliasToRel);
 
 	getSelectFileNodes(selectionVector, joinVector, tableName, aliasAs, aliasToRel);
-
+	printPlan();
 	cout<<"size of ops "<< operations_tree.size()<<endl;
 
 	// cout<<"outpipe name "<< operations_tree[0].out_pipe_name<<endl;
@@ -436,21 +440,21 @@ int main () {
 	// cout<<"Distinct Atts "<<distinctAtts<<endl;
 	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
 	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
-	getOptimalJoinSequence(joinVector, s);
+	// getOptimalJoinSequence(joinVector, s);
 
-	cout<<"size of join "<< joinVector.size()<<endl;
-	cout<<"size of selection "<< selectionVector.size()<<endl;
+	// cout<<"size of join "<< joinVector.size()<<endl;
+	// cout<<"size of selection "<< selectionVector.size()<<endl;
 
-	cout<<"Table name "<<tables->tableName<<endl;
-	// cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
-	cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
-	cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
-	if(attsToSelect->next->next == NULL){
-		cout << "only two atts present"<<endl;
-	}
-	cout<<"Distinct Atts "<<distinctAtts<<endl;
-	cout<<"Distinct Funcs "<<distinctFunc<<endl;
-	cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
+	// cout<<"Table name "<<tables->tableName<<endl;
+	// // cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	// cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
+	// cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
+	// if(attsToSelect->next->next == NULL){
+	// 	cout << "only two atts present"<<endl;
+	// }
+	// cout<<"Distinct Atts "<<distinctAtts<<endl;
+	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
+	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
 	
 	
 	// cout<<"Table name "<<tables->tableName<<endl;

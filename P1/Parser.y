@@ -19,6 +19,7 @@
 	struct NameList *attsToSelect; // the set of attributes in the SELECT (NULL if no such atts)
 	int distinctAtts; // 1 if there is a DISTINCT in a non-aggregate query 
 	int distinctFunc;  // 1 if there is a DISTINCT in an aggregate query
+	struct AndList *final;
 
 %}
 
@@ -73,11 +74,15 @@
  */
 
 %%
-
-SQL: SELECT WhatIWant FROM Tables WHERE AndList
+SQL: AndList{
+	final = $1;
+}
+|
+SELECT WhatIWant FROM Tables WHERE AndList
 {
 	tables = $4;
 	boolean = $6;	
+	final = $6;
 	groupingAtts = NULL;
 }
 
@@ -85,6 +90,7 @@ SQL: SELECT WhatIWant FROM Tables WHERE AndList
 {
 	tables = $4;
 	boolean = $6;	
+	final = $6;
 	groupingAtts = $9;
 };
 
@@ -233,6 +239,7 @@ AndList: '(' OrList ')' AND AndList
         // here we need to pre-pend the OrList to the AndList
         // first we allocate space for this node
         $$ = (struct AndList *) malloc (sizeof (struct AndList));
+		final = $$;
 
         // hang the OrList off of the left
         $$->left = $2;
@@ -246,6 +253,7 @@ AndList: '(' OrList ')' AND AndList
 {
         // just return the OrList!
         $$ = (struct AndList *) malloc (sizeof (struct AndList));
+		final = $$;
         $$->left = $2;
         $$->rightAnd = NULL;
 }
