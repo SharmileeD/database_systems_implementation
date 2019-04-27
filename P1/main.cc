@@ -21,7 +21,7 @@ extern  struct NameList *attsToSelect; //projection
 extern struct FuncOperator *finalFunction; // NULL if Sum not present
 extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
-unordered_map <string, TreeNode> operations_tree;
+unordered_map <string, TreeNode*> operations_tree;
 unordered_map <string, string> alias_to_pipeId;
 
 struct joinMapStruct  {
@@ -173,23 +173,23 @@ double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence
 // }
 // class for node of the tree
 // tree class with all operations
-Schema get_join_schema(Schema rel1_sch, Schema rel2_sch){
-	
-	int numatts_rel1 = rel1_sch.GetNumAtts();
-	int numatts_rel2 = rel2_sch.GetNumAtts();
-	int outAtts = numatts_rel1+numatts_rel2;
-	Attribute joinAtt [outAtts];
-	Attribute *rel1_atts =  rel1_sch.GetAtts();
-	Attribute *rel2_atts =  rel2_sch.GetAtts();
-	
-	for(int i=0; i<numatts_rel1;i++){
-		joinAtt[i] = rel1_atts[i];
+Schema get_join_schema(vector <string> tables){
+	int outAtts = 0;
+	vector <Attribute> join_atts;
+	for(int k=0; k<tables.size();k++){
+		Schema temp("catalog", (char*)tables[k].c_str());
+		int numatts = temp.GetNumAtts();
+		outAtts = outAtts + numatts;
+		Attribute *rel1_atts =  temp.GetAtts();
+		for(int i=0; i<numatts;i++){
+			join_atts.push_back(rel1_atts[i]);
+		}
 	}
-
-	int i =0;
-	for(int j=numatts_rel1; j<outAtts;j++){
-		joinAtt[j] = rel2_atts[i];
-		i++;
+	
+	Attribute joinAtt [join_atts.size()];
+	
+	for(int i=0; i<join_atts.size();i++){
+		joinAtt[i] = join_atts[i];
 	}
 	Schema joinSch("join_sch", outAtts, joinAtt);
 
@@ -209,30 +209,35 @@ string getOperandFromCode(int code){
 				break;    
 		}
 }
-TreeNode generateSelectNode(vector <string> aliases, 
+TreeNode *generateSelectNode(vector <string> aliases, 
                                       vector <string> aliasAs, 
                                       int num_rels, 
                                       vector <string> tableName,
-                                      unordered_map<string, string> aliasToRel){
+                                      unordered_map<string, string> aliasToRel,
+									  string cnf_str
+									  ){
         if (num_rels==1){
-            SelectFile_node sf_node;
-            sf_node.node_type = "select";
+            SelectFile_node *sf_node = new SelectFile_node(); 
+            sf_node->node_type = "select";
             // sf_node.selOp = 
             // sf_node.literal =  
             string rel_name;
+			vector<string> tables;
             std::sort(aliases.begin(), aliases.end());
             string out_pipe = "";
             for(int i =0; i<aliases.size(); i++){
                 out_pipe = out_pipe+ "_"+aliases[i];
                 rel_name = aliasToRel.at(aliases[i]);
+				tables.push_back(aliasToRel.at(aliases[i]));
 	        }
-            Schema outSch("catalog", (char*)rel_name.c_str());
-            sf_node.output_schema = &outSch;
-            sf_node.out_pipe_name = out_pipe;
+
+            sf_node->tables = tables;
+            sf_node->out_pipe_name = out_pipe;
+			sf_node->cnf_str = cnf_str;
             return sf_node;
         }
         else{
-            SelectPipe_node sp_node;
+            SelectPipe_node *sp_node = new SelectPipe_node(); 
             std::sort(aliases.begin(), aliases.end());
             string out_pipe = "";
             for(int i =0; i<aliases.size(); i++){
@@ -260,8 +265,10 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 
 	for(int i =0; i< selectionVector.size();i++){
 		struct OrList *currOr = selectionVector[i];
-		TreeNode select_node;
+		TreeNode *select_node = new TreeNode();
 		int loop_ind = 0;
+		temp_aliases.clear();
+		condition = "";
 		while(currOr){
 			
 			attName = currOr->left->left->value;
@@ -284,49 +291,44 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 		if (loop_ind==1){
 			selection.insert({alias, true});
 		}
-		select_node = generateSelectNode(temp_aliases, aliasAs, loop_ind, tableName, aliasToRel);
-		operations_tree.insert({select_node.out_pipe_name, select_node});
+		select_node = generateSelectNode(temp_aliases, aliasAs, loop_ind, tableName, aliasToRel, condition);
+		operations_tree.insert({select_node->out_pipe_name, select_node});
 	}
 	string attNameLeft;
 	string attNameRight;
 	string aliasLeft;
 	string aliasRight;
-	// for(int i=0; i<joinVector.size();i++){
+	for(int i=0; i<joinVector.size();i++){
 		
-	// 	attNameLeft = joinVector[i]->left->left->value;
-	// 	aliasLeft = attNameLeft.substr(0, attNameLeft.find('.'));
-	// 	attNameLeft = attNameLeft.substr(attNameLeft.find('.')+1);
-	// 	attNameRight = joinVector[i]->left->right->value;
-	// 	aliasRight = attNameRight.substr(0, attNameRight.find('.'));
-	// 	attNameRight = attNameRight.substr(attNameRight.find('.')+1);
-	// 	int index = 0;
-	// 	while(aliasAs.size()>0){
+		attNameLeft = joinVector[i]->left->left->value;
+		aliasLeft = attNameLeft.substr(0, attNameLeft.find('.'));
+		// attNameLeft = attNameLeft.substr(attNameLeft.find('.')+1);
+		attNameRight = joinVector[i]->left->right->value;
+		aliasRight = attNameRight.substr(0, attNameRight.find('.'));
+		// attNameRight = attNameRight.substr(attNameRight.find('.')+1);
+		int index = 0;
+		
+		if(selection.count(aliasLeft)==0){
+			temp_aliases.clear();
+			condition = "("+attNameLeft+"="+attNameLeft+")";
+			selection.insert({aliasLeft, true});
+			TreeNode *select_node = new TreeNode();
+			temp_aliases.push_back(aliasLeft);
+			select_node = generateSelectNode(temp_aliases, aliasAs, 1, tableName, aliasToRel, condition);
+			operations_tree.insert({select_node->out_pipe_name, select_node});
 
-	// 	}
-	// 	for(int j =0; j< aliasAs.size();j++){
-	// 		TreeNode *select_node = new TreeNode();
-	// 		if (aliasLeft == aliasAs[j]){
-	// 			select_node->generateSelectNode(aliasLeft, tableName[j]);
-	// 			operations_tree.push_back(*select_node);
-	// 			tableName.erase(tableName.begin()+j);
-	// 			aliasAs.erase(aliasAs.begin()+j);
-	// 			j--;
-	// 		}
-	// 		else if (aliasRight == aliasAs[j]){
-	// 			select_node->generateSelectNode(aliasRight, tableName[j]);
-	// 			operations_tree.push_back(*select_node);
-	// 			tableName.erase(tableName.begin()+j);
-	// 			aliasAs.erase(aliasAs.begin()+j);
-	// 			j--;
-	// 		}
-	// 		if(tableName.size() ==0){
-	// 				break;
-	// 			}
-	// 	}
-	// 	if(tableName.size() ==0){
-	// 		break;
-	// 	}
-	// }
+		}
+		if(selection.count(aliasRight)==0){
+			temp_aliases.clear();
+			condition = "("+attNameRight+"="+attNameRight+")";
+			selection.insert({aliasRight, true});
+			TreeNode *select_node = new TreeNode();
+			temp_aliases.push_back(aliasRight);
+			select_node = generateSelectNode(temp_aliases, aliasAs, 1, tableName, aliasToRel, condition);
+			operations_tree.insert({select_node->out_pipe_name, select_node});
+
+		}
+	}
 }
 
 // helper class to enumerate the permutations of the joins Dynamic programming
@@ -358,8 +360,12 @@ int main () {
 	// Schema rel1_sch("catalog", "partsupp");
 	// Schema rel2_sch("catalog", "nation");
 	
+
 	// // Attribute *test =  mySchema.GetAtts();
-	// Schema jnSch = get_join_schema(rel1_sch, rel2_sch);
+	// vector<string> test;
+	// test.push_back("part");
+	// test.push_back("supplier");
+	// Schema jnSch = get_join_schema(test);
 	// cout << "Num atts "<< jnSch.GetNumAtts()<<endl;
 
 	cout<<"Enter the query"<<endl;
@@ -387,7 +393,7 @@ int main () {
 	// s.CopyRel("partsupp","ps");
 	// s.CopyRel("supplier","s");
 	
-char *relName[] = {"supplier","customer","nation"};
+	char *relName[] = {"supplier","customer","nation"};
 
 	s.AddRel(relName[0],10000);
 	s.AddAtt(relName[0], "s_nationkey",25);

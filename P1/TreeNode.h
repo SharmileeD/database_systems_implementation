@@ -15,17 +15,13 @@ class TreeNode
 	public:
 
         std::string node_type;
-        Schema *output_schema;
+        vector<string> tables;
         TreeNode *left_child;
         TreeNode *right_child;
         std::string out_pipe_name;
+        std::string cnf_str;
 	    
         TreeNode();
-        TreeNode generateSelectNode(vector<string> aliases, 
-                                    vector <string> aliasAs, 
-                                    int num_rels, 
-                                    vector <string> tableName,
-                                    unordered_map<string, string> aliasToRel);
 };
 
 class SelectFile_node : public TreeNode{
