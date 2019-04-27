@@ -3,6 +3,12 @@
 #include "string"
 #include "Schema.h"
 #include "Function.h"
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+
+
+using namespace std;
 
 class TreeNode
 {
@@ -12,8 +18,14 @@ class TreeNode
         Schema *output_schema;
         TreeNode *left_child;
         TreeNode *right_child;
+        std::string out_pipe_name;
 	    
         TreeNode();
+        TreeNode generateSelectNode(vector<string> aliases, 
+                                    vector <string> aliasAs, 
+                                    int num_rels, 
+                                    vector <string> tableName,
+                                    unordered_map<string, string> aliasToRel);
 };
 
 class SelectFile_node : public TreeNode{
@@ -26,12 +38,15 @@ class SelectPipe_node : public TreeNode{
     public:
         CNF selOp;
         Record literal;
+        string input_pipe;
 };
 
 class Join_node : public TreeNode{
     public:
         CNF selOp;
         Record literal;
+        string input_pipe_l;
+        string input_pipe_r;
 
 };
 
