@@ -4,7 +4,10 @@
 #include "Statistics.h"
 #include "TreeNode.h"
 #include <vector>
-#include <algorithm>
+#include <string>
+#include <algorithm> 
+// #include <bits/stdc++.h> 
+
 
 using namespace std;
 
@@ -21,6 +24,11 @@ extern int distinctFunc; //Sum and distinct
 unordered_map <string, TreeNode> operations_tree;
 unordered_map <string, string> alias_to_pipeId;
 
+struct joinMapStruct  {
+	double cost;
+	Statistics * stat;
+
+};
 
 //Store selection and join in separate vectors
 void separateJoinSelection(vector <OrList*> &joinVector, vector <OrList*> &selectionVector) {
@@ -54,27 +62,115 @@ void getTableAndAliasNames(vector <string> &tableName, vector <string> &aliasAs,
 	}
 }
 // helper class to enumerate the permutations of the joins Dynamic programming
-void getOptimalJoinSequence() {
-	//TODO
+void getPermutations(vector <OrList*> &joinVector, vector<string> *permArray) {
+	int size = joinVector.size();
+	string str = "";
+	for(int i =0; i< size; i++)
+		str = str + to_string(i);
+	//sort the string to create permutatios
+	sort(str.begin(), str.end());
+	do {
+		permArray->push_back(str);
+	   } while(next_permutation(str.begin(),str.end()));
 }
- 
-void calculateCost() {
 
-}
+double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence, unordered_map<string, joinMapStruct> *joinMap) {
+	
+	// loop to get costs of every possible subset of joins
+	struct AndList temp;
 
-// helper to print query plan
-void printQueryPlan() {
+	string relStrings[s->relationMap.size()];
+	char *relnames[s->relationMap.size()];
+	// char *relnames[100];
+	double cost = 0.0;
+	// populate relnames array
+	int rel_index= 0;
+
+	relnames[0] = "nation";
+	relnames[1] = "customer";
+	relnames[2] = "supplier";
+	relnames[3] = "n1";
+	relnames[4] = "n2";
+	relnames[5] = "s";
+	relnames[6] = "c";
+	// for(auto it = s->relationMap.begin(); it != s->relationMap.end(); it++) {
+	// 	// char * relation;
+	// 	// strcpy(relation,(*it).first.c_str());
+	// 	// strcpy(relnames[rel_index] , relation);
+	// 	relStrings[rel_index] = (*it).first;
+	// 	// cout << "Relation name:" <<relnames[rel_index]<< "relIndex: "<<rel_index<<endl;
+	// 	rel_index++;
+	// }
+	// for(int i =0;i < rel_index;i++) {
+	// 	strcpy(relnames[i], relStrings[i].c_str());
+	// }
+
+	Statistics dummy(*s);
+	for(int index = 0; index < sequence.size(); index++) {
+		struct AndList *cnf = &temp;	
+		string subset;
+		subset = sequence.substr(0,index+1);
+		// cout << "\n\nPrint jointMap:-------------------BEGIN---------------------------------"<<endl;
+		// for(auto it = joinMap->begin(); it!= joinMap->end(); it++) {
+		// 	cout << (*it).first << "  cost ="<< (*it).second.cost <<"  size="<<(*it).second.stat->relationMap.size()<<endl;
+		// }
+		// if not in joinMap, create cnf and apply on subset-1
+		if(joinMap->find(subset) == joinMap->end()) {
+			cnf->left = joinVector[(int)(sequence[index]) - 48];
+			cnf->rightAnd = NULL;
+			
+			//get state of subset - 1 and apply
+			if(index > 0) {
+				string prev_subset = subset.substr(0,subset.length()-1); 
+				if(joinMap->find(prev_subset) != joinMap->end()) {
+									
+					//store cost and statistics in dummy structure and add it to the ew subset entry
+					joinMapStruct jmStruct;
+					jmStruct.stat = new Statistics(*joinMap->at(prev_subset).stat);
+					cost = cost + joinMap->at(prev_subset).stat->Estimate(cnf, relnames,joinMap->at(prev_subset).stat->relationMap.size());
+					jmStruct.cost = cost;
+					
+					jmStruct.stat->Apply(cnf, relnames,joinMap->at(prev_subset).stat->relationMap.size());
+										
+					joinMap->insert({subset, jmStruct});
+					
+				} 
+			}
+			//apply on dummy Statistics object
+			else {
+				joinMapStruct jmStruct;
+				
+				cost = cost + dummy.Estimate(cnf, relnames, dummy.relationMap.size());
+				jmStruct.cost = cost;
+				jmStruct.stat = new Statistics(dummy);
+				jmStruct.stat->Apply(cnf, relnames, dummy.relationMap.size());
+						
+				joinMap->insert({subset, jmStruct});
+			}
+		
+		}
+		else {
+			cost = cost + joinMap->at(subset).cost;
+		}
+
+		std::cout << "\n Cost till now = "<<cost<<endl;
+		// 	cout << "\n\nPrint jointMap:-------------------END---------------------------------"<<endl;
+		// for(auto it = joinMap->begin(); it!= joinMap->end(); it++) {
+		// 	cout << (*it).first << "  size="<<(*it).second->relationMap.size()<<endl;
+		// }
+	}
+	return cost;
 	
 }
 
-TreeNode generateNode(string nodeType, string alias, string rel_name){
-	if(nodeType=="join"){
+// TreeNode generateNode(string nodeType, string alias, string rel_name){
+// 	if(nodeType=="join"){
 
-	}
-	else if(nodeType=="selection"){
+// 	}
+// 	else if(nodeType=="selection"){
 		
-	}
-}
+// 	}
+// }
 // class for node of the tree
 // tree class with all operations
 Schema get_join_schema(Schema rel1_sch, Schema rel2_sch){
@@ -198,6 +294,30 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 	// }
 }
 
+// helper class to enumerate the permutations of the joins Dynamic programming
+void getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s) {
+	
+	vector<string> permutations;
+	// vector <string> permutations;
+
+	unordered_map<string, joinMapStruct > joinMap;
+	getPermutations(joinVector, &permutations);
+	double cost;
+	string minCostPermutation;
+	double min_cost = 0.0;
+	
+	for(auto it_perm = permutations.begin(); it_perm != permutations.end(); it_perm++) {
+		cost = processJoin(joinVector, &s, (*it_perm), &joinMap);
+		if(min_cost == 0.0 || min_cost > cost) {
+			min_cost = cost;
+			minCostPermutation = (*it_perm);
+		}
+		cout << "Cost for sequence: " << (*it_perm)<< " = " <<cost<<endl;
+	}
+	cout << "\n\n\n+++++++++++++++++++++++++++++FinalAnswer+++++++++++++++++++++++++"<<endl;
+	cout << "Cost for sequence: " << minCostPermutation << " = " <<min_cost<<endl;
+}
+ 
 int main () {
 
 	// Schema rel1_sch("catalog", "partsupp");
@@ -213,6 +333,41 @@ int main () {
 	// Getting the split of joins and selections 
 	vector <OrList*> joinVector;
 	vector <OrList*> selectionVector;
+    
+	Statistics s;
+	// char *relName[] = { "part",  "partsupp","supplier"};
+
+	// s.AddRel(relName[0],200000);
+	// s.AddAtt(relName[0], "p_partkey",200000);
+	// s.AddAtt(relName[0], "p_name", 199996);
+
+	// s.AddRel(relName[1],800000);
+	// s.AddAtt(relName[1], "ps_partkey",200000);
+	// s.AddAtt(relName[1], "ps_suppkey",10000);
+	
+	// s.AddRel(relName[2],10000);
+	// s.AddAtt(relName[2], "s_suppkey",10000);
+
+	// s.CopyRel("part","p");
+	// s.CopyRel("partsupp","ps");
+	// s.CopyRel("supplier","s");
+	
+char *relName[] = {"supplier","customer","nation"};
+
+	s.AddRel(relName[0],10000);
+	s.AddAtt(relName[0], "s_nationkey",25);
+	s.AddRel(relName[1],150000);
+	s.AddAtt(relName[1], "c_custkey",150000);
+	s.AddAtt(relName[1], "c_nationkey",25);
+	
+	s.AddRel(relName[2],25);
+	s.AddAtt(relName[2], "n_nationkey",25);
+
+	s.CopyRel("nation","n1");
+	s.CopyRel("nation","n2");
+	s.CopyRel("supplier","s");
+	s.CopyRel("customer","c");
+
 	separateJoinSelection(joinVector, selectionVector);
 	
 	// Getting the table names and aliases 
@@ -240,6 +395,41 @@ int main () {
 	// cout<<"Distinct Atts "<<distinctAtts<<endl;
 	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
 	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
+	getOptimalJoinSequence(joinVector, s);
+
+	cout<<"size of join "<< joinVector.size()<<endl;
+	cout<<"size of selection "<< selectionVector.size()<<endl;
+
+	cout<<"Table name "<<tables->tableName<<endl;
+	// cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
+	cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
+	if(attsToSelect->next->next == NULL){
+		cout << "only two atts present"<<endl;
+	}
+	cout<<"Distinct Atts "<<distinctAtts<<endl;
+	cout<<"Distinct Funcs "<<distinctFunc<<endl;
+	cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
+	
+	
+	// cout<<"Table name "<<tables->tableName<<endl;
+	// // cout<<"Name list grouping atts "<<groupingAtts->name<<endl;
+	// cout<<"Name list attsToSelect 1 "<<attsToSelect->name<<endl;
+	// cout<<"Name list attsToSelect 2 "<<attsToSelect->next->name<<endl;
+	// if(attsToSelect->next->next == NULL){
+	// 	cout << "only two atts present"<<endl;
+	// }
+	// cout<<"Distinct Atts "<<distinctAtts<<endl;
+	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
+	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
+	
+	if (finalFunction == NULL){
+		cout<<"NO SUM PRESENT"<<endl;
+	}
+	else{
+		cout<<"SUM PRESENT"<<endl;
+	}
+
 	
 	// if (finalFunction == NULL){
 	// 	cout<<"NO SUM PRESENT"<<endl;
@@ -248,23 +438,20 @@ int main () {
 	// 	cout<<"SUM PRESENT"<<endl;
 	// }
 
-	// Statistics s;
-	// char *relName[] = { "part",  "partsupp","supplier"};
+	// cout<<"selection vector size"<<endl;
+	// cout<<selectionVector[0]->left->left->value<<endl;
+	// if (tempAnd->left==NULL){
+		// cout<<"selection vector size"<<endl;
 
-	// s.AddRel(relName[0],200000);
-	// s.AddAtt(relName[0], "p_partkey",200000);
-	// s.AddAtt(relName[0], "p_name", 199996);
-
-	// s.AddRel(relName[1],800000);
-	// s.AddAtt(relName[1], "ps_partkey",200000);
-	// s.AddAtt(relName[1], "ps_suppkey",10000);
-	
-	// s.AddRel(relName[2],10000);
-	// s.AddAtt(relName[2], "s_suppkey",10000);
-
-	// s.CopyRel("part","p");
-	// s.CopyRel("partsupp","ps");
-	// s.CopyRel("supplier","s");
+	// }
+	// tempAnd->left = selectionVector[0];
+	// tempAnd->rightAnd = NULL;
+	// double res = s.Estimate(tempAnd, relName, 3);
+	// cout<< res<<endl;
+	TreeNode n;
+	Join_node j;
+	Project_node p;
+	p.left_child = &j;
 	
 	// struct AndList A;
 	// struct AndList *tempAnd = &A;
