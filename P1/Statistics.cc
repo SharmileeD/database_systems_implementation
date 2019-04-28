@@ -325,7 +325,12 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                     double totalLeft, totalRight,attLeft, attRight;
                     this->extractValues(llval, relNameLeft, totalLeft, attLeft,numToJoin, relNames);
                     this->extractValues(lrval, relNameRight, totalRight, attRight, numToJoin, relNames);
-                    
+                     if (relNameLeft==relNameRight){
+                        orResult = this->relationMap.at(relNameLeft).num_tuples;
+                    }
+                    else{
+                        orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+                    }
                     // Initialising the number of tuples of the relation and the number of unique tuples of the attribute
                     
                     // andResult = totalLeft * totalRight;
@@ -335,7 +340,6 @@ void  Statistics::Apply(struct AndList *parseTree, char *relNames[], int numToJo
                     //     orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
                     // else
                     //     orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
-                    orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
                     andResult = orResult;
                     //update the Statistics after join
                     int pid = this->relToId.at(relNameLeft); //left relation pid
@@ -523,7 +527,12 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                     double totalLeft, totalRight,attLeft, attRight;
                     cpyStat.extractValues(llval, relNameLeft, totalLeft, attLeft,numToJoin, relNames);
                     cpyStat.extractValues(lrval, relNameRight, totalRight, attRight, numToJoin, relNames);
-                    
+                    if (relNameLeft==relNameRight){
+                        orResult = cpyStat.relationMap.at(relNameLeft).num_tuples;
+                    }
+                    else{
+                        orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
+                    }
                     // Initialising the number of tuples of the relation and the number of unique tuples of the attribute
                     
                     // andResult = totalLeft * totalRight;
@@ -533,7 +542,6 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
                     //     orResult = (double)(totalLeft)/std::max(attLeft,attRight);    
                     // else
                     //     orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
-                    orResult = (double)(totalLeft*totalRight)/std::max(attLeft,attRight);
                     andResult = orResult;
                     //update the Statistics after join
                     int pid = cpyStat.relToId.at(relNameLeft); //left relation pid
