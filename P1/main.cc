@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include <algorithm> 
-// #include <bits/stdc++.h> 
+#include <bits/stdc++.h> 
 
 
 using namespace std;
@@ -23,6 +23,7 @@ extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
 unordered_map <string, TreeNode*> operations_tree;
 unordered_map <string, string> alias_to_pipeId;
+vector<TreeNode*> join_tree;
 
 struct joinMapStruct  {
 	double cost;
@@ -74,37 +75,16 @@ void getPermutations(vector <OrList*> &joinVector, vector<string> *permArray) {
 	   } while(next_permutation(str.begin(),str.end()));
 }
 
-double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence, unordered_map<string, joinMapStruct> *joinMap) {
+double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence, unordered_map<string, joinMapStruct> *joinMap, char **relnames, int size) {
 	
 	// loop to get costs of every possible subset of joins
 	struct AndList temp;
 
-	string relStrings[s->relationMap.size()];
-	char *relnames[s->relationMap.size()];
 	// char *relnames[100];
 	double cost = 0.0;
 	// populate relnames array
 	int rel_index= 0;
-
-	relnames[0] = "nation";
-	relnames[1] = "customer";
-	relnames[2] = "supplier";
-	relnames[3] = "n1";
-	relnames[4] = "n2";
-	relnames[5] = "s";
-	relnames[6] = "c";
-	// for(auto it = s->relationMap.begin(); it != s->relationMap.end(); it++) {
-	// 	// char * relation;
-	// 	// strcpy(relation,(*it).first.c_str());
-	// 	// strcpy(relnames[rel_index] , relation);
-	// 	relStrings[rel_index] = (*it).first;
-	// 	// cout << "Relation name:" <<relnames[rel_index]<< "relIndex: "<<rel_index<<endl;
-	// 	rel_index++;
-	// }
-	// for(int i =0;i < rel_index;i++) {
-	// 	strcpy(relnames[i], relStrings[i].c_str());
-	// }
-
+	
 	Statistics dummy(*s);
 	for(int index = 0; index < sequence.size(); index++) {
 		struct AndList *cnf = &temp;	
@@ -127,11 +107,11 @@ double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence
 					//store cost and statistics in dummy structure and add it to the ew subset entry
 					joinMapStruct jmStruct;
 					jmStruct.stat = new Statistics(*joinMap->at(prev_subset).stat);
-					cost = cost + joinMap->at(prev_subset).stat->Estimate(cnf, relnames,joinMap->at(prev_subset).stat->relationMap.size());
+					
+					cost = cost + joinMap->at(prev_subset).stat->Estimate(cnf, relnames,size);
 					jmStruct.cost = cost;
 					
-					jmStruct.stat->Apply(cnf, relnames,joinMap->at(prev_subset).stat->relationMap.size());
-										
+					jmStruct.stat->Apply(cnf, relnames,size);
 					joinMap->insert({subset, jmStruct});
 					
 				} 
@@ -139,12 +119,12 @@ double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence
 			//apply on dummy Statistics object
 			else {
 				joinMapStruct jmStruct;
-				
-				cost = cost + dummy.Estimate(cnf, relnames, dummy.relationMap.size());
-				jmStruct.cost = cost;
 				jmStruct.stat = new Statistics(dummy);
-				jmStruct.stat->Apply(cnf, relnames, dummy.relationMap.size());
-						
+
+				cost = cost + dummy.Estimate(cnf, relnames, size);
+				jmStruct.cost = cost;
+								
+				jmStruct.stat->Apply(cnf, relnames, size);
 				joinMap->insert({subset, jmStruct});
 			}
 		
@@ -153,7 +133,7 @@ double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence
 			cost = cost + joinMap->at(subset).cost;
 		}
 
-		std::cout << "\n Cost till now = "<<cost<<endl;
+		// std::cout << "\n Cost till now = "<<cost<<endl;
 		// 	cout << "\n\nPrint jointMap:-------------------END---------------------------------"<<endl;
 		// for(auto it = joinMap->begin(); it!= joinMap->end(); it++) {
 		// 	cout << (*it).first << "  size="<<(*it).second->relationMap.size()<<endl;
@@ -163,16 +143,6 @@ double processJoin (vector <OrList*> &joinVector, Statistics *s, string sequence
 	
 }
 
-// TreeNode generateNode(string nodeType, string alias, string rel_name){
-// 	if(nodeType=="join"){
-
-// 	}
-// 	else if(nodeType=="selection"){
-		
-// 	}
-// }
-// class for node of the tree
-// tree class with all operations
 Schema get_join_schema(vector <string> tables){
 	int outAtts = 0;
 	vector <Attribute> join_atts;
@@ -283,7 +253,7 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 				loop_ind++;
 			}
 			condition=condition+attName+getOperandFromCode(currOr->left->code)+currOr->left->right->value;
-			
+			cout << "Condition:"<<condition<<endl;
 			currOr = currOr->rightOr;
 			last_alias = alias;
 		}
@@ -331,8 +301,9 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 	}
 }
 
+
 // helper class to enumerate the permutations of the joins Dynamic programming
-void getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s) {
+string getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s, vector <string> aliasAs) {
 	
 	vector<string> permutations;
 	// vector <string> permutations;
@@ -342,23 +313,127 @@ void getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s) {
 	double cost;
 	string minCostPermutation;
 	double min_cost = 0.0;
-	
+	vector<char*> cstrings;
 	for(auto it_perm = permutations.begin(); it_perm != permutations.end(); it_perm++) {
-		cost = processJoin(joinVector, &s, (*it_perm), &joinMap);
+
+		for(int i = 0; i < aliasAs.size(); i++) {
+			cstrings.push_back(const_cast<char*>(aliasAs[i].c_str()));
+		}
+	
+		cost = processJoin(joinVector, &s, (*it_perm), &joinMap, &cstrings[0], aliasAs.size());
 		if(min_cost == 0.0 || min_cost > cost) {
 			min_cost = cost;
 			minCostPermutation = (*it_perm);
 		}
-		cout << "Cost for sequence: " << (*it_perm)<< " = " <<cost<<endl;
+		// cout << "Cost for sequence: " << (*it_perm)<< " = " <<cost<<endl;
 	}
-	cout << "\n\n\n+++++++++++++++++++++++++++++FinalAnswer+++++++++++++++++++++++++"<<endl;
 	cout << "Cost for sequence: " << minCostPermutation << " = " <<min_cost<<endl;
+	return minCostPermutation;
 }
 void printPlan(){
 	for ( auto it = operations_tree.begin(); it != operations_tree.end(); ++it ){
 			cout<< "SF"+it->second->cnf_str+" => "+it->second->out_pipe_name<<endl;
 	}
 }
+
+TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList*> &joinVector, int index, vector<string> joinedTables) {
+	
+	Join_node *node = new Join_node();
+	
+	node->node_type = "join";
+	node->input_pipe_l = lPipe;
+	node->input_pipe_r = rPipe;
+	node->out_pipe_name = opPipe;
+	node->right_child = NULL;
+	node->left_child = NULL;
+	node->tables = joinedTables;
+
+	string leftVal = joinVector[index]->left->left->value;
+	string rightVal = joinVector[index]->left->right->value;
+	string cnf_Str = "(" + leftVal+" = " + rightVal + ")";
+	cout << "Built cnf: "<<cnf_Str<<endl;
+	node->cnf_str = cnf_Str;
+
+	return node;
+}
+
+void createJoinTree(vector <OrList*> &joinVector, string minCostPermutation, vector <string> aliasAs) {
+	
+	unordered_map<string,int> alias_to_pipeId;
+	unordered_map<int, vector<string>> pipeId_to_alias;
+
+	string aliasLeft, aliasRight, attName, leftPipe, rightPipe, opPipe;
+	vector<string> tempLeft;
+	vector<string> tempRight;
+	int lpid, rpid;
+
+	for(int i = 0; i < aliasAs.size(); i++) {
+		vector<string> dummy;
+	 	dummy.push_back(aliasAs[i]);
+		alias_to_pipeId.insert({aliasAs[i], i});
+		pipeId_to_alias.insert({i, dummy});
+	}
+
+	// get nodes for every join operation and store them in operations_tree
+	for(int index = 0; index < minCostPermutation.length(); index++) {
+		TreeNode *joinNode =  new TreeNode();	
+		struct OrList *currOr =  joinVector[(int)minCostPermutation[index] - 48];
+		//get left and right aliases 
+		attName = currOr->left->left->value; 
+		aliasLeft = attName.substr(0, attName.find('.'));
+		attName = currOr->left->right->value; 
+		aliasRight = attName.substr(0, attName.find('.'));
+		 
+		leftPipe =""; rightPipe=""; opPipe = ""; 
+		
+		//form corresponding input pipe names and set them
+		lpid = alias_to_pipeId.at(aliasLeft);
+		rpid = alias_to_pipeId.at(aliasRight);
+		
+		sort(pipeId_to_alias.find(lpid)->second.begin(), pipeId_to_alias.find(lpid)->second.end());
+		sort(pipeId_to_alias.find(rpid)->second.begin(), pipeId_to_alias.find(rpid)->second.end());
+
+		//make a leftpipeId and rightPipeId also track updates to be done in the alias_to_pipeid
+		for(int i = 0; i< pipeId_to_alias.find(lpid)->second.size(); i++) 
+			leftPipe.append("_"+pipeId_to_alias.find(lpid)->second[i]);
+		
+		for(int i = 0; i< pipeId_to_alias.find(rpid)->second.size(); i++) 
+			rightPipe.append("_"+pipeId_to_alias.find(rpid)->second[i]);
+		
+		cout <<"Left pipe:" <<leftPipe<<endl;
+		cout <<"Right pipe:" <<rightPipe<<endl;
+
+		//--------------------Update for the join operation performed------------------------
+		vector<string> right_vector = pipeId_to_alias.at(rpid);
+		//update pipeid of all aliases to lpid
+		if(lpid != rpid){
+			for(auto itr = right_vector.begin(); itr != right_vector.end(); itr++) {
+			alias_to_pipeId.at(*itr) = lpid;
+			}		
+
+			for(auto itr = right_vector.begin(); itr != right_vector.end(); itr++) {
+			//if the corresponding relation not present then add
+				if(find(pipeId_to_alias.at(lpid).begin(), pipeId_to_alias.at(lpid).end(), *itr)==pipeId_to_alias.at(lpid).end())
+					pipeId_to_alias.at(lpid).push_back(*itr);
+			}		
+		//delete the right side entry from pipeId_to_alias
+			pipeId_to_alias.erase(rpid);
+		} //that is not already joined
+		
+		//create outputPipe id
+		sort(pipeId_to_alias.at(lpid).begin(), pipeId_to_alias.at(lpid).end());
+		for(auto itop = pipeId_to_alias.at(lpid).begin(); itop != pipeId_to_alias.at(lpid).end(); itop++) {
+			opPipe.append("_" + (*itop));
+		}
+		cout << "Output Pipe:" << opPipe <<endl;
+		joinNode = getJoinNode(leftPipe, rightPipe, opPipe, joinVector, ((int)minCostPermutation[index] - 48), pipeId_to_alias.at(lpid));
+		operations_tree.insert({joinNode->out_pipe_name, joinNode}); 
+		join_tree.push_back(joinNode);
+	}
+
+}
+
+
 int main () {
 
 	// Schema rel1_sch("catalog", "partsupp");
@@ -380,38 +455,38 @@ int main () {
 	vector <OrList*> selectionVector;
     
 	Statistics s;
-	// char *relName[] = { "part",  "partsupp","supplier"};
+	char *relName[] = { "part",  "partsupp","supplier"};
 
-	// s.AddRel(relName[0],200000);
-	// s.AddAtt(relName[0], "p_partkey",200000);
-	// s.AddAtt(relName[0], "p_name", 199996);
+	s.AddRel(relName[0],200000);
+	s.AddAtt(relName[0], "p_partkey",200000);
+	s.AddAtt(relName[0], "p_name", 199996);
 
-	// s.AddRel(relName[1],800000);
-	// s.AddAtt(relName[1], "ps_partkey",200000);
-	// s.AddAtt(relName[1], "ps_suppkey",10000);
+	s.AddRel(relName[1],800000);
+	s.AddAtt(relName[1], "ps_partkey",200000);
+	s.AddAtt(relName[1], "ps_suppkey",10000);
 	
-	// s.AddRel(relName[2],10000);
-	// s.AddAtt(relName[2], "s_suppkey",10000);
+	s.AddRel(relName[2],10000);
+	s.AddAtt(relName[2], "s_suppkey",10000);
 
-	// s.CopyRel("part","p");
-	// s.CopyRel("partsupp","ps");
-	// s.CopyRel("supplier","s");
-	
-	char *relName[] = {"supplier","customer","nation"};
-
-	s.AddRel(relName[0],10000);
-	s.AddAtt(relName[0], "s_nationkey",25);
-	s.AddRel(relName[1],150000);
-	s.AddAtt(relName[1], "c_custkey",150000);
-	s.AddAtt(relName[1], "c_nationkey",25);
-	
-	s.AddRel(relName[2],25);
-	s.AddAtt(relName[2], "n_nationkey",25);
-
-	s.CopyRel("nation","n1");
-	s.CopyRel("nation","n2");
+	s.CopyRel("part","p");
+	s.CopyRel("partsupp","ps");
 	s.CopyRel("supplier","s");
-	s.CopyRel("customer","c");
+	
+	// char *relName[] = {"supplier","customer","nation"};
+
+	// s.AddRel(relName[0],10000);
+	// s.AddAtt(relName[0], "s_nationkey",25);
+	// s.AddRel(relName[1],150000);
+	// s.AddAtt(relName[1], "c_custkey",150000);
+	// s.AddAtt(relName[1], "c_nationkey",25);
+	
+	// s.AddRel(relName[2],25);
+	// s.AddAtt(relName[2], "n_nationkey",25);
+
+	// s.CopyRel("nation","n1");
+	// s.CopyRel("nation","n2");
+	// s.CopyRel("supplier","s");
+	// s.CopyRel("customer","c");
 
 	separateJoinSelection(joinVector, selectionVector);
 	
@@ -425,6 +500,9 @@ int main () {
 	printPlan();
 	cout<<"size of ops "<< operations_tree.size()<<endl;
 
+	string optimalJoinSeq = getOptimalJoinSequence(joinVector, s, aliasAs);
+	createJoinTree(joinVector, optimalJoinSeq, aliasAs);
+	printPlan();
 	// cout<<"outpipe name "<< operations_tree[0].out_pipe_name<<endl;
 	// cout<<"size of tabname "<< tableName.size()<<endl;
 	// cout<<"size of alias "<< aliasAs.size()<<endl;
@@ -441,6 +519,8 @@ int main () {
 	// cout<<"Distinct Funcs "<<distinctFunc<<endl;
 	// cout<<"Distinct Funcs "<<boolean->left->left->code<<endl;
 	// getOptimalJoinSequence(joinVector, s);
+
+	
 
 	// cout<<"size of join "<< joinVector.size()<<endl;
 	// cout<<"size of selection "<< selectionVector.size()<<endl;
