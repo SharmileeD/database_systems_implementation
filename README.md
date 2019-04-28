@@ -5,25 +5,31 @@ Tushar Kaley UFID: 9126-1421
 Sharmilee Desai UFID: 0519-9796
 
 #Instructions
-1. To run the tests provided with the original zip (on Linux) just run the following commands in sequence 
+1. To run main.cc (on Linux) just run the following commands in sequence 
+make clean
+make main
+./main
+
+
+2. To run the tests provided with the original zip (on Linux) just run the following commands in sequence 
 make clean
 make test_mac
 ./test.out
 
 
-2. To run the tests provided with the original zip (on Linux) just run the following commands in sequence 
+3. To run the tests provided with the original zip (on Linux) just run the following commands in sequence 
 make clean
 make test.out
 ./test.out
 
-3. To run gtests on Mac OS run the following commands
+4. To run gtests on Mac OS run the following commands
 make clean
 make test_mac
 clang++ -std=c++11 -stdlib=libc++ DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 or 
 just run make gtest_mac
 
-4. To run gtests on Linux run the following commands
+5. To run gtests on Linux run the following commands
 make clean
 make test.out
 g++ -std=c++11 DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
@@ -33,22 +39,22 @@ just run make gtest_linux
 PS: The location of the gtest folder should be included in the your PATH for this to run
 PPS: Also the runs.bin file for the orders table should be present in the P1 folder for the gtests for project to go through
 
-5. To run Project 1 on Linux just run the following commands
+6. To run Project 1 on Linux just run the following commands
 make clean
 make test_dbfile
 ./test_dbfile.out
 
-6.  To run Project 1 on macOS just run the following commands
+7.  To run Project 1 on macOS just run the following commands
 make clean
 make test_dbfile_mac
 ./test_dbfile.out
 
-7. To run Project 2 Milestone 1 on Linux just run the following commands
+8. To run Project 2 Milestone 1 on Linux just run the following commands
 make clean
 make test_bigq
 ./test_bigq.out
 
-8.  To run Project 2 Milestone 1 on macOS just run the following commands
+9.  To run Project 2 Milestone 1 on macOS just run the following commands
 make clean
 make test_bigq_mac
 ./test_bigq.out
@@ -103,3 +109,7 @@ The result in the screenshot returns 25 results since it groups on s_nationkey(w
 
 Project 4 Note:
 Please note that for tests Q8 and Q11 we get different results than those checked against in the test case.
+
+Project 4.2
+Aim: To compile and optimize an input SQL statement, and then print the resulting, optimized query plan to the screen.
+
