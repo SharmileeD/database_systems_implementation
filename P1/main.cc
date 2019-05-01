@@ -595,11 +595,14 @@ void make_group_by() {
 
 TreeNode* createTree() {
 	//loop through joinVector and find corresponding input pipes an thus the child nodes
+	TreeNode * root = new TreeNode();
 	for(auto join_it = join_tree.begin(); join_it != join_tree.end(); join_it++) {
 		//get left and right child;
 		(*join_it)->left_child = operations_tree.find((*join_it)->input_pipe_l)->second;
 		(*join_it)->right_child = operations_tree.find((*join_it)->input_pipe_r)->second;
+		root = *join_it;
 	}
+	return root;
 }
 
 int main () {
