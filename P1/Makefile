@@ -14,8 +14,8 @@ gtest_linux: clean test.out
 main_mac:   y.tab_mac.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o main.o
 	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o main.o -ll
 
-main:   y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o main.o
-	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o main.o -lfl
+main:   y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o y.tab.o yyfunc.tab.o lex.yyfunc.o main.o
+	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o yyfunc.tab.o lex.yyfunc.o main.o -lfl
 
 test_mac: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab_mac.o lex.yy.o test.o
 	$(CC) -o test.out Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Statistics.o y.tab.o lex.yy.o test.o -ll
