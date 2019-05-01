@@ -51,25 +51,32 @@ class Project_node : public TreeNode{
         int keepMe;
         int numAttsInput;
         int numAttsOutput;
+        string input_pipe;
 };
-
+//distinc
 class DuplicateRemoval_node : public TreeNode{
     public:
+        int distinctAtts;
+        int distinctFunc;
+        string input_pipe;
 };
 
 class Sum_node : public TreeNode{
     public:
         Function computeMe;
+        string input_pipe;
 };
 
 class GroupBy_node : public TreeNode{
     public:
-        OrderMaker groupAtts;
-        Function computeMe;
+        OrderMaker *groupOrder;
+        Function *computeMe;
+        string input_pipe;
 };
 
 class WriteOut_node : public TreeNode{
     public:
+        string input_pipe;
 };
 
 

@@ -3,6 +3,7 @@
 #include "ParseTree.h"
 #include "Statistics.h"
 #include "TreeNode.h"
+#include "Function.h"
 #include <vector>
 #include <string>
 #include <algorithm> 
@@ -13,10 +14,13 @@ extern "C" struct YY_BUFFER_STATE *yy_scan_string(const char*);
 
 
 using namespace std;
-
 extern "C" {
 	int yyparse(void);   // defined in y.tab.c
+	int yyfuncparse(void);   // defined in yyfunc.tab.c
+	void init_lexical_parser_func (char *); // defined in lex.yyfunc.c (from Lexerfunc.l)
+	void close_lexical_parser_func (); // defined in lex.yyfunc.c
 }
+
 extern struct TableList *tables;
 extern struct NameList *groupingAtts; //groupby
 extern struct AndList *boolean;
@@ -26,6 +30,7 @@ extern struct FuncOperator *finalFunction; // NULL if Sum not present
 extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
 unordered_map <string, TreeNode*> operations_tree;
+unordered_map <string, TreeNode*> inpipe_to_node; //except for join
 unordered_map <string, string> alias_to_pipeId;
 vector<Join_node*> join_tree;
 
@@ -512,10 +517,91 @@ double calculateSFCost(Statistics s, unordered_map <string, char*> relToAlias){
 				double result = s.Estimate(final, relName, 1);
 				cost = cost + result;
 			}
-			
 	}
 	return cost;
 }
+
+void get_cnf (char *input, Schema *left, Function &fn_pred) {
+		init_lexical_parser_func (input);
+  		if (yyfuncparse() != 0) {
+			cout << " Error: can't parse your arithmetic expr. " << input << endl;
+			exit (1);
+		}
+		fn_pred.GrowFromParseTree (finalFunction, *left); // constructs CNF predicate
+		close_lexical_parser_func ();
+}
+
+TreeNode* generateGroupByNode(OrderMaker * groupOrder, 
+							  string cnf_str,
+							  Function *func, 
+							  vector<string> group_tables, 
+							  string ip_pipe, 
+							  string op_pipe) {
+	GroupBy_node *node =  new GroupBy_node;
+	node->groupOrder = groupOrder;
+	node->node_type = "group_by";
+	node->cnf_str = cnf_str;
+	node->computeMe  = func;
+	node->left_child = NULL;
+	node->right_child = NULL;
+	node->tables = group_tables;
+	node->input_pipe = ip_pipe;
+	node->out_pipe_name = op_pipe;
+
+	return node;
+}
+
+void make_group_by() {
+
+	vector<string> group_tables;
+	vector <string> tableName;
+	vector <string> aliasAs;
+	unordered_map <string, string> aliasToRel;
+	unordered_map <string, char*> relToAlias;
+	TreeNode *group_by_node = new TreeNode();
+	Function func;
+	string str;
+	NameList *tempGroupingAtts = groupingAtts;
+	getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias);
+	
+	while(tempGroupingAtts) {
+		string attr = tempGroupingAtts->name;
+		string tablealias = attr.substr(0,attr.find('.'));
+		group_tables.push_back(aliasToRel.at(tablealias));
+		tempGroupingAtts = tempGroupingAtts->next;
+	}
+	
+	Schema groupSchema = get_join_schema(group_tables);
+	OrderMaker groupOrder (&groupSchema);
+
+	str = finalFunction->leftOperand->value;
+	string tbname = str.substr(0,str.find('.'));
+	// string str1 = aliasToRel.at(tbname) +"." + str.substr(str.find(".")+1,str.length()-1);
+	string str1 = str.substr(str.find(".")+1,str.length()-1);
+	char * cnf_str = (char*)malloc(str1.length());
+	strcpy(cnf_str, str1.c_str());
+	// get_cnf ((char*)cnf_str, &groupSchema, func);
+	
+	sort(group_tables.begin(), group_tables.end());
+	string ip_pipe = "";
+	for(auto it = group_tables.begin(); it != group_tables.end(); it++)
+		ip_pipe = ip_pipe+(*it);
+
+	string op_pipe = "_"+ip_pipe;
+	group_by_node = generateGroupByNode(&groupOrder, cnf_str, &func, group_tables, ip_pipe, op_pipe);
+	operations_tree.insert({op_pipe, group_by_node});
+		
+}
+
+TreeNode* createTree() {
+	//loop through joinVector and find corresponding input pipes an thus the child nodes
+	for(auto join_it = join_tree.begin(); join_it != join_tree.end(); join_it++) {
+		//get left and right child;
+		(*join_it)->left_child = operations_tree.find((*join_it)->input_pipe_l)->second;
+		(*join_it)->right_child = operations_tree.find((*join_it)->input_pipe_r)->second;
+	}
+}
+
 int main () {
 	
 	cout<<"Enter the query"<<endl;
@@ -593,8 +679,6 @@ int main () {
 		cout<<endl;
 		last_out_pipe = t->out_pipe_name;
 	}
-	
-
 	// cout<<"size of join "<< joinVector.size()<<endl;
 	// cout<<"size of selection "<< selectionVector.size()<<endl;
 	double sf_cost = calculateSFCost(s, relToAlias);
@@ -624,21 +708,78 @@ int main () {
 		last_out_pipe = project_node->out_pipe_name;
 		operations_tree.insert({last_out_pipe, project_node});
 	}	
-
+	//only print
 	if (finalFunction != NULL){
 		cout<<"On "+last_out_pipe+":"<<endl;
 		cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
-		TreeNode *sum_node = new TreeNode();
-		sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
-		last_out_pipe = sum_node->out_pipe_name;
-		operations_tree.insert({last_out_pipe, sum_node});
+		// TreeNode *sum_node = new TreeNode();
+		// sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
+		// last_out_pipe = sum_node->out_pipe_name;
+		// operations_tree.insert({last_out_pipe, sum_node});
 	}
+	 
+	 vector<string> group_tables;
+
+	 if(groupingAtts != NULL) {
+		 NameList * tempGroupingAtts = groupingAtts;
+		cout <<"G On: (";
+		while(tempGroupingAtts) {
+			cout <<tempGroupingAtts->name << ", ";
+			string attr = tempGroupingAtts->name;
+			string tablealias = attr.substr(0,attr.find('.'));
+			group_tables.push_back(aliasToRel.at(tablealias));
+			tempGroupingAtts = tempGroupingAtts->next;
+		}
+		cout << ")"<<endl;
+		//print op pipes from SF nodes?
+		//print fuction using inorder traversal if not null
+		if(finalFunction != NULL) {
+			cout<<"Function: (";		
+			struct FuncOperator *funcOp = finalFunction;
+			struct FuncOperator *preFunc;
+
+			while(funcOp != NULL) {
+				if(funcOp->leftOperator != NULL) {
+					cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
+					string temp = funcOp->leftOperator->leftOperand->value;
+					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+					strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
+				}
+				else {
+					cout << funcOp->leftOperand->value<<")" <<endl;
+					string temp = funcOp->leftOperand->value;
+					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+					strcpy(funcOp->leftOperand->value, attrname.c_str());
+				}
+				funcOp = funcOp->right;
+			}
+		}
+		Schema groupSchema = get_join_schema(group_tables);
+		OrderMaker groupOrder (&groupSchema);
+		groupOrder.Print();
+		make_group_by();
+		
+	}
+	//if no group by then check if sum present
+	else {
+		if (finalFunction != NULL){
+			cout<<"On "+last_out_pipe+":"<<endl;
+			cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
+			TreeNode *sum_node = new TreeNode();
+			sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
+			last_out_pipe = sum_node->out_pipe_name;
+			operations_tree.insert({last_out_pipe, sum_node});
+		}
+	}
+	
 	// Finally printing out writeout
 	TreeNode *writeout_node = new TreeNode();
 	writeout_node = generateWriteOutNode(last_out_pipe);
 	operations_tree.insert({"root", writeout_node});
 	cout<<"On "+last_out_pipe+":"<<endl;
 	cout<<"W ( "+last_out_pipe+" )"<<endl;
+
+	TreeNode * finalTree = createTree();
 
 
 }
