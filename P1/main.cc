@@ -34,6 +34,11 @@ extern  struct NameList *attsToSelect; //projection
 extern struct FuncOperator *finalFunction; // NULL if Sum not present
 extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
+extern int operType; 
+extern struct CreateList *create; 
+extern struct Insert *insertQuery;
+extern char* dropTab;
+extern char* setOp;
 unordered_map <string, TreeNode*> operations_tree;
 unordered_map <string, string> alias_to_pipeId;
 vector<Join_node*> join_tree;
@@ -798,6 +803,44 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 
 }
 
+// int main () {
+
+// 	cout<<"Enter the query"<<endl;
+// 	yyparse();
+// 	if(create == NULL){
+// 		cout<<"Not yet Create!"<<endl;
+// 	}
+// 	else{
+// 		cout<<"Maybe"<<endl;
+// 		cout<<create->attName<<endl;
+// 		cout<<create->attType<<endl;
+// 		cout<<create->rightcrt->attName<<endl;
+// 		cout<<create->rightcrt->attType<<endl;
+// 	}
+// 	if(insertQuery == NULL){
+// 		cout<<"Not yet!"<<endl;
+// 	}
+// 	else{
+// 		cout<<insertQuery->fileName<<endl;
+// 		cout<<insertQuery->tableName<<endl;
+// 		cout<<"Oper type " << operType <<endl;
+// 		cout<<"Maybe"<<endl;
+// 	}
+// 	if(dropTab== NULL){
+// 		cout<<"DT null " <<endl;
+// 	}
+// 	if (setOp == "STDOUT"){
+// 		cout << "Set OP is STDOUT"<<endl; 
+// 	}
+// 	else if (setOp == "NONE"){
+// 		cout << "Set OP is NONE"<<endl; 
+// 	}
+// 	else{
+// 		cout << "Set OP is "<<setOp<<endl; 
+// 	}
+// 	cout << "Set OP" << setOp<<endl;
+// 	cout <<"Drop that "<< dropTab<<endl;
+// }
 int main () {
 	
 	cout<<"Enter the query"<<endl;
@@ -913,10 +956,6 @@ int main () {
 	if (finalFunction != NULL){
 		cout<<"On "+last_out_pipe+":"<<endl;
 		cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
-		// TreeNode *sum_node = new TreeNode();
-		// sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
-		// last_out_pipe = sum_node->out_pipe_name;
-		// operations_tree.insert({last_out_pipe, sum_node});
 	}
 	 
 	 vector<string> group_tables;
@@ -984,6 +1023,7 @@ int main () {
 
 	TreeNode * finalTree = createTree();
 	executeTree(finalTree, aliasToRel);
+
 
 }
 

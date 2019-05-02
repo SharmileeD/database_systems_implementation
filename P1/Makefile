@@ -11,8 +11,8 @@ gtest_mac:  clean test_mac
 gtest_linux: clean test.out
 	g++ -std=c++11 DBFile_test.cc -o  dbfile_test.o -ll -lgtest -lpthread
 
-main_mac:   y.tab_mac.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o main.o
-	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o main.o -ll
+main_mac:   y.tab_mac.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o yyfunc.tab.o lex.yyfunc.o main.o
+	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o Schema.o Statistics.o Function.o TreeNode.o yyfunc.tab.o lex.yyfunc.o main.o -ll
 
 main:   y.tab.o lex.yy.o Record.o Comparison.o ComparisonEngine.o Schema.o Statistics.o Function.o TreeNode.o File.o BigQ.o DBFile.o Pipe.o RelOp.o yyfunc.tab.o lex.yyfunc.o main.o
 	$(CC) -o main y.tab.o lex.yy.o Record.o Comparison.o ComparisonEngine.o Schema.o Statistics.o Function.o TreeNode.o File.o BigQ.o DBFile.o Pipe.o RelOp.o yyfunc.tab.o lex.yyfunc.o main.o -lfl -lpthread

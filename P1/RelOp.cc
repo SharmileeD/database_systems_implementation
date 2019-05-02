@@ -37,11 +37,11 @@ void* selectHelper(void *args) {
 	input_args->selop->Print();
 
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
-
+		cout << "HEre!!!!!!!!"<<endl;
 		input_args->outpipe->Insert(&temprec);
 		count++;
 	}
-	// cout<<"Select file count "<<count<<endl;
+	cout<<"Select file count "<<count<<endl;
 	input_args->outpipe->ShutDown();
 
 }
