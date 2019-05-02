@@ -4,6 +4,7 @@
 #include "Statistics.h"
 #include "TreeNode.h"
 #include "Function.h"
+#include "Pipe.h"
 #include <vector>
 #include <string>
 #include <algorithm> 
@@ -30,9 +31,14 @@ extern struct FuncOperator *finalFunction; // NULL if Sum not present
 extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
 unordered_map <string, TreeNode*> operations_tree;
-unordered_map <string, TreeNode*> inpipe_to_node; //except for join
 unordered_map <string, string> alias_to_pipeId;
 vector<Join_node*> join_tree;
+vector<SelectPipe_node*> selectPipeVector;
+GroupBy_node* groupByNode;
+Sum_node* sumNode;
+Project_node* projectNode;
+WriteOut_node* writeOutNode;
+unordered_map <string, Pipe*> pipeMap;
 
 string last_out_pipe;
 struct joinMapStruct  {
@@ -209,24 +215,27 @@ TreeNode *generateSelectNode(vector <string> aliases,
                 out_pipe = out_pipe+ "_"+aliases[i];
 				tables.push_back(aliasToRel.at(aliases[i]));
 	        }
-
+			Pipe *outpipe = new Pipe(100);
             sf_node->tables = tables;
             sf_node->out_pipe_name = out_pipe;
 			sf_node->cnf_str = cnf_str;
+			pipeMap.insert({out_pipe, outpipe});
             return sf_node;
         }
         else{
             SelectPipe_node *sp_node = new SelectPipe_node(); 
             std::sort(aliases.begin(), aliases.end());
+			
             string out_pipe = "";
             for(int i =0; i<aliases.size(); i++){
                 out_pipe = out_pipe+ "_"+aliases[i];
 				tables.push_back(aliasToRel.at(aliases[i]));
 	        }
 			sp_node->tables = tables;
+			sp_node->node_type = "select_pipe";
 			sp_node->out_pipe_name = out_pipe;
 			sp_node->cnf_str = cnf_str;
-            return sp_node;
+		    return sp_node;
         }
         
 
@@ -234,15 +243,9 @@ TreeNode *generateSelectNode(vector <string> aliases,
 
 TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOutput){
 	vector<string> tables;
-	
 	Project_node *p_node = new Project_node(); 
 	p_node->node_type = "projection";
- 
-	// p_node->numAttsInput = 
-	// p_node->numAttsOutput = 
-	// p_node->keepMe=
-
-	p_node->out_pipe_name = "_"+last_outpipe;
+ 	p_node->out_pipe_name = "_"+last_outpipe;
 	p_node->cnf_str = cnf_str;
 	return p_node; 
 
@@ -321,13 +324,12 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 				TreeNode *t = operations_tree.at("_"+alias);
 				t->cnf_str = t->cnf_str + " AND " + condition;
 			}
-			
 		}
 		else{
-			select_node = generateSelectNode(temp_aliases, aliasAs, loop_ind, tableName, aliasToRel, condition);
+			SelectPipe_node *select_node = (SelectPipe_node*)generateSelectNode(temp_aliases, aliasAs, loop_ind, tableName, aliasToRel, condition);
 			operations_tree.insert({select_node->out_pipe_name, select_node});
+			selectPipeVector.push_back(select_node);
 		}
-		
 	}
 	string attNameLeft;
 	string attNameRight;
@@ -365,7 +367,6 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 		}
 	}
 }
-
 
 // helper class to enumerate the permutations of the joins Dynamic programming
 string getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s, vector <string> aliasAs) {
@@ -405,7 +406,6 @@ void printPlan(){
 TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList*> &joinVector, int index, vector<string> joinedTables) {
 	
 	Join_node *node = new Join_node();
-	
 	node->node_type = "join";
 	node->input_pipe_l = lPipe;
 	node->input_pipe_r = rPipe;
@@ -413,13 +413,13 @@ TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList
 	node->right_child = NULL;
 	node->left_child = NULL;
 	node->tables = joinedTables;
-
+	Pipe *outpipe = new Pipe(100);
+	pipeMap.insert({opPipe, outpipe});
 	string leftVal = joinVector[index]->left->left->value;
 	string rightVal = joinVector[index]->left->right->value;
 	string cnf_Str = "(" + leftVal+" = " + rightVal + ")";
 	// cout << "Built cnf: "<<cnf_Str<<endl;
 	node->cnf_str = cnf_Str;
-
 	return node;
 }
 
@@ -465,11 +465,7 @@ void createJoinTree(vector <OrList*> &joinVector, string minCostPermutation, vec
 		
 		for(int i = 0; i< pipeId_to_alias.find(rpid)->second.size(); i++) 
 			rightPipe.append("_"+pipeId_to_alias.find(rpid)->second[i]);
-		
-		// cout <<"Left pipe:" <<leftPipe<<endl;
-		// cout <<"Right pipe:" <<rightPipe<<endl;
-
-		//--------------------Update for the join operation performed------------------------
+	
 		vector<string> right_vector = pipeId_to_alias.at(rpid);
 		//update pipeid of all aliases to lpid
 		if(lpid != rpid){
@@ -577,7 +573,7 @@ void make_group_by() {
 	str = finalFunction->leftOperand->value;
 	string tbname = str.substr(0,str.find('.'));
 	// string str1 = aliasToRel.at(tbname) +"." + str.substr(str.find(".")+1,str.length()-1);
-	string str1 = str.substr(str.find(".")+1,str.length()-1);
+	string str1 = str.substr(str.find(".")+1,str.length());
 	char * cnf_str = (char*)malloc(str1.length());
 	strcpy(cnf_str, str1.c_str());
 	// get_cnf ((char*)cnf_str, &groupSchema, func);
@@ -590,20 +586,76 @@ void make_group_by() {
 	string op_pipe = "_"+ip_pipe;
 	group_by_node = generateGroupByNode(&groupOrder, cnf_str, &func, group_tables, ip_pipe, op_pipe);
 	operations_tree.insert({op_pipe, group_by_node});
-		
+	groupByNode = (GroupBy_node*)group_by_node;
 }
 
 TreeNode* createTree() {
 	//loop through joinVector and find corresponding input pipes an thus the child nodes
+	string last_ip, last_op;
+
 	TreeNode * root = new TreeNode();
 	for(auto join_it = join_tree.begin(); join_it != join_tree.end(); join_it++) {
-		//get left and right child;
+		//get left and right child for all join nodes;
 		(*join_it)->left_child = operations_tree.find((*join_it)->input_pipe_l)->second;
 		(*join_it)->right_child = operations_tree.find((*join_it)->input_pipe_r)->second;
 		root = *join_it;
+		last_op = (*join_it)->out_pipe_name;
 	}
+	//add all select pipes if there are any
+	for(auto sp_it = selectPipeVector.begin(); sp_it != selectPipeVector.end(); sp_it++) {
+		(*sp_it)->right_child = root;
+		(*sp_it)->input_pipe = last_op;
+		(*sp_it)->out_pipe_name ="_"+last_op;
+		last_op = (*sp_it)->out_pipe_name;
+		Pipe *spoutpipe = new Pipe(100);
+		pipeMap.insert({last_op, spoutpipe});
+		root = *sp_it;
+	}
+	//group by , if group by is empty then add sum node
+	if(groupingAtts != NULL) {
+		groupByNode->right_child = root;
+		groupByNode->input_pipe = last_op;
+		groupByNode->out_pipe_name = "_"+last_op;
+		last_op = groupByNode->out_pipe_name;
+		Pipe *grpoutpipe = new Pipe(100);
+		pipeMap.insert({last_op, grpoutpipe});
+		groupByNode->left_child = NULL;
+		root = groupByNode;
+	}
+	else{
+		 if(finalFunction != NULL){
+			sumNode->right_child = root;
+			sumNode->left_child = NULL;
+			sumNode->input_pipe = last_op;
+			sumNode->out_pipe_name = "_"+last_op;
+			last_op = sumNode->out_pipe_name;
+			Pipe *sumoutpipe = new Pipe(100);
+			pipeMap.insert({last_op, sumoutpipe});
+			root = sumNode;
+		 }
+	}
+	if (attsToSelect!=NULL){
+		projectNode->right_child = root;
+		projectNode->left_child = NULL;
+		projectNode->input_pipe = last_op;
+		projectNode->out_pipe_name = "_"+last_op;
+		last_op = projectNode->out_pipe_name;
+		Pipe *projoutpipe = new Pipe(100);
+		pipeMap.insert({last_op, projoutpipe});
+		root = projectNode;
+	}
+	writeOutNode->right_child = root;
+	writeOutNode->left_child = NULL;
+	writeOutNode->input_pipe = last_op;
+	writeOutNode->out_pipe_name = "_"+last_op;
+	Pipe *writeoutpipe = new Pipe(100);
+	pipeMap.insert({last_op, writeoutpipe});
+	root = writeOutNode;
+
 	return root;
 }
+
+
 
 int main () {
 	
@@ -709,6 +761,7 @@ int main () {
 		cout<<"On "+last_out_pipe+":"<<endl;
 		cout<<"P "+projection+" => _"+last_out_pipe<<endl;
 		last_out_pipe = project_node->out_pipe_name;
+		projectNode = (Project_node*)project_node;
 		operations_tree.insert({last_out_pipe, project_node});
 	}	
 	//only print
@@ -772,6 +825,7 @@ int main () {
 			sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
 			last_out_pipe = sum_node->out_pipe_name;
 			operations_tree.insert({last_out_pipe, sum_node});
+			sumNode = (Sum_node*)sum_node;
 		}
 	}
 	
@@ -779,6 +833,7 @@ int main () {
 	TreeNode *writeout_node = new TreeNode();
 	writeout_node = generateWriteOutNode(last_out_pipe);
 	operations_tree.insert({"root", writeout_node});
+	writeOutNode = (WriteOut_node*)writeout_node;
 	cout<<"On "+last_out_pipe+":"<<endl;
 	cout<<"W ( "+last_out_pipe+" )"<<endl;
 
