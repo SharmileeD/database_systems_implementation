@@ -11,6 +11,7 @@
 #include <stack>
 #include <bits/stdc++.h> 
 #include "RelOp.h"
+#include "DBFile.h"
 extern "C" struct YY_BUFFER_STATE *yy_scan_string(const char*);
 
 // #include <bits/stdc++.h> 
@@ -39,6 +40,8 @@ extern struct CreateList *create;
 extern struct Insert *insertQuery;
 extern char* dropTab;
 extern char* setOp;
+extern char* createTab;
+extern char* createTabType;
 unordered_map <string, TreeNode*> operations_tree;
 unordered_map <string, string> alias_to_pipeId;
 vector<Join_node*> join_tree;
@@ -50,6 +53,7 @@ WriteOut_node* writeOutNode;
 unordered_map <string, Pipe*> pipeMap;
 Schema *rschema;
 Schema* schema () { return rschema;}
+unordered_map <string, Schema*> schemaMap;
 
 string last_out_pipe;
 struct joinMapStruct  {
@@ -443,6 +447,9 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 
 		}
 	}
+	if(selectionVector.size()==0 && joinVector.size()==0){
+		cout<<"NOTHING PRESENT"<<endl;
+	}
 }
 // helper class to enumerate the permutations of the joins Dynamic programming
 string getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s, vector <string> aliasAs) {
@@ -803,11 +810,77 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 
 }
 
-// int main () {
+Type getAttrType(char * input){
+	string ipStr(input);
+	if (ipStr=="STRING"){
+		return String;
+	}
+	else if(ipStr=="INTEGER"){
+		return Int;
+	}
+	else if(ipStr=="DOUBLE"){
+		return Double;
+	}
+	
+}
 
-// 	cout<<"Enter the query"<<endl;
-// 	yyparse();
-// 	if(create == NULL){
+// int main(){
+// 	bool run = true;
+// 	string ip;
+// 	while(run){
+// 		cout<<"Enter next query"<<endl;
+// 		getline (cin,ip);
+// 		yy_scan_string(ip.c_str());
+// 		yyparse();
+// 		if (operType == 1){
+// 			cout<<"Create query"<<endl;
+// 			operType = 0;
+// 			struct CreateList * currCr = create;
+// 			vector <Attribute*> new_table_sch;
+// 			struct Attribute * attr;
+// 			while(currCr){
+// 				attr = (Attribute *) malloc(sizeof(Attribute));
+// 				attr->name = currCr->attName;
+// 				attr->myType = getAttrType(currCr->attType);
+// 				new_table_sch.push_back(attr);
+// 				currCr=currCr->rightcrt;
+// 			}
+// 			Attribute atts [new_table_sch.size()];
+// 			for(int i=0; i<new_table_sch.size();i++){
+// 				atts[i] = *new_table_sch[i];
+// 			}
+// 			Schema *new_tab_sch = new Schema (createTab, new_table_sch.size(), atts);
+
+// 			schemaMap.insert({createTab, new_tab_sch});
+// 			DBFile dbf;
+// 			std::string table_name(createTab);
+// 			dbf.Create((table_name+".bin").c_str(), heap, NULL);
+// 		}
+// 		else if (operType == 2){
+// 			DBFile dbf;
+// 			 std::string table_name(insertQuery->tableName);
+
+// 			dbf.Open((table_name+".bin").c_str());
+// 			dbf.Load(*schemaMap.at(insertQuery->tableName), insertQuery->fileName);
+// 			dbf.Close();
+// 		}
+// 		else if (operType == 3){
+// 			schemaMap.erase(dropTab);
+// 			std::string table_name(dropTab);
+// 			remove((table_name+".bin").c_str());
+// 			remove((table_name+"_lpage.txt").c_str());
+// 			remove((table_name+"_dpage.txt").c_str());
+// 			remove((table_name+"_type.txt").c_str());
+// 		}
+// 		else if(operType == 6){
+// 			run = false;
+// 		}
+		
+// 	}
+	
+
+// 	cout << "Oper type end" << operType<<endl;
+//  	if(create == NULL){
 // 		cout<<"Not yet Create!"<<endl;
 // 	}
 // 	else{
@@ -828,7 +901,7 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 // 	}
 // 	if(dropTab== NULL){
 // 		cout<<"DT null " <<endl;
-// 	}
+// 	}git 
 // 	if (setOp == "STDOUT"){
 // 		cout << "Set OP is STDOUT"<<endl; 
 // 	}
@@ -841,7 +914,9 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 // 	cout << "Set OP" << setOp<<endl;
 // 	cout <<"Drop that "<< dropTab<<endl;
 // }
+
 int main () {
+
 	
 	cout<<"Enter the query"<<endl;
 	yyparse();
@@ -1023,7 +1098,6 @@ int main () {
 
 	TreeNode * finalTree = createTree();
 	executeTree(finalTree, aliasToRel);
-
 
 }
 

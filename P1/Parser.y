@@ -28,6 +28,7 @@
 	char * dropTab;
 	char * createTab;
 	char * setOp;
+	char * createTabType;
 
 
 %}
@@ -70,7 +71,6 @@
 %token CREATE
 %token TABLE
 %token ON
-%token HEAP
 %token SORTED
 %token INTEGER
 %token FLOAT
@@ -80,6 +80,7 @@
 %token DROP
 %token SET
 %token OUTPUT
+%token EXIT
 
 
 
@@ -95,8 +96,6 @@
 %type <myBoolOperand> Literal
 %type <myNames> Atts
 %type <mycrList> crAtts
-%type <mycrList> createAtts
-%type <mycrAtt> crAtt
 %type <myInsList> insertVars
 %type <myOutput> output
 
@@ -116,29 +115,31 @@
  */
 
 %%
-SQL:CREATE TABLE Name '(' crAtts ')' AS HEAP
+SQL:CREATE TABLE Name '(' crAtts ')' AS Name
 {
 	createTab = $3;
 	create = $5;
+	operType = 1;
+	createTabType = $8;
 }
 | INSERT insertVars
 {
 	insertQuery = $2;
+	operType = 2;
 }
 | DROP TABLE Name
 {
 	dropTab = $3;
-	operType = 2;
+	operType = 3;
 }
 | SET OUTPUT output{
 	outputState = $3;
-	operType = 3;
+	operType = 4;
 }
-
 | AndList
 {
 	final = $1;
-	operType = 4;
+	operType = 5;
 }
 | SELECT WhatIWant FROM Tables WHERE AndList
 {
@@ -146,7 +147,7 @@ SQL:CREATE TABLE Name '(' crAtts ')' AS HEAP
 	boolean = $6;	
 	final = $6;
 	groupingAtts = NULL;
-	operType = 4;
+	operType = 5;
 }
 
 | SELECT WhatIWant FROM Tables WHERE AndList GROUP BY Atts
@@ -155,8 +156,13 @@ SQL:CREATE TABLE Name '(' crAtts ')' AS HEAP
 	boolean = $6;	
 	final = $6;
 	groupingAtts = $9;
-	operType = 4;
-};
+	operType = 5;
+}
+| EXIT{
+	operType = 6;
+}
+
+;
 
 WhatIWant: Function ',' Atts 
 {

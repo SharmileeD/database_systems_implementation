@@ -1,0 +1,16 @@
+n|25.000000|n_name|25.000000|n_nationkey|25.000000|n_regionkey|5.000000|
+region|5.000000|r_name|5.000000|r_regionkey|5.000000|
+part|200000.000000|p_container|40.000000|p_name|199996.000000|p_partkey|200000.000000|p_size|50.000000|
+c|150000.000000|c_custkey|150000.000000|c_mktsegment|5.000000|c_nationkey|25.000000|
+s|10000.000000|s_nationkey|25.000000|s_suppkey|10000.000000|
+n2|25.000000|n_name|25.000000|n_nationkey|25.000000|n_regionkey|5.000000|
+ps|800000.000000|ps_partkey|200000.000000|ps_suppkey|10000.000000|
+n1|25.000000|n_name|25.000000|n_nationkey|25.000000|n_regionkey|5.000000|
+partsupp|800000.000000|ps_partkey|200000.000000|ps_suppkey|10000.000000|
+lineitem|6001215.000000|l_discount|11.000000|l_returnflag|3.000000|l_receiptdate|1500000.000000|l_shipmode|7.000000|l_shipinstruct|4.000000|l_orderkey|1500000.000000|l_partkey|200000.000000|
+orders|1500000.000000|o_orderdate|150000.000000|o_orderkey|1500000.000000|o_custkey|150000.000000|
+r|5.000000|r_name|5.000000|r_regionkey|5.000000|
+supplier|10000.000000|s_nationkey|25.000000|s_suppkey|10000.000000|
+customer|150000.000000|c_custkey|150000.000000|c_mktsegment|5.000000|c_nationkey|25.000000|
+p|200000.000000|p_container|40.000000|p_name|199996.000000|p_partkey|200000.000000|p_size|50.000000|
+nation|25.000000|n_name|25.000000|n_nationkey|25.000000|n_regionkey|5.000000|

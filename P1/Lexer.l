@@ -59,8 +59,6 @@ void close_lexical_parser () { yy_delete_buffer (yylex_buf_state); }
 
 "DISTINCT"		return(DISTINCT);
 
-"HEAP"		return(HEAP);
-
 "SORTED" return(SORTED);
 
 "ON" return(ON);
@@ -72,6 +70,8 @@ void close_lexical_parser () { yy_delete_buffer (yylex_buf_state); }
 "SET" return(SET);
 
 "OUTPUT" return(OUTPUT);
+
+"EXIT" return(EXIT);
 
 "BY"			return(BY);
 

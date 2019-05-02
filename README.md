@@ -114,11 +114,7 @@ Project 4.2
 Aim: To compile and optimize an input SQL statement, and then print the resulting, optimized query plan to the screen.
 These are the queries that the data is setup for
 
-SELECT l_orderkey, l_partkey, l_suppkey
-FROM lineitem AS l
-WHERE 
-(l.l_returnflag = 'R') AND (l.l_discount < 0.04 OR 
-l.l_returnflag = 'R') AND (l.l_shipmode = 'MAIL')
+SELECT l_orderkey, l_partkey, l_suppkey FROM lineitem AS l WHERE  (l.l_returnflag = 'R') AND (l.l_discount < 0.04 OR l.l_returnflag = 'R') AND (l.l_shipmode = 'MAIL')
 
-SELECT SUM(p.akash), p.sharmilee, ps.tushar FROM part AS p, supplier AS s, partsupp AS ps WHERE (p.p_partkey = ps.ps_partkey) AND (s.s_suppkey = ps.ps_suppkey) AND (p.p_partkey = ps.ps_partkey)
+SELECT SUM(p.akash), p.sharmilee, ps.tushar FROM part AS p, supplier AS s, partsupp AS ps WHERE (p.p_partkey = ps.ps_partkey) AND (s.s_suppkey=ps.ps_suppkey) AND (p.p_partkey = ps.ps_partkey)
 
