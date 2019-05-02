@@ -20,6 +20,15 @@
 	int distinctAtts; // 1 if there is a DISTINCT in a non-aggregate query 
 	int distinctFunc;  // 1 if there is a DISTINCT in an aggregate query
 	struct AndList *final;
+	struct CreateList *create;
+	struct Insert *insertQuery;
+	struct Output *outputState;
+	
+	int operType;
+	char * dropTab;
+	char * createTab;
+	char * setOp;
+
 
 %}
 
@@ -33,8 +42,14 @@
 	struct OrList *myOrList;
 	struct AndList *myAndList;
 	struct NameList *myNames;
+	struct CreateList *mycrList;
+	struct Insert *myInsList;
+	struct Output *myOutput;
+
 	char *actualChars;
 	char whichOne;
+	struct Operand *mycrAtt;
+
 }
 
 %token <actualChars> Name
@@ -51,6 +66,23 @@
 %token AS
 %token AND
 %token OR
+%token TABLES
+%token CREATE
+%token TABLE
+%token ON
+%token HEAP
+%token SORTED
+%token INTEGER
+%token FLOAT
+%token VARCHAR
+%token INSERT
+%token INTO
+%token DROP
+%token SET
+%token OUTPUT
+
+
+
 
 %type <myOrList> OrList
 %type <myAndList> AndList
@@ -62,6 +94,16 @@
 %type <myTables> Tables
 %type <myBoolOperand> Literal
 %type <myNames> Atts
+%type <mycrList> crAtts
+%type <mycrList> createAtts
+%type <mycrAtt> crAtt
+%type <myInsList> insertVars
+%type <myOutput> output
+
+
+
+
+
 
 %start SQL
 
@@ -74,16 +116,37 @@
  */
 
 %%
-SQL: AndList{
-	final = $1;
+SQL:CREATE TABLE Name '(' crAtts ')' AS HEAP
+{
+	createTab = $3;
+	create = $5;
 }
-|
-SELECT WhatIWant FROM Tables WHERE AndList
+| INSERT insertVars
+{
+	insertQuery = $2;
+}
+| DROP TABLE Name
+{
+	dropTab = $3;
+	operType = 2;
+}
+| SET OUTPUT output{
+	outputState = $3;
+	operType = 3;
+}
+
+| AndList
+{
+	final = $1;
+	operType = 4;
+}
+| SELECT WhatIWant FROM Tables WHERE AndList
 {
 	tables = $4;
 	boolean = $6;	
 	final = $6;
 	groupingAtts = NULL;
+	operType = 4;
 }
 
 | SELECT WhatIWant FROM Tables WHERE AndList GROUP BY Atts
@@ -92,6 +155,7 @@ SELECT WhatIWant FROM Tables WHERE AndList
 	boolean = $6;	
 	final = $6;
 	groupingAtts = $9;
+	operType = 4;
 };
 
 WhatIWant: Function ',' Atts 
@@ -163,6 +227,38 @@ Tables: Name AS Name
 }
 
 
+
+crAtts:Name Name {
+	$$ = (struct CreateList *) malloc (sizeof (struct CreateList));
+	
+	$$->attName = $1;
+	$$->attType = $2;
+	$$->rightcrt = NULL;
+}
+| crAtts ',' Name Name
+{
+	$$ = (struct CreateList *) malloc (sizeof (struct CreateList));
+	$$->attName = $3;
+	$$->attType = $4;
+	$$->rightcrt = $1;
+}
+
+
+
+output: Name{
+	setOp = $1;
+}
+| String{
+	setOp = $1;
+}
+
+insertVars: String INTO Name{
+	$$ = (struct Insert *) malloc (sizeof (struct Insert));
+	insertQuery = $$;
+	$$->fileName= $1;
+	$$->tableName= $3;
+	operType = 1;
+}
 
 CompoundExp: SimpleExp Op CompoundExp
 {

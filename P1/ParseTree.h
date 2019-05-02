@@ -97,4 +97,27 @@ struct AndList {
 
 };
 
+struct CreateList {
+
+        // this is the disjunction to the left of the AND
+        char *attName;
+        char *attType;
+
+        // this is the AndList to the right of the AND
+        // note that this can be NULL if the right is a disjunction
+        struct CreateList *rightcrt;
+
+};
+
+struct Insert {
+
+        char *fileName;
+        char *tableName;
+};
+
+struct Output {
+
+        char *output;
+};
+
 #endif

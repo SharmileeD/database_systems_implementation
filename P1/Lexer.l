@@ -41,6 +41,12 @@ void close_lexical_parser () { yy_delete_buffer (yylex_buf_state); }
 
 "SELECT"		return(SELECT);
 
+"CREATE"		return(CREATE);
+
+"INSERT"		return(INSERT);
+
+"INTO"		return(INTO);
+
 "FROM"			return(FROM);
 
 "WHERE"			return(WHERE);
@@ -52,6 +58,20 @@ void close_lexical_parser () { yy_delete_buffer (yylex_buf_state); }
 "GROUP"			return(GROUP);
 
 "DISTINCT"		return(DISTINCT);
+
+"HEAP"		return(HEAP);
+
+"SORTED" return(SORTED);
+
+"ON" return(ON);
+
+"TABLE" return(TABLE);
+
+"DROP" return(DROP);
+
+"SET" return(SET);
+
+"OUTPUT" return(OUTPUT);
 
 "BY"			return(BY);
 
@@ -93,7 +113,7 @@ void close_lexical_parser () { yy_delete_buffer (yylex_buf_state); }
 
 [A-Za-z][A-Za-z0-9_-]*\.[A-Za-z][A-Za-z0-9_-]* {yylval.actualChars = strdup(yytext);
   			return(Name);
-			}     
+			}   
 
 \'[^'\n]*\'            {/* take care of ' in a string */
                         if (yytext[yyleng - 2] == '\\') {

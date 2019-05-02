@@ -30,6 +30,11 @@ extern  struct NameList *attsToSelect; //projection
 extern struct FuncOperator *finalFunction; // NULL if Sum not present
 extern int distinctAtts; //only distinct
 extern int distinctFunc; //Sum and distinct
+extern int operType; 
+extern struct CreateList *create; 
+extern struct Insert *insertQuery;
+extern char* dropTab;
+extern char* setOp;
 unordered_map <string, TreeNode*> operations_tree;
 unordered_map <string, string> alias_to_pipeId;
 vector<Join_node*> join_tree;
@@ -654,192 +659,227 @@ TreeNode* createTree() {
 
 	return root;
 }
-
-
-
-int main () {
+int main(){
 	
 	cout<<"Enter the query"<<endl;
 	yyparse();
-
-	// Getting the split of joins and selections 
-	vector <OrList*> joinVector;
-	vector <OrList*> selectionVector;
-    
-	Statistics s;
-	
-	char *relName[] = {"supplier","customer","nation", "part", "partsupp", "lineitem"};
-
-	s.AddRel(relName[0],10000);
-	s.AddAtt(relName[0], "s_nationkey",25);
-	s.AddAtt(relName[0], "s_suppkey",10000);
-	s.AddRel(relName[1],150000);
-	s.AddAtt(relName[1], "c_custkey",150000);
-	s.AddAtt(relName[1], "c_nationkey",25);
-	
-	s.AddRel(relName[2],25);
-	s.AddAtt(relName[2], "n_nationkey",25);
-	 s.AddRel(relName[3],200000);
-    s.AddAtt(relName[3], "p_partkey",200000);
-    s.AddAtt(relName[3], "p_name", 199996);
-	
-	s.AddRel(relName[4],800000);
-    s.AddAtt(relName[4], "ps_partkey",200000);
-    s.AddAtt(relName[4], "ps_suppkey",10000);
-
-	s.AddRel(relName[5],100000);
-	s.AddAtt(relName[5], "l_returnflag",5000);
-	s.AddAtt(relName[5], "l_discount",1000);
-	s.AddAtt(relName[5], "l_shipmode",10000);
-
-	s.CopyRel("nation","n1");
-	s.CopyRel("nation","n2");
-	s.CopyRel("supplier","s");
-	s.CopyRel("customer","c");
-	s.CopyRel("part","p");
-	s.CopyRel("partsupp","ps");
-	s.CopyRel("lineitem","l");
-
-
-	separateJoinSelection(joinVector, selectionVector);
-	
-	// Getting the table names and aliases 
-	vector <string> tableName;
-	vector <string> aliasAs;
-	unordered_map <string, string> aliasToRel;
-	unordered_map <string, char*> relToAlias;
-	getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias);
-
-	getSelectFileNodes(selectionVector, joinVector, tableName, aliasAs, aliasToRel);
-	printPlan();
-
-	string optimalJoinSeq = getOptimalJoinSequence(joinVector, s, aliasAs);
-	createJoinTree(joinVector, optimalJoinSeq, aliasAs);
-	
-	// Print Joins
-	for(int i =0;i<join_tree.size();i++){
-		Join_node *t = join_tree[i];
-		cout<<"On "+t->input_pipe_l+" and "+ t->input_pipe_r+":"<<endl;;
-		cout<<"J"+t->cnf_str+" => "+t->out_pipe_name<<endl;
-		cout<<"OutputSchema:"<<endl;
-		vector <string> tableNames;
-		for (int k =0; k<t->tables.size();k++){
-			tableNames.push_back(aliasToRel.at(t->tables[k]));
-		}
-		Schema mySchema = get_join_schema(tableNames);
-		Attribute *rel1_atts =  mySchema.GetAtts(); 
-		for(int j = 0;j<mySchema.GetNumAtts();j++){
-			cout<<rel1_atts[j].name<<": "<<rel1_atts[j].myType<<" ";
-		}
-		cout<<endl;
-		last_out_pipe = t->out_pipe_name;
+	if(create == NULL){
+		cout<<"Not yet Create!"<<endl;
 	}
-	// cout<<"size of join "<< joinVector.size()<<endl;
-	// cout<<"size of selection "<< selectionVector.size()<<endl;
-	double sf_cost = calculateSFCost(s, relToAlias);
-	string projection = "(";
-	int numAttsp = 0;
-
-	// Checking if Projection is present
-	if (attsToSelect!=NULL){
-		struct NameList *selectAtt = attsToSelect;
-		while(selectAtt){
-			numAttsp++;
-			if(numAttsp == 1){
-				projection = projection +selectAtt->name;
-			}
-			else{
-				projection = projection +","+selectAtt->name;
-			}
-			
-			selectAtt = selectAtt->next;
-		}
-		projection = projection + ")";
-
-		TreeNode *project_node = new TreeNode();
-		project_node = generateProjectNode(projection, last_out_pipe, numAttsp);
-		cout<<"On "+last_out_pipe+":"<<endl;
-		cout<<"P "+projection+" => _"+last_out_pipe<<endl;
-		last_out_pipe = project_node->out_pipe_name;
-		projectNode = (Project_node*)project_node;
-		operations_tree.insert({last_out_pipe, project_node});
-	}	
-	//only print
-	if (finalFunction != NULL){
-		cout<<"On "+last_out_pipe+":"<<endl;
-		cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
-		// TreeNode *sum_node = new TreeNode();
-		// sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
-		// last_out_pipe = sum_node->out_pipe_name;
-		// operations_tree.insert({last_out_pipe, sum_node});
+	else{
+		cout<<"Maybe"<<endl;
+		cout<<create->attName<<endl;
+		cout<<create->attType<<endl;
+		cout<<create->rightcrt->attName<<endl;
+		cout<<create->rightcrt->attType<<endl;
 	}
-	 
-	 vector<string> group_tables;
-
-	 if(groupingAtts != NULL) {
-		 NameList * tempGroupingAtts = groupingAtts;
-		cout <<"G On: (";
-		while(tempGroupingAtts) {
-			cout <<tempGroupingAtts->name << ", ";
-			string attr = tempGroupingAtts->name;
-			string tablealias = attr.substr(0,attr.find('.'));
-			group_tables.push_back(aliasToRel.at(tablealias));
-			tempGroupingAtts = tempGroupingAtts->next;
-		}
-		cout << ")"<<endl;
-		//print op pipes from SF nodes?
-		//print fuction using inorder traversal if not null
-		if(finalFunction != NULL) {
-			cout<<"Function: (";		
-			struct FuncOperator *funcOp = finalFunction;
-			struct FuncOperator *preFunc;
-
-			while(funcOp != NULL) {
-				if(funcOp->leftOperator != NULL) {
-					cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
-					string temp = funcOp->leftOperator->leftOperand->value;
-					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
-					strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
-				}
-				else {
-					cout << funcOp->leftOperand->value<<")" <<endl;
-					string temp = funcOp->leftOperand->value;
-					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
-					strcpy(funcOp->leftOperand->value, attrname.c_str());
-				}
-				funcOp = funcOp->right;
-			}
-		}
-		Schema groupSchema = get_join_schema(group_tables);
-		OrderMaker groupOrder (&groupSchema);
-		groupOrder.Print();
-		make_group_by();
-		
+	if(insertQuery == NULL){
+		cout<<"Not yet!"<<endl;
 	}
-	//if no group by then check if sum present
-	else {
-		if (finalFunction != NULL){
-			cout<<"On "+last_out_pipe+":"<<endl;
-			cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
-			TreeNode *sum_node = new TreeNode();
-			sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
-			last_out_pipe = sum_node->out_pipe_name;
-			operations_tree.insert({last_out_pipe, sum_node});
-			sumNode = (Sum_node*)sum_node;
-		}
+	else{
+		cout<<insertQuery->fileName<<endl;
+		cout<<insertQuery->tableName<<endl;
+		cout<<"Oper type " << operType <<endl;
+		cout<<"Maybe"<<endl;
 	}
-	
-	// Finally printing out writeout
-	TreeNode *writeout_node = new TreeNode();
-	writeout_node = generateWriteOutNode(last_out_pipe);
-	operations_tree.insert({"root", writeout_node});
-	writeOutNode = (WriteOut_node*)writeout_node;
-	cout<<"On "+last_out_pipe+":"<<endl;
-	cout<<"W ( "+last_out_pipe+" )"<<endl;
-
-	TreeNode * finalTree = createTree();
-
-
+	if(dropTab== NULL){
+		cout<<"DT null " <<endl;
+	}
+	if (setOp == "STDOUT"){
+		cout << "Set OP is STDOUT"<<endl; 
+	}
+	else if (setOp == "NONE"){
+		cout << "Set OP is NONE"<<endl; 
+	}
+	else{
+		cout << "Set OP is "<<setOp<<endl; 
+	}
+	cout << "Set OP" << setOp<<endl;
+	cout <<"Drop that "<< dropTab<<endl;
 }
+// int main () {
+	
+// 	cout<<"Enter the query"<<endl;
+// 	yyparse();
+
+// 	// Getting the split of joins and selections 
+// 	vector <OrList*> joinVector;
+// 	vector <OrList*> selectionVector;
+    
+// 	Statistics s;
+	
+// 	char *relName[] = {"supplier","customer","nation", "part", "partsupp", "lineitem"};
+
+// 	s.AddRel(relName[0],10000);
+// 	s.AddAtt(relName[0], "s_nationkey",25);
+// 	s.AddAtt(relName[0], "s_suppkey",10000);
+// 	s.AddRel(relName[1],150000);
+// 	s.AddAtt(relName[1], "c_custkey",150000);
+// 	s.AddAtt(relName[1], "c_nationkey",25);
+	
+// 	s.AddRel(relName[2],25);
+// 	s.AddAtt(relName[2], "n_nationkey",25);
+// 	 s.AddRel(relName[3],200000);
+//     s.AddAtt(relName[3], "p_partkey",200000);
+//     s.AddAtt(relName[3], "p_name", 199996);
+	
+// 	s.AddRel(relName[4],800000);
+//     s.AddAtt(relName[4], "ps_partkey",200000);
+//     s.AddAtt(relName[4], "ps_suppkey",10000);
+
+// 	s.AddRel(relName[5],100000);
+// 	s.AddAtt(relName[5], "l_returnflag",5000);
+// 	s.AddAtt(relName[5], "l_discount",1000);
+// 	s.AddAtt(relName[5], "l_shipmode",10000);
+
+// 	s.CopyRel("nation","n1");
+// 	s.CopyRel("nation","n2");
+// 	s.CopyRel("supplier","s");
+// 	s.CopyRel("customer","c");
+// 	s.CopyRel("part","p");
+// 	s.CopyRel("partsupp","ps");
+// 	s.CopyRel("lineitem","l");
+
+
+// 	separateJoinSelection(joinVector, selectionVector);
+	
+// 	// Getting the table names and aliases 
+// 	vector <string> tableName;
+// 	vector <string> aliasAs;
+// 	unordered_map <string, string> aliasToRel;
+// 	unordered_map <string, char*> relToAlias;
+// 	getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias);
+
+// 	getSelectFileNodes(selectionVector, joinVector, tableName, aliasAs, aliasToRel);
+// 	printPlan();
+
+// 	string optimalJoinSeq = getOptimalJoinSequence(joinVector, s, aliasAs);
+// 	createJoinTree(joinVector, optimalJoinSeq, aliasAs);
+	
+// 	// Print Joins
+// 	for(int i =0;i<join_tree.size();i++){
+// 		Join_node *t = join_tree[i];
+// 		cout<<"On "+t->input_pipe_l+" and "+ t->input_pipe_r+":"<<endl;;
+// 		cout<<"J"+t->cnf_str+" => "+t->out_pipe_name<<endl;
+// 		cout<<"OutputSchema:"<<endl;
+// 		vector <string> tableNames;
+// 		for (int k =0; k<t->tables.size();k++){
+// 			tableNames.push_back(aliasToRel.at(t->tables[k]));
+// 		}
+// 		Schema mySchema = get_join_schema(tableNames);
+// 		Attribute *rel1_atts =  mySchema.GetAtts(); 
+// 		for(int j = 0;j<mySchema.GetNumAtts();j++){
+// 			cout<<rel1_atts[j].name<<": "<<rel1_atts[j].myType<<" ";
+// 		}
+// 		cout<<endl;
+// 		last_out_pipe = t->out_pipe_name;
+// 	}
+// 	// cout<<"size of join "<< joinVector.size()<<endl;
+// 	// cout<<"size of selection "<< selectionVector.size()<<endl;
+// 	double sf_cost = calculateSFCost(s, relToAlias);
+// 	string projection = "(";
+// 	int numAttsp = 0;
+
+// 	// Checking if Projection is present
+// 	if (attsToSelect!=NULL){
+// 		struct NameList *selectAtt = attsToSelect;
+// 		while(selectAtt){
+// 			numAttsp++;
+// 			if(numAttsp == 1){
+// 				projection = projection +selectAtt->name;
+// 			}
+// 			else{
+// 				projection = projection +","+selectAtt->name;
+// 			}
+// 			selectAtt = selectAtt->next;
+// 		}
+// 		projection = projection + ")";
+
+// 		TreeNode *project_node = new TreeNode();
+// 		project_node = generateProjectNode(projection, last_out_pipe, numAttsp);
+// 		cout<<"On "+last_out_pipe+":"<<endl;
+// 		cout<<"P "+projection+" => _"+last_out_pipe<<endl;
+// 		last_out_pipe = project_node->out_pipe_name;
+		// projectNode = (Project_node*)project_node;
+// 		operations_tree.insert({last_out_pipe, project_node});
+// 	}	
+// 	//only print
+// 	if (finalFunction != NULL){
+// 		cout<<"On "+last_out_pipe+":"<<endl;
+// 		cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
+// 		// TreeNode *sum_node = new TreeNode();
+// 		// sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
+// 		// last_out_pipe = sum_node->out_pipe_name;
+// 		// operations_tree.insert({last_out_pipe, sum_node});
+// 	}
+	 
+// 	 vector<string> group_tables;
+
+// 	 if(groupingAtts != NULL) {
+// 		 NameList * tempGroupingAtts = groupingAtts;
+// 		cout <<"G On: (";
+// 		while(tempGroupingAtts) {
+// 			cout <<tempGroupingAtts->name << ", ";
+// 			string attr = tempGroupingAtts->name;
+// 			string tablealias = attr.substr(0,attr.find('.'));
+// 			group_tables.push_back(aliasToRel.at(tablealias));
+// 			tempGroupingAtts = tempGroupingAtts->next;
+// 		}
+// 		cout << ")"<<endl;
+// 		//print op pipes from SF nodes?
+// 		//print fuction using inorder traversal if not null
+// 		if(finalFunction != NULL) {
+// 			cout<<"Function: (";		
+// 			struct FuncOperator *funcOp = finalFunction;
+// 			struct FuncOperator *preFunc;
+
+// 			while(funcOp != NULL) {
+// 				if(funcOp->leftOperator != NULL) {
+// 					cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
+// 					string temp = funcOp->leftOperator->leftOperand->value;
+// 					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+// 					strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
+// 				}
+// 				else {
+// 					cout << funcOp->leftOperand->value<<")" <<endl;
+// 					string temp = funcOp->leftOperand->value;
+// 					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+// 					strcpy(funcOp->leftOperand->value, attrname.c_str());
+// 				}
+// 				funcOp = funcOp->right;
+// 			}
+// 		}
+// 		Schema groupSchema = get_join_schema(group_tables);
+// 		OrderMaker groupOrder (&groupSchema);
+// 		groupOrder.Print();
+// 		make_group_by();
+		
+	// }
+	// //if no group by then check if sum present
+	// else {
+	// 	if (finalFunction != NULL){
+	// 		cout<<"On "+last_out_pipe+":"<<endl;
+	// 		cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
+	// 		TreeNode *sum_node = new TreeNode();
+	// 		sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
+	// 		last_out_pipe = sum_node->out_pipe_name;
+	// 		operations_tree.insert({last_out_pipe, sum_node});
+	// 		sumNode = (Sum_node*)sum_node;
+	// 	}
+	// }
+	
+	// // Finally printing out writeout
+	// TreeNode *writeout_node = new TreeNode();
+	// writeout_node = generateWriteOutNode(last_out_pipe);
+	// operations_tree.insert({"root", writeout_node});
+	// writeOutNode = (WriteOut_node*)writeout_node;
+	// cout<<"On "+last_out_pipe+":"<<endl;
+	// cout<<"W ( "+last_out_pipe+" )"<<endl;
+
+
+// 	TreeNode * finalTree = createTree();
+
+
+// }
 
 
