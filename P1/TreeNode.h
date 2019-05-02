@@ -10,11 +10,24 @@
 
 using namespace std;
 
+enum NODE_TYPE {
+        SF,
+        SP,
+        J,
+        D,
+        G,
+        S,
+        P,
+        W
+    };
+
 class TreeNode
 {
+    
+
 	public:
 
-        std::string node_type;
+        NODE_TYPE node_type;
         vector<string> tables;
         TreeNode *left_child;
         TreeNode *right_child;
