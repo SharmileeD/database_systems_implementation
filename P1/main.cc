@@ -820,15 +820,16 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			
 			get_cnf(cnf_to_pass, sfnode->selOp, sfnode->literal, sch);
 			sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
-			// get_cnf(&sfnode->cnf_str, &sfnode->selOp, &sfnode->literal);
-			// sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
-			int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), NULL, false);
+			
+			// int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), NULL, false);
 			sf.WaitUntilDone();
 			// while()
 		}
 		else if(node->node_type == P) 
 		{
 			Project p;
+			Project_node *pnode = (Project_node *)node; 
+			// p.Run(pnode->input_pipe, pnode->out_pipe_name,);
 		}	
 		// cout << node->node_type<<endl;
 		stack2.pop();
