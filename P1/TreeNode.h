@@ -23,9 +23,7 @@ enum NODE_TYPE {
 
 class TreeNode
 {
-    
-
-	public:
+   	public:
 
         NODE_TYPE node_type;
         vector<string> tables;

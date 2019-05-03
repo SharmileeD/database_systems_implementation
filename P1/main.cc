@@ -793,15 +793,26 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			SelectFile sf;
 			SelectFile_node *sfnode = (SelectFile_node *)node;
 			DBFile dbfsf;
-			string fname = aliasToRel.find(sfnode->tables[0])->second+".bin";
+			
+			string fname = aliasToRel.find(sfnode->tables[0])->second + ".bin";
 			dbfsf.Open(fname.c_str());
-			// get_cnf(&sfnode->cnf_str, &sfnode->selOp, &sfnode->literal);
+			
+			char cnf_to_pass[sfnode->cnf_str.length()];
+			strcpy(cnf_to_pass, sfnode->cnf_str.c_str());
+
+			string sch_str = aliasToRel.find(sfnode->tables[0])->second;
+			char sch_to_pass[sch_str.length()];
+			strcpy(sch_to_pass, sch_str.c_str());
+			Schema sch("catalog",sch_to_pass);
+			
+			get_cnf(cnf_to_pass, sfnode->selOp, sfnode->literal, sch);
 			sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
+			sf.WaitUntilDone();
 			// while()
 		}
 		else if(node->node_type == P) 
 		{
-
+			Project p;
 		}	
 		// cout << node->node_type<<endl;
 		stack2.pop();
