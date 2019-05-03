@@ -295,9 +295,10 @@ TreeNode *generateSelectNode(vector <string> aliases,
             sf_node->out_pipe_name = out_pipe;
 			sf_node->cnf_str = "("+cnf_str.substr(cnf_str.find('.')+1,cnf_str.length()-1);
 			char tempcnfstr[(sf_node->cnf_str).length()];
-			char * relname;
+			// char * relname;
 			strcpy(tempcnfstr, (sf_node->cnf_str).c_str());
 			string to_copy = aliasToRel.at((cnf_str.substr(cnf_str.find('(')+1, cnf_str.find('.')-1)));
+			char relname[to_copy.length()];
 			strcpy(relname, to_copy.c_str());
 			Schema sch("catalog", relname);
 			get_cnf(tempcnfstr, sf_node->selOp, sf_node->literal, sch);
@@ -588,7 +589,8 @@ double calculateSFCost(Statistics s, unordered_map <string, char*> relToAlias){
 			if(t->node_type==SF){
 				char *relName[1];
 				cout << t->tables[0]<<endl;
-				strcpy(relName[0], t->tables[0].c_str());
+				// strcpy(relName[0], t->tables[0].c_str());
+				relName[0] = (char*)t->tables[0].c_str();
 				char *cnf = (char*)t->cnf_str.c_str(); 
 				yy_scan_string(cnf);
 				if (yyparse() != 0) {
@@ -770,7 +772,18 @@ TreeNode* createTree() {
 
 	return root;
 }
-
+int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
+	cout<<"Inside clear pipe"<<endl;
+	Record rec;
+	int cnt = 0;
+	while (in_pipe.Remove (&rec)) {
+		if (print) {
+			rec.Print (schema);
+		}
+		cnt++;
+	}
+	return cnt;
+}
 void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 	stack<TreeNode*> stack1;
 	stack<TreeNode*> stack2;
@@ -807,6 +820,9 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			
 			get_cnf(cnf_to_pass, sfnode->selOp, sfnode->literal, sch);
 			sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
+			// get_cnf(&sfnode->cnf_str, &sfnode->selOp, &sfnode->literal);
+			// sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
+			int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), NULL, false);
 			sf.WaitUntilDone();
 			// while()
 		}
