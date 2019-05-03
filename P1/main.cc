@@ -55,15 +55,20 @@ Schema *rschema;
 Schema* schema () { return rschema;}
 unordered_map <string, Schema*> schemaMap;
 
+unordered_map<string, int> relToPid;
+unordered_map<int, vector<string> > pidToRel;
+
+
+
 string last_out_pipe;
 struct joinMapStruct  {
 	double cost;
 	Statistics * stat;
 };
 
-void processAndList(AndList *boolean) {
-	AndList * temp = boolean;
-	AndList * currAnd = boolean;
+void processAndList(AndList *final) {
+	AndList * temp = final;
+	AndList * currAnd = final;
 	while(currAnd) {
 		struct OrList *currOr = currAnd->left;
 		while(currOr) {
@@ -76,7 +81,7 @@ void processAndList(AndList *boolean) {
 		}	
 		currAnd = currAnd -> rightAnd;
 	}
-	boolean = temp;
+	final = temp;
 }
 
 void processFunction(FuncOperator * finalFunction) {
@@ -117,8 +122,8 @@ void get_cnf (char *input, CNF &cnf_pred, Record &literal, Schema sch) {
 		cout << " Error: can't parse your CNF.\n";
 		exit (1);
 	}
-	processAndList(boolean);
-	cnf_pred.GrowFromParseTree (boolean, &sch, literal); // constructs CNF predicate
+	processAndList(final);
+	cnf_pred.GrowFromParseTree (final, &sch, literal); // constructs CNF predicate
 	close_lexical_parser ();
 }
 
@@ -293,14 +298,33 @@ TreeNode *generateSelectNode(vector <string> aliases,
 			Pipe *outpipe = new Pipe(100);
             sf_node->tables = tables;
             sf_node->out_pipe_name = out_pipe;
-			sf_node->cnf_str = "("+cnf_str.substr(cnf_str.find('.')+1,cnf_str.length()-1);
+			string delimeter = "";
+			if(cnf_str.find("=") != string::npos)
+				delimeter = "=";
+			else if(cnf_str.find(">") != string::npos)
+				delimeter = ">";
+			else if(cnf_str.find("<") != string::npos)
+				delimeter = "<";
+			if(delimeter != "") {
+				string left_cnf_str = cnf_str.substr(0,cnf_str.find(delimeter));
+				string right_cnf_str = cnf_str.substr(cnf_str.find(delimeter)+1, cnf_str.length());
+
+				string lpart = left_cnf_str.substr(left_cnf_str.find('.')+1,left_cnf_str.length());
+				string rpart = right_cnf_str.substr(right_cnf_str.find('.')+1,right_cnf_str.length());
+
+				sf_node->cnf_str = "(" + lpart + delimeter +rpart;
+			}
+			else {
+				sf_node->cnf_str = "("+cnf_str.substr(cnf_str.find('.')+1,cnf_str.length()-1);
+			}
 			char tempcnfstr[(sf_node->cnf_str).length()];
-			// char * relname;
+		
 			strcpy(tempcnfstr, (sf_node->cnf_str).c_str());
 			string to_copy = aliasToRel.at((cnf_str.substr(cnf_str.find('(')+1, cnf_str.find('.')-1)));
 			char relname[to_copy.length()];
 			strcpy(relname, to_copy.c_str());
 			Schema sch("catalog", relname);
+			
 			get_cnf(tempcnfstr, sf_node->selOp, sf_node->literal, sch);
 			pipeMap.insert({out_pipe, outpipe});
             return sf_node;
@@ -426,10 +450,12 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 		aliasRight = attNameRight.substr(0, attNameRight.find('.'));
 		// attNameRight = attNameRight.substr(attNameRight.find('.')+1);
 		int index = 0;
-		
+		string strleft, strright;
 		if(selection.count(aliasLeft)==0){
 			temp_aliases.clear();
-			condition = "("+attNameLeft+"="+attNameLeft+")";
+			strleft = attNameLeft.substr(attNameLeft.find('.')+1, attNameLeft.length());
+			// condition = "("+strleft+"="+strleft+")";
+			condition = "("+attNameRight+"="+attNameRight+")";
 			selection.insert({aliasLeft, true});
 			TreeNode *select_node = new TreeNode();
 			temp_aliases.push_back(aliasLeft);
@@ -439,6 +465,8 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 		}
 		if(selection.count(aliasRight)==0){
 			temp_aliases.clear();
+			strright = attNameRight.substr(attNameRight.find('.')+1, attNameRight.length());
+			// condition = "("+strright+"="+strright+")";
 			condition = "("+attNameRight+"="+attNameRight+")";
 			selection.insert({aliasRight, true});
 			TreeNode *select_node = new TreeNode();
@@ -503,8 +531,12 @@ TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList
 	string leftVal = joinVector[index]->left->left->value;
 	string rightVal = joinVector[index]->left->right->value;
 	string cnf_Str = "(" + leftVal+" = " + rightVal + ")";
+
 	// cout << "Built cnf: "<<cnf_Str<<endl;
 	node->cnf_str = cnf_Str;
+
+	// get_cnf(cnf_Str, sf_node->selOp, sf_node->literal, sch);
+
 	return node;
 }
 
@@ -673,9 +705,16 @@ TreeNode* createTree() {
 	TreeNode * root = new TreeNode();
 	if(join_tree.size() > 0){
 		for(auto join_it = join_tree.begin(); join_it != join_tree.end(); join_it++) {
+			// int pid = relToPid.find(leftVal.substr(0, leftVal.find('.')))->second;
+			// for(int it = 0; it < joinedTables.size(); it++) {
+				// relToPid.at(joinedTables[it]) = pid;
+			// }
 			//get left and right child for all join nodes;
 			(*join_it)->left_child = operations_tree.find((*join_it)->input_pipe_l)->second;
 			(*join_it)->right_child = operations_tree.find((*join_it)->input_pipe_r)->second;
+
+			//if sf then update sch of both and get cnf for both.
+
 			root = *join_it;
 			last_op = (*join_it)->out_pipe_name;
 		}
@@ -785,6 +824,7 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 	return cnt;
 }
 void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
+	
 	stack<TreeNode*> stack1;
 	stack<TreeNode*> stack2;
 	TreeNode * temp = root;
@@ -830,12 +870,26 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			Project p;
 			Project_node *pnode = (Project_node *)node; 
 			p.Run(*pipeMap.at(pnode->input_pipe), *pipeMap.at(pnode->out_pipe_name) ,pnode->keepMe, pnode->numAttsInput,pnode->numAttsOutput);
+			p.WaitUntilDone();
+		}
+		else if(node->node_type == S)
+		{
+			Sum s;
+			Sum_node *snode = (Sum_node *)node;
+			s.Run(*pipeMap.at(snode->input_pipe), *pipeMap.at(snode->out_pipe_name), snode->computeMe);
+			s.WaitUntilDone();
 		}	
+		else if(node->node_type == J) {
+			Join j;
+			Join_node *jnode = (Join_node*)node;
+			j.Run(*pipeMap.at(jnode->input_pipe_l), *pipeMap.at(jnode->input_pipe_r), *pipeMap.at(jnode->out_pipe_name), jnode->selOp, jnode->literal);
+			j.WaitUntilDone();
+		}
 		// cout << node->node_type<<endl;
 		stack2.pop();
 		
 	}
-
+	
 }
 
 Type getAttrType(char * input){
@@ -996,6 +1050,12 @@ int main () {
 	unordered_map <string, string> aliasToRel;
 	unordered_map <string, char*> relToAlias;
 	getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias);
+	for(int i = 0; i< aliasAs.size(); i++) {
+		relToPid.insert({aliasAs[i], i});
+		vector<string> dummy;
+		dummy.push_back(aliasAs[i]);
+		pidToRel.insert({i,dummy});
+	}
 
 	getSelectFileNodes(selectionVector, joinVector, tableName, aliasAs, aliasToRel);
 	printPlan();
