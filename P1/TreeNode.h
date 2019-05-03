@@ -75,6 +75,7 @@ class DuplicateRemoval_node : public TreeNode{
         DuplicateRemoval drRelops;
         int distinctAtts;
         int distinctFunc;
+        Schema sch;
         string input_pipe;
 };
 
@@ -96,6 +97,7 @@ class GroupBy_node : public TreeNode{
 class WriteOut_node : public TreeNode{
     public:
         WriteOut wo_relOps;
+        Schema schema;
         string input_pipe;
 };
 

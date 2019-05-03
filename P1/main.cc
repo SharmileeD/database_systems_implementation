@@ -921,6 +921,26 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			j.Run(*pipeMap.at(jnode->input_pipe_l), *pipeMap.at(jnode->input_pipe_r), *pipeMap.at(jnode->out_pipe_name), jnode->selOp, jnode->literal);
 			j.WaitUntilDone();
 		}
+		else if(node->node_type == G) {
+			GroupBy g;
+			GroupBy_node * gnode = (GroupBy_node *)node;
+			g.Run(*pipeMap.at(gnode->input_pipe), *pipeMap.at(gnode->out_pipe_name), *gnode->groupOrder, *gnode->computeMe);
+			g.WaitUntilDone();
+		}
+		else if(node->node_type == SP) {
+			SelectPipe sp;
+			SelectPipe_node *spnode = (SelectPipe_node *)node;
+			sp.Run(*pipeMap.at(spnode->input_pipe), *pipeMap.at(spnode->out_pipe_name), spnode->selOp, spnode->literal);
+			sp.WaitUntilDone();
+		}
+		else if(node->node_type == W) {
+			WriteOut w;
+			WriteOut_node *wnode = (WriteOut_node *)node;
+			char *fwpath = "writeout.txt";
+			FILE *writefile = fopen (fwpath, "w");
+			w.Run(*pipeMap.at(wnode->input_pipe), writefile, wnode->schema);
+			w.WaitUntilDone();
+		}
 		// cout << node->node_type<<endl;
 		// sf.WaitUntilDone();
 		
@@ -1131,6 +1151,28 @@ int main () {
 	// double sf_cost = calculateSFCost(s, relToAlias);
 
 //DISTINCT
+	if(distinctAtts == 1) {
+		int numAttsp =0;
+		string distinct = "(";
+		cout << "On: "<< last_out_pipe <<endl;
+		if (attsToSelect!=NULL){
+			struct NameList *selectAtt = attsToSelect;
+			while(selectAtt){
+				numAttsp++;
+				if(numAttsp == 1){
+					distinct = distinct +selectAtt->name;
+				}
+				else{
+					distinct = distinct +","+selectAtt->name;
+				}
+
+			}
+			distinct = distinct + ")";	
+			cout << "D: "<< distinct<< " =>"<< last_out_pipe<<endl;
+			last_out_pipe = "_"+last_out_pipe;
+			TreeNode *project_node = new TreeNode();
+
+	}
 
 	string projection = "(";
 	int numAttsp = 0;
