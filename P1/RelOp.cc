@@ -26,7 +26,6 @@ void* selectHelper(void *args) {
 	//get one record at a time till file is empty
 	//apply cnf to the record
 	//if cnf accepts the record, add it to the output pipe
-	Schema mySchema ("catalog","partsupp");
 	struct selectStruct * input_args;
 	input_args = (struct selectStruct *)args;
 	Record temprec;
