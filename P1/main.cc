@@ -1089,6 +1089,17 @@ Type getAttrType(char * input){
 }
 
 void showPlan () {
+	alias_to_pipeId.clear();
+	operations_tree.clear();
+	join_tree.clear();
+	selectPipeVector.clear();
+	pipeMap.clear();
+	schemaMap.clear();
+	relToPid.clear();
+	pidToRel.clear();
+	aliasToRel.clear();
+	relToAlias.clear();
+
 
 	// Getting the split of joins and selections 
 	vector <OrList*> joinVector;
@@ -1347,18 +1358,20 @@ int main(){
 		}
 		else if (operType == 5){
 			string setOpstr(setOp);
+			// string setOpstr = "STDOUT";
 			showPlan();
 			if(setOpstr == "NONE"){
 				cout << plan<<endl;
-				plan = "";
+				plan.clear();
+				last_out_pipe.clear();
 			}
 			else{
 				TreeNode * finalTree = createTree();
 				executeTree(finalTree, aliasToRel);
+				plan.clear();
+				last_out_pipe.clear();
 			}
-			
-			cout <<"plan print is "<<endl;
-			
+						
 			// TreeNode * finalTree = createTree();
 			// executeTree(finalTree, aliasToRel);
 			

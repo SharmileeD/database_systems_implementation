@@ -26,7 +26,6 @@ void* selectHelper(void *args) {
 	//get one record at a time till file is empty
 	//apply cnf to the record
 	//if cnf accepts the record, add it to the output pipe
-	cout << "Herrrre!!!!!!!!"<<endl;
 	// Schema mySchema ("catalog","partsupp");
 	struct selectStruct * input_args;
 	input_args = (struct selectStruct *)args;
@@ -34,11 +33,8 @@ void* selectHelper(void *args) {
 	int count = 0;
 
 	input_args->inFile->instVar->MoveFirst();
-	cout << "Herrrre!!!!!!!!"<<endl;
 	// input_args->selop->Print();
-	cout <<" **************" <<input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal)<<endl;
 	while(input_args->inFile->instVar->GetNext(temprec, *input_args->selop, *input_args->literal) == 1) {
-		cout << "HEre!!!!!!!!"<<endl;
 		input_args->outpipe->Insert(&temprec);
 		count++;
 	}

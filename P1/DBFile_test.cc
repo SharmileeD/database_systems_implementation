@@ -19,6 +19,47 @@
 // extern "C" int yyparse(void);
 // extern struct AndList *final;
 
+void getTableAndAliasNames(vector <string> &tableName, vector <string> &aliasAs, 
+                            unordered_map <string, string> &aliasToRel,
+                            unordered_map <string, char*> &relToAlias, struct TableList *tables){
+    struct TableList *currtables = tables;
+    while(currtables){
+        tableName.push_back(currtables->tableName);
+        aliasAs.push_back(currtables->aliasAs);
+        aliasToRel.insert({currtables->aliasAs, currtables->tableName});
+        relToAlias.insert({currtables->tableName, currtables->aliasAs});
+        currtables = currtables->next;
+    }
+}
+
+string getOperandFromCode(int code){
+    switch(code) {
+            case LESS_THAN:
+                return "<";
+                break;
+            case GREATER_THAN:
+                return ">";
+                break;
+            case EQUALS:
+                return "=";
+                break;    
+        }
+}
+
+Type getAttrType(char * input){
+	string ipStr(input);
+	if (ipStr=="STRING"){
+		return String;
+	}
+	else if(ipStr=="INTEGER"){
+		return Int;
+	}
+	else if(ipStr=="DOUBLE"){
+		return Double;
+	}
+	
+}
+
 TEST(CreateTestHeap, CreateSuccessHeap) { 
     DBFile dbfile;
     char myfname[] = "lee.txt";
@@ -831,7 +872,108 @@ TEST(StatisticsTest, AddAttTest){
     ASSERT_EQ(map_size,1);
 
 }
+TEST(EstimateCostTest1, getTableAndAliasNamesTables){
+    struct TableList *tables = (TableList* ) malloc(sizeof(TableList));
+   struct TableList *tables2 = (TableList* ) malloc(sizeof(TableList));
+    // cout << "_________________"<<tables2->aliasAs<<endl;
+    tables2->aliasAs = "a2";
+    tables2->tableName = "dummy2";
+    tables2->next = NULL;
+    tables->aliasAs = "a";
+    tables->tableName = "dummy1";
+    tables->next = tables2;
+    
+    vector <string> tableName;
+    vector <string> aliasAs;
+    unordered_map <string, string> aliasToRel;
+    unordered_map <string, char*> relToAlias;
+    getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias, tables);
+    ASSERT_EQ(tableName.size(),2);
+    ASSERT_EQ(aliasAs.size(),2);
 
+}
+
+TEST(EstimateCostTest2, getTableAndAliasNamesAlias){
+    struct TableList *tables = (TableList* ) malloc(sizeof(TableList));
+    struct TableList *tables2 = (TableList* ) malloc(sizeof(TableList));
+    tables->aliasAs = "a";
+    tables->tableName = "dummy1";
+    tables->next = tables2;
+    tables2->aliasAs = "a2";
+    tables2->tableName = "dummy2";
+    tables2->next = NULL;
+    vector <string> tableName;
+    vector <string> aliasAs;
+    unordered_map <string, string> aliasToRel;
+    unordered_map <string, char*> relToAlias;
+    getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias, tables);
+    ASSERT_EQ(aliasAs.size(),2);
+
+}
+
+TEST(EstimateCostTest3, getTableAndAliasNamesValues){
+    struct TableList *tables = (TableList* ) malloc(sizeof(TableList));
+   struct TableList *tables2 = (TableList* ) malloc(sizeof(TableList));
+    tables->aliasAs = "a";
+    tables->tableName = "dummy1";
+    tables->next = tables2;
+    tables2->aliasAs = "a2";
+    tables2->tableName = "dummy2";
+    tables2->next = NULL;
+    vector <string> tableName;
+    vector <string> aliasAs;
+    unordered_map <string, string> aliasToRel;
+    unordered_map <string, char*> relToAlias;
+    getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias, tables);
+    ASSERT_EQ(aliasToRel.at("a"),"dummy1");
+    ASSERT_EQ(aliasToRel.at("a2"),"dummy2");
+
+}
+
+TEST(EstimateCostTest4, getTableAndAliasNamesValues){
+    struct TableList *tables = (TableList* ) malloc(sizeof(TableList));
+   struct TableList *tables2 = (TableList* ) malloc(sizeof(TableList));
+    tables->aliasAs = "a";
+    tables->tableName = "dummy1";
+    tables->next = tables2;
+    tables2->aliasAs = "a2";
+    tables2->tableName = "dummy2";
+    tables2->next = NULL;
+    vector <string> tableName;
+    vector <string> aliasAs;
+    unordered_map <string, string> aliasToRel;
+    unordered_map <string, char*> relToAlias;
+    getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias, tables);
+    ASSERT_EQ(relToAlias.at("dummy1"),"a");
+    ASSERT_EQ(relToAlias.at("dummy2"),"a2");
+
+}
+
+TEST(EstimateCostTest5, getOperandFromCodeString){
+    string test = getOperandFromCode(5);
+    ASSERT_EQ(test,"<");
+}
+TEST(EstimateCostTest6, getOperandFromCodeString){
+    string test = getOperandFromCode(6);
+    ASSERT_EQ(test,">");
+}
+TEST(EstimateCostTest6, getOperandFromCodeString){
+    string test = getOperandFromCode(7);
+    ASSERT_EQ(test,"=");
+}
+
+TEST(project5test, getAttrTypeStr){
+    Type test = getAttrType("STRING");
+    ASSERT_EQ(test,String);
+}
+TEST(project5test, getAttrTypeInt){
+    Type test = getAttrType("INTEGER");
+    ASSERT_EQ(test,Int);
+}
+TEST(project5test, getAttrTypeDoub){
+    Type test = getAttrType("DOUBLE");
+    ASSERT_EQ(test,Double);
+}
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     // ::testing::GTEST_FLAG(filter) = "AddSuccessSorted*";
