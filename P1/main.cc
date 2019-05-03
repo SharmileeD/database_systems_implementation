@@ -72,6 +72,7 @@ void processAndList(AndList *final) {
 	while(currAnd) {
 		struct OrList *currOr = currAnd->left;
 		while(currOr) {
+
 			string str = currOr->left->left->value;
 			if(str.find('.') != string::npos){
 				string to_copy = str.substr(str.find('.')+1, str.length());
@@ -353,6 +354,8 @@ TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOu
 	p_node->tables = projtables;
  	p_node->out_pipe_name = "_"+last_outpipe;
 	p_node->cnf_str = cnf_str;
+	// p_node->numAttsInput = 
+	p_node->numAttsOutput = numAttsOutput;
 	return p_node; 
 
 }
@@ -827,23 +830,28 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 	
 	stack<TreeNode*> stack1;
 	stack<TreeNode*> stack2;
+	stack<TreeNode*> stack3;
 	TreeNode * temp = root;
 	stack1.push(temp);
 	while(!stack1.empty()) {
 		TreeNode * node = stack1.top();
 		stack1.pop();
 		stack2.push(node);
-		if(node->right_child != NULL)
+		stack3.push(node);
+		if(node->right_child != NULL){
 			stack1.push(node->right_child);
-		if(node->left_child != NULL)
+		}
+			
+		if(node->left_child != NULL){
 			stack1.push(node->left_child);
+		}
 	}
+	int lastSchNumatts;
 	while(!stack2.empty()) {
 		TreeNode *node = stack2.top();
 		//Process each of these nodes
 		if(node->node_type == SF)
 		{
-			SelectFile sf;
 			SelectFile_node *sfnode = (SelectFile_node *)node;
 			DBFile dbfsf;
 			
@@ -859,10 +867,10 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			Schema sch("catalog",sch_to_pass);
 			
 			get_cnf(cnf_to_pass, sfnode->selOp, sfnode->literal, sch);
-			sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
+			sfnode->sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
 			
 			// int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), NULL, false);
-			sf.WaitUntilDone();
+			break;
 			// while()
 		}
 		else if(node->node_type == P) 
@@ -886,8 +894,18 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			j.WaitUntilDone();
 		}
 		// cout << node->node_type<<endl;
-		stack2.pop();
+		// sf.WaitUntilDone();
 		
+		stack2.pop();		
+	}
+	while(!stack3.empty()) {
+		TreeNode *node = stack3.top();
+		if(node->node_type == SF)
+		{
+			SelectFile_node *sfnode = (SelectFile_node *)node;
+			sfnode->sf.WaitUntilDone();
+			break;
+		}
 	}
 	
 }
