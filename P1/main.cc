@@ -123,8 +123,19 @@ void get_cnf (char *input, CNF &cnf_pred, Record &literal, Schema sch) {
 		cout << " Error: can't parse your CNF.\n";
 		exit (1);
 	}
-	processAndList(final);
+	// processAndList(final);
 	cnf_pred.GrowFromParseTree (final, &sch, literal); // constructs CNF predicate
+	close_lexical_parser ();
+}
+
+void get_cnf (char *input, CNF &cnf_pred, Record &literal, Schema sch, struct AndList *mod_andList) {
+	init_lexical_parser (input);
+  	if (yyparse() != 0) {
+		cout << " Error: can't parse your CNF.\n";
+		exit (1);
+	}
+	// processAndList(final);
+	cnf_pred.GrowFromParseTree (mod_andList, &sch, literal); // constructs CNF predicate
 	close_lexical_parser ();
 }
 
@@ -289,7 +300,8 @@ TreeNode *generateSelectNode(vector <string> aliases,
             sf_node->node_type = SF;
             // sf_node.selOp = 
             // sf_node.literal =  
-			
+			string lpart;
+			string rpart;
             std::sort(aliases.begin(), aliases.end());
             string out_pipe = "";
             for(int i =0; i<aliases.size(); i++){
@@ -310,8 +322,8 @@ TreeNode *generateSelectNode(vector <string> aliases,
 				string left_cnf_str = cnf_str.substr(0,cnf_str.find(delimeter));
 				string right_cnf_str = cnf_str.substr(cnf_str.find(delimeter)+1, cnf_str.length());
 
-				string lpart = left_cnf_str.substr(left_cnf_str.find('.')+1,left_cnf_str.length());
-				string rpart = right_cnf_str.substr(right_cnf_str.find('.')+1,right_cnf_str.length());
+				lpart = left_cnf_str.substr(left_cnf_str.find('.')+1,left_cnf_str.length());
+				rpart = right_cnf_str.substr(right_cnf_str.find('.')+1,right_cnf_str.length());
 
 				sf_node->cnf_str = "(" + lpart + delimeter +rpart;
 			}
@@ -325,8 +337,33 @@ TreeNode *generateSelectNode(vector <string> aliases,
 			char relname[to_copy.length()];
 			strcpy(relname, to_copy.c_str());
 			Schema sch("catalog", relname);
+			lpart = lpart+")";
+			if(lpart == rpart){
+				struct AndList  * newAnd = (AndList * ) malloc(sizeof(AndList));
+				struct OrList  * newOr = (OrList *) malloc(sizeof(OrList));
+				struct Operand  * left = (Operand *) malloc(sizeof(Operand));
+				struct Operand  * right = (Operand *) malloc(sizeof(Operand));
+				struct ComparisonOp  * compOp = (ComparisonOp *) malloc(sizeof(ComparisonOp));
+				left->code = NAME;
+				left->value = (char *)lpart.substr(0, lpart.length()-1).c_str();
+				right->code = NAME;
+				right->value = (char *)rpart.substr(0, rpart.length()-1).c_str();
+				compOp->code = EQUALS;
+				compOp->left = left;
+				compOp->right = right;
+				newOr->rightOr = NULL;
+				newOr->left = compOp;
+				newAnd->left = newOr;
+				newAnd->rightAnd = NULL;
+				get_cnf(tempcnfstr, sf_node->selOp, sf_node->literal, sch, newAnd);
+			}
+			else
+			{
+				get_cnf(tempcnfstr, sf_node->selOp, sf_node->literal, sch);
+			}
 			
-			get_cnf(tempcnfstr, sf_node->selOp, sf_node->literal, sch);
+			
+
 			pipeMap.insert({out_pipe, outpipe});
             return sf_node;
         }
@@ -458,7 +495,7 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 			temp_aliases.clear();
 			strleft = attNameLeft.substr(attNameLeft.find('.')+1, attNameLeft.length());
 			// condition = "("+strleft+"="+strleft+")";
-			condition = "("+attNameRight+"="+attNameRight+")";
+			condition = "("+attNameLeft+"="+attNameLeft+")";
 			selection.insert({aliasLeft, true});
 			TreeNode *select_node = new TreeNode();
 			temp_aliases.push_back(aliasLeft);
@@ -529,7 +566,7 @@ TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList
 	node->right_child = NULL;
 	node->left_child = NULL;
 	node->tables = joinedTables;
-	Pipe *outpipe = new Pipe(100);
+	Pipe *outpipe = new Pipe(100000);
 	pipeMap.insert({opPipe, outpipe});
 	string leftVal = joinVector[index]->left->left->value;
 	string rightVal = joinVector[index]->left->right->value;
@@ -741,7 +778,7 @@ TreeNode* createTree() {
 		(*sp_it)->input_pipe = last_op;
 		(*sp_it)->out_pipe_name ="_"+last_op;
 		last_op = (*sp_it)->out_pipe_name;
-		Pipe *spoutpipe = new Pipe(100);
+		Pipe *spoutpipe = new Pipe(100000);
 		pipeMap.insert({last_op, spoutpipe});
 		root = *sp_it;
 	}
@@ -759,7 +796,7 @@ TreeNode* createTree() {
 		groupByNode->input_pipe = last_op;
 		groupByNode->out_pipe_name = "_"+last_op;
 		last_op = groupByNode->out_pipe_name;
-		Pipe *grpoutpipe = new Pipe(100);
+		Pipe *grpoutpipe = new Pipe(100000);
 		pipeMap.insert({last_op, grpoutpipe});
 		groupByNode->left_child = NULL;
 		root = groupByNode;
@@ -780,7 +817,7 @@ TreeNode* createTree() {
 			sumNode->input_pipe = last_op;
 			sumNode->out_pipe_name = "_"+last_op;
 			last_op = sumNode->out_pipe_name;
-			Pipe *sumoutpipe = new Pipe(100);
+			Pipe *sumoutpipe = new Pipe(100000);
 			pipeMap.insert({last_op, sumoutpipe});
 			root = sumNode;
 		 }
@@ -800,7 +837,7 @@ TreeNode* createTree() {
 		projectNode->input_pipe = last_op;
 		projectNode->out_pipe_name = "_"+last_op;
 		last_op = projectNode->out_pipe_name;
-		Pipe *projoutpipe = new Pipe(100);
+		Pipe *projoutpipe = new Pipe(100000);
 		pipeMap.insert({last_op, projoutpipe});
 		root = projectNode;
 	}
@@ -808,7 +845,7 @@ TreeNode* createTree() {
 	writeOutNode->left_child = NULL;
 	writeOutNode->input_pipe = last_op;
 	writeOutNode->out_pipe_name = "_"+last_op;
-	Pipe *writeoutpipe = new Pipe(100);
+	Pipe *writeoutpipe = new Pipe(100000);
 	pipeMap.insert({last_op, writeoutpipe});
 	root = writeOutNode;
 
@@ -847,6 +884,7 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 		}
 	}
 	int lastSchNumatts;
+	Schema * lastSchema;
 	while(!stack2.empty()) {
 		TreeNode *node = stack2.top();
 		//Process each of these nodes
@@ -868,17 +906,22 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			
 			get_cnf(cnf_to_pass, sfnode->selOp, sfnode->literal, sch);
 			sfnode->sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
+			// int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), &sch, false);
 			
-			// int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), NULL, false);
-			break;
 			// while()
 		}
 		else if(node->node_type == P) 
 		{
-			Project p;
+			cout<<"last sch count"<<lastSchema->GetNumAtts()<<endl;
 			Project_node *pnode = (Project_node *)node; 
-			p.Run(*pipeMap.at(pnode->input_pipe), *pipeMap.at(pnode->out_pipe_name) ,pnode->keepMe, pnode->numAttsInput,pnode->numAttsOutput);
-			p.WaitUntilDone();
+			pnode->numAttsInput = lastSchNumatts;
+			cout<<"project cnf "<< pnode->cnf_str<<endl;
+			cout<<"Find me in project"<<lastSchema->Find("n_nationkey");
+			int keepMe[1];
+			keepMe[0] = lastSchema->Find("n_nationkey");
+			pnode->keepMe = keepMe;
+			pnode->p_relops.Run(*pipeMap.at(pnode->input_pipe), *pipeMap.at(pnode->out_pipe_name) ,pnode->keepMe, pnode->numAttsInput,pnode->numAttsOutput);
+			
 		}
 		else if(node->node_type == S)
 		{
@@ -888,13 +931,22 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			s.WaitUntilDone();
 		}	
 		else if(node->node_type == J) {
-			Join j;
+			cout<<"Entered join sch"<<endl;
 			Join_node *jnode = (Join_node*)node;
-			j.Run(*pipeMap.at(jnode->input_pipe_l), *pipeMap.at(jnode->input_pipe_r), *pipeMap.at(jnode->out_pipe_name), jnode->selOp, jnode->literal);
-			j.WaitUntilDone();
+			vector <string> tableNames;
+			
+			for (int k =0; k<jnode->tables.size();k++){
+				tableNames.push_back(aliasToRel.at(jnode->tables[k]));
+			}
+			Schema mySchema = get_join_schema(tableNames);
+			cout<<"join sch count"<<mySchema.GetNumAtts()<<endl;
+			cout<<"Find me "<<mySchema.Find("n_nationkey");
+			lastSchema->myAtts = mySchema.GetAtts();
+			lastSchema->numAtts = mySchema.GetNumAtts();
+			jnode->j_rel.Run(*pipeMap.at(jnode->input_pipe_l), *pipeMap.at(jnode->input_pipe_r), *pipeMap.at(jnode->out_pipe_name), jnode->selOp, jnode->literal);
+			lastSchNumatts = mySchema.GetNumAtts();
 		}
-		// cout << node->node_type<<endl;
-		// sf.WaitUntilDone();
+		cout << node->node_type<<endl;
 		
 		stack2.pop();		
 	}
@@ -904,8 +956,20 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 		{
 			SelectFile_node *sfnode = (SelectFile_node *)node;
 			sfnode->sf.WaitUntilDone();
-			break;
 		}
+		else if(node->node_type == P) 
+		{
+			
+			Project_node *pnode = (Project_node *)node; 
+			pnode->p_relops.WaitUntilDone();
+			
+		}
+		else if(node->node_type == J) {
+			Join_node *jnode = (Join_node*)node;
+			jnode->j_rel.WaitUntilDone();
+			
+		}
+		stack3.pop();	
 	}
 	
 }
@@ -1100,7 +1164,7 @@ int main () {
 		last_out_pipe = t->out_pipe_name;
 	}
 	
-	double sf_cost = calculateSFCost(s, relToAlias);
+	// double sf_cost = calculateSFCost(s, relToAlias);
 
 //DISTINCT
 

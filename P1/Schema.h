@@ -23,8 +23,7 @@ class OrderMaker;
 class Schema {
 
 	// gives the attributes in the schema
-	int numAtts;
-	Attribute *myAtts;
+	
 
 	// gives the physical location of the binary file storing the relation
 	char *fileName;
@@ -32,6 +31,8 @@ class Schema {
 	friend class Record;
 
 public:
+	int numAtts;
+	Attribute *myAtts;
 
 	// gets the set of attributes, but be careful with this, since it leads
 	// to aliasing!!!
@@ -53,6 +54,7 @@ public:
 	// this composes a schema instance in-memory
 	Schema (char *fName, int num_atts, Attribute *atts);
 
+	// Schema(Schema &sch);
 	// this constructs a sort order structure that can be used to
 	// place a lexicographic ordering on the records using this type of schema
 	int GetSortOrder (OrderMaker &order);
