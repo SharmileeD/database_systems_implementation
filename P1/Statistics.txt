@@ -11,6 +11,6 @@ lineitem|6001215.000000|l_discount|11.000000|l_returnflag|3.000000|l_receiptdate
 orders|1500000.000000|o_orderdate|150000.000000|o_orderkey|1500000.000000|o_custkey|150000.000000|
 r|5.000000|r_name|5.000000|r_regionkey|5.000000|
 supplier|10000.000000|s_nationkey|25.000000|s_suppkey|10000.000000|
-customer|150000.000000|c_custkey|150000.000000|c_mktsegment|5.000000|c_nationkey|25.000000|
+customer|150000.000000|c_custkey|150000.000000|c_mktsegment|5.000000|c_nationkey|25.000000|c_cname|25.000000|
 p|200000.000000|p_container|40.000000|p_name|199996.000000|p_partkey|200000.000000|p_size|50.000000|
 nation|25.000000|n_name|25.000000|n_nationkey|25.000000|n_regionkey|5.000000|

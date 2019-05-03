@@ -54,9 +54,12 @@ unordered_map <string, Pipe*> pipeMap;
 Schema *rschema;
 Schema* schema () { return rschema;}
 unordered_map <string, Schema*> schemaMap;
+string plan;
 
 unordered_map<string, int> relToPid;
 unordered_map<int, vector<string> > pidToRel;
+unordered_map <string, string> aliasToRel;
+unordered_map <string, char*> relToAlias;
 
 
 
@@ -396,7 +399,7 @@ TreeNode *generateSelectNode(vector <string> aliases,
 
 }
 
-TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOutput, vector<string> projtables){
+TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOutput, vector<string> projtables, vector<string> columns){
 	Project_node *p_node = new Project_node(); 
 	p_node->node_type = P;
 	p_node->tables = projtables;
@@ -405,6 +408,7 @@ TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOu
 	p_node->cnf_str = cnf_str;
 	// p_node->numAttsInput = 
 	p_node->numAttsOutput = numAttsOutput;
+	p_node->columns = columns;
 	return p_node; 
 
 }
@@ -424,14 +428,7 @@ TreeNode *generateSumNode(string last_outpipe, string sum_on, vector<string> tab
 	return s_node; 
 
 }
-TreeNode *generateWriteOutNode(string last_outpipe){
-	
-	WriteOut_node *w_node = new WriteOut_node(); 
-	w_node->node_type = W;
-	w_node->out_pipe_name = "_"+last_outpipe;
-	return w_node; 
 
-}
 void getSelectFileNodes(vector <OrList*> selectionVector, 
 						vector <OrList*> &joinVector, 
 						vector <string> tableName, 
@@ -539,7 +536,16 @@ void getSelectFileNodes(vector <OrList*> selectionVector,
 		cout<<"NOTHING PRESENT"<<endl;
 	}
 }
+TreeNode *generateWriteOutNode(string last_outpipe){
+	
+	WriteOut_node *w_node = new WriteOut_node(); 
+	w_node->node_type = W;
+	w_node->out_pipe_name = "_"+last_outpipe;
+	return w_node; 
+
+}
 // helper class to enumerate the permutations of the joins Dynamic programming
+
 string getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s, vector <string> aliasAs) {
 	
 	vector<string> permutations;
@@ -570,7 +576,7 @@ string getOptimalJoinSequence(vector <OrList*> &joinVector, Statistics s, vector
 
 void printPlan(){
 	for ( auto it = operations_tree.begin(); it != operations_tree.end(); ++it ){
-			cout<< "SF"+it->second->cnf_str+" => "+it->second->out_pipe_name<<endl;
+			plan = plan + "SF"+it->second->cnf_str+" => "+it->second->out_pipe_name+"\n";
 			last_out_pipe = it->second->out_pipe_name;
 	}
 }
@@ -891,7 +897,7 @@ int clear_pipe (Pipe &in_pipe, Schema *schema, bool print) {
 	}
 	return cnt;
 }
-void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
+void executeTree(TreeNode* root, unordered_map<string,string>aliasToRelation) {
 	
 	stack<TreeNode*> stack1;
 	stack<TreeNode*> stack2;
@@ -921,17 +927,18 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			SelectFile_node *sfnode = (SelectFile_node *)node;
 			DBFile dbfsf;
 			
-			string fname = aliasToRel.find(sfnode->tables[0])->second + ".bin";
+			string fname = aliasToRelation.find(sfnode->tables[0])->second + ".bin";
 			dbfsf.Open(fname.c_str());
 			
 			char cnf_to_pass[sfnode->cnf_str.length()];
 			strcpy(cnf_to_pass, sfnode->cnf_str.c_str());
 
-			string sch_str = aliasToRel.find(sfnode->tables[0])->second;
+			string sch_str = aliasToRelation.find(sfnode->tables[0])->second;
 			char sch_to_pass[sch_str.length()];
 			strcpy(sch_to_pass, sch_str.c_str());
 			Schema sch("catalog",sch_to_pass);
-			
+			lastSchema->myAtts = sch.GetAtts();
+			lastSchema->numAtts = sch.GetNumAtts();
 			get_cnf(cnf_to_pass, sfnode->selOp, sfnode->literal, sch);
 			sfnode->sf.Run(dbfsf, *pipeMap.at(sfnode->out_pipe_name), sfnode->selOp, sfnode->literal);
 			// int cnt = clear_pipe (*pipeMap.at(sfnode->out_pipe_name), &sch, false);
@@ -942,13 +949,29 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 		{
 			cout<<"last sch count"<<lastSchema->GetNumAtts()<<endl;
 			Project_node *pnode = (Project_node *)node; 
-			pnode->numAttsInput = lastSchNumatts;
+			pnode->numAttsInput = lastSchema->GetNumAtts();
 			cout<<"project cnf "<< pnode->cnf_str<<endl;
 			cout<<"Find me in project"<<lastSchema->Find("n_nationkey");
-			int keepMe[1];
-			keepMe[0] = lastSchema->Find("n_nationkey");
+			int numCols = pnode->columns.size();
+			int *keepMe = new int[numCols] ;
+			cout<<"pnode_cols"<<endl;
+			cout<<pnode->columns.size()<<endl;
+			for(int i = 0; i < numCols; i++)
+			{
+					keepMe[i] = lastSchema->Find((char*)pnode->columns[i].c_str());
+			}
+			Attribute * atts = lastSchema->GetAtts();
+			Attribute att[numCols];
+			for(int i = 0; i < pnode->columns.size(); i++){
+				att[i] = atts[keepMe[i]];
+			}
+			Schema mySchema("project_sch", pnode->columns.size(), att);
+
+			lastSchema->myAtts = mySchema.GetAtts();
+			lastSchema->numAtts = mySchema.GetNumAtts();
+			
 			pnode->keepMe = keepMe;
-			pnode->p_relops.Run(*pipeMap.at(pnode->input_pipe), *pipeMap.at(pnode->out_pipe_name) ,pnode->keepMe, pnode->numAttsInput,pnode->numAttsOutput);
+			pnode->p_relops.Run(*pipeMap.at(pnode->input_pipe), *pipeMap.at(pnode->out_pipe_name) ,keepMe, pnode->numAttsInput,pnode->numAttsOutput);
 			
 		}
 		else if(node->node_type == S)
@@ -962,9 +985,13 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			cout<<"Entered join sch"<<endl;
 			Join_node *jnode = (Join_node*)node;
 			vector <string> tableNames;
-			
+			cout<<"size of tables"<<endl;
+			cout<<jnode->tables.size()<<endl;
 			for (int k =0; k<jnode->tables.size();k++){
-				tableNames.push_back(aliasToRel.at(jnode->tables[k]));
+				string alias = jnode->tables[k];
+				cout<<"Alias is "<<alias;
+				string test = aliasToRelation.find(alias)->second;
+				tableNames.push_back(test);
 			}
 			Schema mySchema = get_join_schema(tableNames);
 			cout<<"join sch count"<<mySchema.GetNumAtts()<<endl;
@@ -987,12 +1014,21 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			sp.WaitUntilDone();
 		}
 		else if(node->node_type == W) {
-			WriteOut w;
-			WriteOut_node *wnode = (WriteOut_node *)node;
-			char *fwpath = "writeout.txt";
-			FILE *writefile = fopen (fwpath, "w");
-			w.Run(*pipeMap.at(wnode->input_pipe), writefile, wnode->schema);
-			w.WaitUntilDone();
+			// std::string setOpstr(setOp);
+			// if(setOpstr=="STDOUT"){
+
+			// }
+			// else if (setOpstr=="NONE"){
+
+			// }
+			// else{
+				WriteOut_node *wnode = (WriteOut_node *)node;
+				char *fwpath = "testing_tushar.txt";
+				FILE *writefile = fopen (fwpath, "w");
+				wnode->wo_relOps.Run(*pipeMap.at(wnode->input_pipe), writefile, *lastSchema);
+				
+			// }
+			
 		}
 		// cout << node->node_type<<endl;
 		// sf.WaitUntilDone();
@@ -1018,6 +1054,21 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 			jnode->j_rel.WaitUntilDone();
 			
 		}
+		else if(node->node_type == W) {
+			// std::string setOpstr(setOp);
+
+			// if(setOpstr=="STDOUT"){
+
+			// }
+			// else if (setOpstr=="NONE"){
+
+			// }
+			// else{
+				WriteOut_node *wnode = (WriteOut_node *)node;
+				wnode->wo_relOps.WaitUntilDone();
+			// }
+			
+		}
 		stack3.pop();	
 	}
 	
@@ -1037,102 +1088,7 @@ Type getAttrType(char * input){
 	
 }
 
-// int main(){
-// 	bool run = true;
-// 	string ip;
-// 	while(run){
-// 		cout<<"Enter next query"<<endl;
-// 		getline (cin,ip);
-// 		yy_scan_string(ip.c_str());
-// 		yyparse();
-// 		if (operType == 1){
-// 			cout<<"Create query"<<endl;
-// 			operType = 0;
-// 			struct CreateList * currCr = create;
-// 			vector <Attribute*> new_table_sch;
-// 			struct Attribute * attr;
-// 			while(currCr){
-// 				attr = (Attribute *) malloc(sizeof(Attribute));
-// 				attr->name = currCr->attName;
-// 				attr->myType = getAttrType(currCr->attType);
-// 				new_table_sch.push_back(attr);
-// 				currCr=currCr->rightcrt;
-// 			}
-// 			Attribute atts [new_table_sch.size()];
-// 			for(int i=0; i<new_table_sch.size();i++){
-// 				atts[i] = *new_table_sch[i];
-// 			}
-// 			Schema *new_tab_sch = new Schema (createTab, new_table_sch.size(), atts);
-
-// 			schemaMap.insert({createTab, new_tab_sch});
-// 			DBFile dbf;
-// 			std::string table_name(createTab);
-// 			dbf.Create((table_name+".bin").c_str(), heap, NULL);
-// 		}
-// 		else if (operType == 2){
-// 			DBFile dbf;
-// 			 std::string table_name(insertQuery->tableName);
-
-// 			dbf.Open((table_name+".bin").c_str());
-// 			dbf.Load(*schemaMap.at(insertQuery->tableName), insertQuery->fileName);
-// 			dbf.Close();
-// 		}
-// 		else if (operType == 3){
-// 			schemaMap.erase(dropTab);
-// 			std::string table_name(dropTab);
-// 			remove((table_name+".bin").c_str());
-// 			remove((table_name+"_lpage.txt").c_str());
-// 			remove((table_name+"_dpage.txt").c_str());
-// 			remove((table_name+"_type.txt").c_str());
-// 		}
-// 		else if(operType == 6){
-// 			run = false;
-// 		}
-		
-// 	}
-	
-
-// 	cout << "Oper type end" << operType<<endl;
-//  	if(create == NULL){
-// 		cout<<"Not yet Create!"<<endl;
-// 	}
-// 	else{
-// 		cout<<"Maybe"<<endl;
-// 		cout<<create->attName<<endl;
-// 		cout<<create->attType<<endl;
-// 		cout<<create->rightcrt->attName<<endl;
-// 		cout<<create->rightcrt->attType<<endl;
-// 	}
-// 	if(insertQuery == NULL){
-// 		cout<<"Not yet!"<<endl;
-// 	}
-// 	else{
-// 		cout<<insertQuery->fileName<<endl;
-// 		cout<<insertQuery->tableName<<endl;
-// 		cout<<"Oper type " << operType <<endl;
-// 		cout<<"Maybe"<<endl;
-// 	}
-// 	if(dropTab== NULL){
-// 		cout<<"DT null " <<endl;
-// 	}git 
-// 	if (setOp == "STDOUT"){
-// 		cout << "Set OP is STDOUT"<<endl; 
-// 	}
-// 	else if (setOp == "NONE"){
-// 		cout << "Set OP is NONE"<<endl; 
-// 	}
-// 	else{
-// 		cout << "Set OP is "<<setOp<<endl; 
-// 	}
-// 	cout << "Set OP" << setOp<<endl;
-// 	cout <<"Drop that "<< dropTab<<endl;
-// }
-
-int main () {
-
-	
-	cout<<"Enter the query"<<endl;
-	yyparse();
+void showPlan () {
 
 	// Getting the split of joins and selections 
 	vector <OrList*> joinVector;
@@ -1141,45 +1097,14 @@ int main () {
 	Statistics s;
 	
 	char *relName[] = {"supplier","customer","nation", "part", "partsupp", "lineitem"};
-
-	s.AddRel(relName[0],10000);
-	s.AddAtt(relName[0], "s_nationkey",25);
-	s.AddAtt(relName[0], "s_suppkey",10000);
-	s.AddRel(relName[1],150000);
-	s.AddAtt(relName[1], "c_custkey",150000);
-	s.AddAtt(relName[1], "c_nationkey",25);
+	s.Read("Statistics.txt");
 	
-	s.AddRel(relName[2],25);
-	s.AddAtt(relName[2], "n_nationkey",25);
-	 s.AddRel(relName[3],200000);
-    s.AddAtt(relName[3], "p_partkey",200000);
-    s.AddAtt(relName[3], "p_name", 199996);
-	
-	s.AddRel(relName[4],800000);
-    s.AddAtt(relName[4], "ps_partkey",200000);
-    s.AddAtt(relName[4], "ps_suppkey",10000);
-
-	s.AddRel(relName[5],100000);
-	s.AddAtt(relName[5], "l_returnflag",5000);
-	s.AddAtt(relName[5], "l_discount",1000);
-	s.AddAtt(relName[5], "l_shipmode",10000);
-
-	s.CopyRel("nation","n1");
-	s.CopyRel("nation","n2");
-	s.CopyRel("supplier","s");
-	s.CopyRel("customer","c");
-	s.CopyRel("part","p");
-	s.CopyRel("partsupp","ps");
-	s.CopyRel("lineitem","l");
-
-
 	separateJoinSelection(joinVector, selectionVector);
 	
 	// Getting the table names and aliases 
 	vector <string> tableName;
 	vector <string> aliasAs;
-	unordered_map <string, string> aliasToRel;
-	unordered_map <string, char*> relToAlias;
+	
 	getTableAndAliasNames(tableName, aliasAs, aliasToRel, relToAlias);
 	for(int i = 0; i< aliasAs.size(); i++) {
 		relToPid.insert({aliasAs[i], i});
@@ -1197,9 +1122,9 @@ int main () {
 	// Print Joins
 	for(int i =0;i<join_tree.size();i++){
 		Join_node *t = join_tree[i];
-		cout<<"On "+t->input_pipe_l+" and "+ t->input_pipe_r+":"<<endl;;
-		cout<<"J"+t->cnf_str+" => "+t->out_pipe_name<<endl;
-		cout<<"OutputSchema:"<<endl;
+		plan= plan + "On "+t->input_pipe_l+" and "+ t->input_pipe_r+":"+"\n";
+		plan= plan+ "J"+t->cnf_str+" => "+t->out_pipe_name+"\n";
+		plan = plan + "OutputSchema:"+"\n";
 		vector <string> tableNames;
 		for (int k =0; k<t->tables.size();k++){
 			tableNames.push_back(aliasToRel.at(t->tables[k]));
@@ -1207,7 +1132,7 @@ int main () {
 		Schema mySchema = get_join_schema(tableNames);
 		Attribute *rel1_atts =  mySchema.GetAtts(); 
 		for(int j = 0;j<mySchema.GetNumAtts();j++){
-			cout<<rel1_atts[j].name<<": "<<rel1_atts[j].myType<<" ";
+			plan = plan + rel1_atts[j].name+": "+to_string(rel1_atts[j].myType)+" ";
 		}
 		cout<<endl;
 		last_out_pipe = t->out_pipe_name;
@@ -1219,7 +1144,7 @@ int main () {
 	if(distinctAtts == 1) {
 		int numAttsp =0;
 		string distinct = "(";
-		cout << "On: "<< last_out_pipe <<endl;
+		plan = plan + "On: " +  last_out_pipe +"\n";
 		if (attsToSelect!=NULL){
 			struct NameList *selectAtt = attsToSelect;
 			while(selectAtt){
@@ -1233,10 +1158,10 @@ int main () {
 
 			}
 			distinct = distinct + ")";	
-			cout << "D: "<< distinct<< " =>"<< last_out_pipe<<endl;
+			plan = plan + "D: " + distinct+ " =>"+ last_out_pipe+"\n";
 			last_out_pipe = "_"+last_out_pipe;
 			TreeNode *project_node = new TreeNode();
-
+		}
 	}
 
 	string projection = "(";
@@ -1245,6 +1170,7 @@ int main () {
 	if (attsToSelect!=NULL){
 		vector<string> projtables;
 		vector<string> finalprojtables;
+		vector<string> columns;
 		struct NameList *selectAtt = attsToSelect;
 		while(selectAtt){
 			numAttsp++;
@@ -1252,10 +1178,12 @@ int main () {
 				projection = projection +selectAtt->name;
 			}
 			else{
-				projection = projection +","+selectAtt->name;
+				projection = projection +", "+selectAtt->name;
 			}
 			string temp = selectAtt->name;
 			string to_push = temp.substr(0,temp.find('.')); 
+			string columnName = temp.substr(temp.find('.')+1); 
+			columns.push_back(columnName);
 			projtables.push_back(to_push);
 			selectAtt = selectAtt->next;
 		}
@@ -1267,12 +1195,13 @@ int main () {
 		}
 
 		TreeNode *project_node = new TreeNode();
-		project_node = generateProjectNode(projection, last_out_pipe, numAttsp, projtables);
-		cout<<"On "+last_out_pipe+":"<<endl;
-		cout<<"P "+projection+" => _"+last_out_pipe<<endl;
+		project_node = generateProjectNode(projection, last_out_pipe, numAttsp, projtables, columns);
+		plan = plan +"On "+last_out_pipe+":"+"\n";
+		plan = plan +"P "+projection+" => _"+last_out_pipe+"\n";
 		last_out_pipe = project_node->out_pipe_name;
 		projectNode = (Project_node*)project_node;
 		operations_tree.insert({last_out_pipe, project_node});
+
 	}	
 	//only print
 	if(finalFunction != NULL) {
@@ -1281,13 +1210,13 @@ int main () {
 		struct FuncOperator *preFunc;
 		while(funcOp != NULL) {
 			if(funcOp->leftOperator != NULL) {
-				cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
+				plan = plan + funcOp->leftOperator->leftOperand->value + " " + to_string(funcOp->code);
 				string temp = funcOp->leftOperator->leftOperand->value;
 				// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
 				// strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
 			}
 			else {
-				cout << funcOp->leftOperand->value<<")" <<endl;
+				plan = plan + funcOp->leftOperand->value + ")" +"\n";
 				string temp = funcOp->leftOperand->value;
 				// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
 				// strcpy(funcOp->leftOperand->value, attrname.c_str());
@@ -1300,31 +1229,31 @@ int main () {
 
 	 if(groupingAtts != NULL) {
 		 NameList * tempGroupingAtts = groupingAtts;
-		cout <<"G On: (";
+		plan = plan +"G On: (";
 		while(tempGroupingAtts) {
-			cout <<tempGroupingAtts->name << ", ";
+			plan = plan +tempGroupingAtts->name + ", ";
 			string attr = tempGroupingAtts->name;
 			string tablealias = attr.substr(0,attr.find('.'));
 			group_tables.push_back(aliasToRel.at(tablealias));
 			tempGroupingAtts = tempGroupingAtts->next;
 		}
-		cout << ")"<<endl;
+		plan = plan + ")"+"\n";
 		//print op pipes from SF nodes?
 		//print fuction using inorder traversal if not null
 		if(finalFunction != NULL) {
-			cout<<"Function: (";		
+			plan = plan+"Function: (";		
 			struct FuncOperator *funcOp = finalFunction;
 			struct FuncOperator *preFunc;
 
 			while(funcOp != NULL) {
 				if(funcOp->leftOperator != NULL) {
-					cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
+					plan = plan+ funcOp->leftOperator->leftOperand->value + " "+to_string(funcOp->code);
 					string temp = funcOp->leftOperator->leftOperand->value;
 					// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
 					// strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
 				}
 				else {
-					cout << funcOp->leftOperand->value<<")" <<endl;
+					plan = plan+  funcOp->leftOperand->value + ")" +"\n";
 					string temp = funcOp->leftOperand->value;
 					// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
 					// strcpy(funcOp->leftOperand->value, attrname.c_str());
@@ -1361,12 +1290,86 @@ int main () {
 	writeout_node = generateWriteOutNode(last_out_pipe);
 	operations_tree.insert({"root", writeout_node});
 	writeOutNode = (WriteOut_node*)writeout_node;
-	cout<<"On "+last_out_pipe+":"<<endl;
-	cout<<"W ( "+last_out_pipe+" )"<<endl;
-
-	TreeNode * finalTree = createTree();
-	// executeTree(finalTree, aliasToRel);
+	plan = plan+"On "+last_out_pipe+":"+"\n";
+	plan = plan+"W ( "+last_out_pipe+" )"+"\n";
 
 }
 
+
+
+int main(){
+	bool run = true;
+	string ip;
+	while(run){
+		cout<<"Enter next query"<<endl;
+		getline (cin,ip);
+		yy_scan_string(ip.c_str());
+		yyparse();
+		if (operType == 1){
+			cout<<"Create query"<<endl;
+			operType = 0;
+			struct CreateList * currCr = create;
+			vector <Attribute*> new_table_sch;
+			struct Attribute * attr;
+			while(currCr){
+				attr = (Attribute *) malloc(sizeof(Attribute));
+				attr->name = currCr->attName;
+				attr->myType = getAttrType(currCr->attType);
+				new_table_sch.push_back(attr);
+				currCr=currCr->rightcrt;
+			}
+			Attribute atts [new_table_sch.size()];
+			for(int i=0; i<new_table_sch.size();i++){
+				atts[i] = *new_table_sch[i];
+			}
+			Schema *new_tab_sch = new Schema (createTab, new_table_sch.size(), atts);
+
+			schemaMap.insert({createTab, new_tab_sch});
+			DBFile dbf;
+			std::string table_name(createTab);
+			dbf.Create((table_name+".bin").c_str(), heap, NULL);
+		}
+		else if (operType == 2){
+			DBFile dbf;
+			 std::string table_name(insertQuery->tableName);
+
+			dbf.Open((table_name+".bin").c_str());
+			dbf.Load(*schemaMap.at(insertQuery->tableName), insertQuery->fileName);
+			dbf.Close();
+		}
+		else if (operType == 3){
+			schemaMap.erase(dropTab);
+			std::string table_name(dropTab);
+			remove((table_name+".bin").c_str());
+			remove((table_name+"_lpage.txt").c_str());
+			remove((table_name+"_dpage.txt").c_str());
+			remove((table_name+"_type.txt").c_str());
+		}
+		else if (operType == 5){
+			string setOpstr(setOp);
+			showPlan();
+			if(setOpstr == "NONE"){
+				cout << plan<<endl;
+				plan = "";
+			}
+			else{
+				TreeNode * finalTree = createTree();
+				executeTree(finalTree, aliasToRel);
+			}
+			
+			cout <<"plan print is "<<endl;
+			
+			// TreeNode * finalTree = createTree();
+			// executeTree(finalTree, aliasToRel);
+			
+		}
+		else if(operType == 6){
+			run = false;
+		}
+		
+	}
+	
+
+	
+}
 

@@ -68,6 +68,7 @@ class Project_node : public TreeNode{
         int numAttsInput;
         int numAttsOutput;
         string input_pipe;
+        vector<string> columns;
 };
 //distinc
 class DuplicateRemoval_node : public TreeNode{
@@ -75,7 +76,7 @@ class DuplicateRemoval_node : public TreeNode{
         DuplicateRemoval drRelops;
         int distinctAtts;
         int distinctFunc;
-        Schema sch;
+        // Schema sch;
         string input_pipe;
 };
 
@@ -83,6 +84,13 @@ class Sum_node : public TreeNode{
     public:
         Sum sum_relops;
         Function computeMe;
+        string input_pipe;
+};
+class WriteOut_node : public TreeNode{
+    
+    public:
+        WriteOut wo_relOps;
+        // Schema schema;
         string input_pipe;
 };
 
@@ -94,12 +102,6 @@ class GroupBy_node : public TreeNode{
         string input_pipe;
 };
 
-class WriteOut_node : public TreeNode{
-    public:
-        WriteOut wo_relOps;
-        Schema schema;
-        string input_pipe;
-};
 
 
 #endif
