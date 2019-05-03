@@ -59,7 +59,7 @@ class Join_node : public TreeNode{
 
 class Project_node : public TreeNode{
     public:
-        int keepMe;
+        int *keepMe;
         int numAttsInput;
         int numAttsOutput;
         string input_pipe;

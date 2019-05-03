@@ -829,7 +829,7 @@ void executeTree(TreeNode* root, unordered_map<string,string>aliasToRel) {
 		{
 			Project p;
 			Project_node *pnode = (Project_node *)node; 
-			// p.Run(pnode->input_pipe, pnode->out_pipe_name,);
+			p.Run(*pipeMap.at(pnode->input_pipe), *pipeMap.at(pnode->out_pipe_name) ,pnode->keepMe, pnode->numAttsInput,pnode->numAttsOutput);
 		}	
 		// cout << node->node_type<<endl;
 		stack2.pop();
