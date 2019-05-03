@@ -138,6 +138,16 @@ void get_cnf (char *input, CNF &cnf_pred, Record &literal, Schema sch, struct An
 	cnf_pred.GrowFromParseTree (mod_andList, &sch, literal); // constructs CNF predicate
 	close_lexical_parser ();
 }
+void get_cnf (char *input, Function &fn_pred, Schema sch) {
+		init_lexical_parser_func (input);
+  		if (yyfuncparse() != 0) {
+			cout << " Error: can't parse your CNF.\n";
+			exit (1);
+		}
+		processFunction(finalFunction);
+		fn_pred.GrowFromParseTree (finalFunction, sch); // constructs CNF predicate
+		close_lexical_parser_func ();
+	}
 
 //Store selection and join in separate vectors
 void separateJoinSelection(vector <OrList*> &joinVector, vector <OrList*> &selectionVector) {
@@ -364,6 +374,7 @@ TreeNode *generateSelectNode(vector <string> aliases,
 			
 			
 
+			// get_cnf(tempcnfstr, sf_node->selOp, sf_node->literal, sch);
 			pipeMap.insert({out_pipe, outpipe});
             return sf_node;
         }
@@ -389,6 +400,7 @@ TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOu
 	Project_node *p_node = new Project_node(); 
 	p_node->node_type = P;
 	p_node->tables = projtables;
+	p_node->numAttsOutput = numAttsOutput;
  	p_node->out_pipe_name = "_"+last_outpipe;
 	p_node->cnf_str = cnf_str;
 	// p_node->numAttsInput = 
@@ -396,12 +408,19 @@ TreeNode *generateProjectNode(string cnf_str, string last_outpipe, int numAttsOu
 	return p_node; 
 
 }
-TreeNode *generateSumNode(string last_outpipe, string sum_on){
+TreeNode *generateSumNode(string last_outpipe, string sum_on, vector<string> tabnames){
 	Sum_node *s_node = new Sum_node(); 
 	s_node->node_type = S;
 	s_node->out_pipe_name = "_"+last_outpipe;
+
 	s_node->cnf_str = "("+sum_on+")";
-	// s_node->computeMe = 
+	s_node->tables = tabnames;
+
+	Schema sch = get_join_schema(s_node->tables);
+	char to_pass[s_node->cnf_str.length()];
+	strcpy(to_pass, s_node->cnf_str.c_str());
+	
+	get_cnf(to_pass, s_node->computeMe, sch);
 	return s_node; 
 
 }
@@ -556,7 +575,7 @@ void printPlan(){
 	}
 }
 
-TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList*> &joinVector, int index, vector<string> joinedTables) {
+TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList*> &joinVector, int index, vector<string> joinedTables, unordered_map <string, string> aliasToRel) {
 	
 	Join_node *node = new Join_node();
 	node->node_type = J;
@@ -570,17 +589,26 @@ TreeNode* getJoinNode (string lPipe, string rPipe, string opPipe, vector <OrList
 	pipeMap.insert({opPipe, outpipe});
 	string leftVal = joinVector[index]->left->left->value;
 	string rightVal = joinVector[index]->left->right->value;
-	string cnf_Str = "(" + leftVal+" = " + rightVal + ")";
+	// cout << "leftVal: "<<leftVal<<endl;
+	// cout << "rightVal: "<<rightVal<<endl;
+	string left_cnf = leftVal.substr(leftVal.find('.')+1, leftVal.length());
+	string right_cnf = rightVal.substr(rightVal.find('.')+1, rightVal.length());
+	node->cnf_str= "(" + left_cnf+" = " + right_cnf + ")";
+	
+	vector <string> tableNames;
+	for (int k =0; k<node->tables.size();k++){
+		tableNames.push_back(aliasToRel.at(node->tables[k]));
+	}
+	Schema sch = get_join_schema(tableNames);
 
-	// cout << "Built cnf: "<<cnf_Str<<endl;
-	node->cnf_str = cnf_Str;
-
-	// get_cnf(cnf_Str, sf_node->selOp, sf_node->literal, sch);
+	char cnf_Str[node->cnf_str.length()];
+	strcpy(cnf_Str, node->cnf_str.c_str());
+	get_cnf(cnf_Str, node->selOp, node->literal, sch);
 
 	return node;
 }
 
-void createJoinTree(vector <OrList*> &joinVector, string minCostPermutation, vector <string> aliasAs) {
+void createJoinTree(vector <OrList*> &joinVector, string minCostPermutation, vector <string> aliasAs, unordered_map <string, string> aliasToRel) {
 	
 	unordered_map<string,int> alias_to_pipeId;
 	unordered_map<int, vector<string>> pipeId_to_alias;
@@ -645,7 +673,7 @@ void createJoinTree(vector <OrList*> &joinVector, string minCostPermutation, vec
 			opPipe.append("_" + (*itop));
 		}
 		// cout << "Output Pipe:" << opPipe <<endl;
-		joinNode = getJoinNode(leftPipe, rightPipe, opPipe, joinVector, ((int)minCostPermutation[index] - 48), pipeId_to_alias.at(lpid));
+		joinNode = getJoinNode(leftPipe, rightPipe, opPipe, joinVector, ((int)minCostPermutation[index] - 48), pipeId_to_alias.at(lpid), aliasToRel);
 		operations_tree.insert({joinNode->out_pipe_name, joinNode}); 
 		join_tree.push_back((Join_node*)joinNode);
 	}
@@ -1143,7 +1171,7 @@ int main () {
 	printPlan();
 
 	string optimalJoinSeq = getOptimalJoinSequence(joinVector, s, aliasAs);
-	createJoinTree(joinVector, optimalJoinSeq, aliasAs);
+	createJoinTree(joinVector, optimalJoinSeq, aliasAs, aliasToRel);
 	
 	// Print Joins
 	for(int i =0;i<join_tree.size();i++){
@@ -1173,6 +1201,7 @@ int main () {
 	// Checking if Projection is present
 	if (attsToSelect!=NULL){
 		vector<string> projtables;
+		vector<string> finalprojtables;
 		struct NameList *selectAtt = attsToSelect;
 		while(selectAtt){
 			numAttsp++;
@@ -1189,6 +1218,11 @@ int main () {
 		}
 		projection = projection + ")";
 
+		//generate tables
+		for(int i =0; i<projtables.size(); i++) {
+			// int pid = relToPid()
+		}
+
 		TreeNode *project_node = new TreeNode();
 		project_node = generateProjectNode(projection, last_out_pipe, numAttsp, projtables);
 		cout<<"On "+last_out_pipe+":"<<endl;
@@ -1198,9 +1232,25 @@ int main () {
 		operations_tree.insert({last_out_pipe, project_node});
 	}	
 	//only print
-	if (finalFunction != NULL){
-		cout<<"On "+last_out_pipe+":"<<endl;
-		cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
+	if(finalFunction != NULL) {
+		cout<<"Function: (";		
+		struct FuncOperator *funcOp = finalFunction;
+		struct FuncOperator *preFunc;
+		while(funcOp != NULL) {
+			if(funcOp->leftOperator != NULL) {
+				cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
+				string temp = funcOp->leftOperator->leftOperand->value;
+				// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+				// strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
+			}
+			else {
+				cout << funcOp->leftOperand->value<<")" <<endl;
+				string temp = funcOp->leftOperand->value;
+				// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+				// strcpy(funcOp->leftOperand->value, attrname.c_str());
+			}
+			funcOp = funcOp->right;
+		}
 	}
 	 
 	 vector<string> group_tables;
@@ -1227,14 +1277,14 @@ int main () {
 				if(funcOp->leftOperator != NULL) {
 					cout << funcOp->leftOperator->leftOperand->value << " " << funcOp->code;
 					string temp = funcOp->leftOperator->leftOperand->value;
-					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
-					strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
+					// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+					// strcpy(funcOp->leftOperator->leftOperand->value, attrname.c_str());
 				}
 				else {
 					cout << funcOp->leftOperand->value<<")" <<endl;
 					string temp = funcOp->leftOperand->value;
-					string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
-					strcpy(funcOp->leftOperand->value, attrname.c_str());
+					// string attrname = temp.substr(temp.find('.')+1, temp.length()-1);
+					// strcpy(funcOp->leftOperand->value, attrname.c_str());
 				}
 				funcOp = funcOp->right;
 			}
@@ -1248,10 +1298,15 @@ int main () {
 	//if no group by then check if sum present
 	else {
 		if (finalFunction != NULL){
-			cout<<"On "+last_out_pipe+":"<<endl;
-			cout<<"S("<<finalFunction->leftOperand->value<<") => _"+last_out_pipe<<endl;
 			TreeNode *sum_node = new TreeNode();
-			sum_node = generateSumNode(last_out_pipe, finalFunction->leftOperand->value);
+
+			string tempsumstr = finalFunction->leftOperand->value;
+			string relname = tempsumstr.substr(0, tempsumstr.find('.'));
+			vector<string> tabnames;
+			tabnames.push_back(aliasToRel.find(relname)->second);
+			
+			string sum_on = tempsumstr.substr(tempsumstr.find('.')+1, tempsumstr.length());
+			sum_node = generateSumNode(last_out_pipe, sum_on, tabnames);
 			last_out_pipe = sum_node->out_pipe_name;
 			operations_tree.insert({last_out_pipe, sum_node});
 			sumNode = (Sum_node*)sum_node;
@@ -1267,7 +1322,7 @@ int main () {
 	cout<<"W ( "+last_out_pipe+" )"<<endl;
 
 	TreeNode * finalTree = createTree();
-	executeTree(finalTree, aliasToRel);
+	// executeTree(finalTree, aliasToRel);
 
 }
 
